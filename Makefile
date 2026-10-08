@@ -1,5 +1,5 @@
-# Project entry points. The Python targets (ingest, index, ask, eval) come in later steps.
-.PHONY: up down clean
+# Project entry points. The remaining Python targets (index, ask, eval) come in later steps.
+.PHONY: up down ingest clean
 
 # Start Postgres + pgvector and wait until it accepts connections.
 up:
@@ -9,6 +9,11 @@ up:
 down:
 	docker compose down
 
-# Stop the containers and delete the database volume (the schema is re-applied on the next `make up`).
+# Download the pages in sources.yaml (cached in data/raw/) and split them into data/chunks/.
+ingest:
+	uv run python -m sentinel1_rag.ingest
+
+# Stop the containers, delete the database volume and the downloaded data.
 clean:
 	docker compose down -v
+	rm -rf data/

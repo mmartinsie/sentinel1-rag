@@ -181,3 +181,95 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - The image's `docker-entrypoint.sh` (line 297) starts the temporary init server with `listen_addresses=''`, so the TCP check cannot pass during init.
   - Data survives `make down` + `make up`. After `make clean`, the volume is gone and the next `make up` applies `schema.sql` again.
   - From Python, psycopg 3.3.6 and pgvector 0.5.0 connect and compute the same cosine distance (0.293).
+
+## D-010: The corpus is the Sentinel-1 subtree of the SentiWiki (5 pages)
+
+- **Status:** Accepted (step 3, 2026-10-09)
+- **Decision:** `sources.yaml` lists the landing page and the 4 chapters (`s1-mission`, `s1-products`, `s1-processing`, `s1-applications`). Those are exactly the pages under "Sentinel-1" in the site's page tree.
+- **Alternatives considered:**
+  - *"POD in details"* (`/web/precise-orbit-determination`): about 7.3k words, but shared across missions (60 mentions of Sentinel-1 against 47 of S2/S3/S5P), and `s1-mission` already has a section on POD.
+  - *The Glossary:* about 6.5k words spread over 184 tiny entries, for every mission. It could help with acronyms.
+  - *"SAFE Format":* about 190 words, with no mention of Sentinel-1.
+  - *The PDFs in the document library:* an extension (see the README).
+- **Why:** the subtree is exactly "the Sentinel-1 SentiWiki". Pages shared across missions add facts about other satellites that retrieval would have to filter out. Whether a candidate helps can be measured in step 6.
+- **Trade-offs:** acronyms are only defined where the Sentinel-1 pages define them, and orbit files are only covered by the POD section of `s1-mission`.
+- **Verified [2026-10-08]:**
+  - `/web/__pagetree.json` lists exactly these 5 pages under Sentinel-1.
+  - The sizes and mission mentions of the candidate pages were measured on the live pages.
+
+## D-011: Polite downloader with a local cache
+
+- **Status:** Accepted (step 3, 2026-10-09)
+- **Decision:** a small client of our own, built on `httpx`:
+  - A User-Agent that names the project and links to the repository.
+  - `robots.txt` is read once per site, before the first page: 401/403 disallow everything, 404 allows everything, and 5xx stops the run.
+  - At least 1 s between requests, `robots.txt` included.
+  - Every page is cached in `data/raw/<page>.html`, with its URL and download time in `<page>.json`.
+  - A cached page is never downloaded again. To refresh it, delete the file or run `make clean`.
+- **Alternatives considered:** `wget` or `curl` called from the Makefile; Scrapy; conditional requests (ETag / If-Modified-Since) to refresh automatically.
+- **Why:** each rule is a few visible lines, and once the pages are cached the ingest runs offline and gives the same output every time.
+- **Trade-offs:** changes on the site are only picked up after deleting the cache. There are no retries, so one failing page stops the run.
+- **Verified [2026-10-08]:**
+  - The first run made 6 requests (`robots.txt` and 5 pages) in about 8 s.
+  - The second run made 0 requests and wrote byte-identical chunk files.
+
+## D-012: Text extraction rules
+
+- **Status:** Accepted (step 3, 2026-10-09)
+- **Decision:**
+  - **Content and title:** the content comes from `article#content section.article-body`, and the page title from its `h1`. The "On this Page" table of contents lives in a separate `nav.toc`, so it is left out.
+  - **Noise:** copy-link buttons, icons, images and scripts are removed.
+  - **Sections:** every heading from h2 to h6 opens a section. Its path starts with the page title, and its anchor is the heading `id`, the same one the page uses in its own "copy link" URL.
+  - **Paragraphs and lists:** one block per paragraph, and lists with one line per item.
+  - **Tables:** one line per row, with cells joined by `" | "`. We don't try to detect headers, because some tables mark them with `<th>` and others with plain cells.
+  - **Figures and expandable blocks:** figures keep only their caption, and expandable blocks keep their title and body.
+  - **Reference markers:** the wiki's numeric markers (`[1]`, `[2, 3]`) are removed so that they don't clash with the `[n]` citations of our answers.
+- **Alternatives considered:**
+  - Generic boilerplate removers (trafilatura, readability-lxml) or HTML-to-Markdown converters: extra dependencies and less control.
+  - Tables as "header: value" pairs: they need header detection, and they are wrong when the first row is not a header.
+  - Keeping the reference markers.
+- **Why:** the SentiWiki layout is regular, so an extractor of about 100 lines stays predictable and explainable. The 44 tables hold key facts (resolutions, beam parameters, naming conventions) and must survive extraction.
+- **Trade-offs:**
+  - The extractor is tied to this site's layout; if the layout changes, it fails loudly with "unexpected page layout".
+  - Joining table cells with `|` loses which column an empty cell belonged to.
+  - The link between a reference marker and its bibliography entry is lost.
+- **Verified [2026-10-08]:**
+  - No table-of-contents, button or image-file text appears in the chunks, and no numeric reference marker is left.
+  - Section paths and anchors match the site, e.g. `S1 Mission > Acquisition Modes > Interferometric Wide Swath` with `#Interferometric-Wide-Swath`.
+
+## D-013: Chunking: sections first, balanced splits, calibrated token estimate
+
+- **Status:** Accepted (step 3, 2026-10-09)
+- **Decision:**
+  - **Short sections:** a section of up to 500 tokens is one chunk.
+  - **Long sections:** a longer section is cut into chunks of similar size, up to 400 tokens each. Cuts fall between sentences, table rows or list items, and a table or list that fits in 400 tokens stays whole.
+  - **Overlap:** each chunk after a cut repeats up to 60 tokens (15 %) from the end of the previous one.
+  - **Token estimate:** tokens are estimated as words × 1.68, a ratio measured on this corpus with bge-m3.
+  - **Output:** each page goes to `data/chunks/<page>.json`, together with its `content_hash`, `fetched_at` and chunking settings.
+  - **Prefix:** the section path (which starts with the page title) is the "Page > Section" prefix that step 4 puts in front of each chunk before embedding it.
+- **Alternatives considered:**
+  - *Fixed-size sliding windows:* they ignore the document structure.
+  - *Exact counts with the bge-m3 tokenizer:* an extra dependency plus a model download.
+  - *Counting characters instead of words:* worse on this corpus.
+  - *Merging small sections, or semantic chunking:* boundaries placed where the embeddings change.
+- **Why:**
+  - Sections are the natural units of topic.
+  - Balanced splits avoid tiny leftover chunks.
+  - The estimate is unbiased without adding a dependency.
+  - Whole tables keep each number next to its row and column names.
+- **Trade-offs:**
+  - **Uneven estimate:** it has a spread of 38 tokens, and chunks dominated by tables are under-estimated by up to ~40 %. As a result, 3 chunks exceed 500 real tokens (the largest has 595). That is harmless here: Ollama runs bge-m3 with a 4096-token context.
+  - **Gaps in the overlap:** 19 of the 106 cuts carry no overlap, because the previous chunk ends with a whole table or with a sentence longer than 60 tokens.
+  - **Small chunks:** short sections stay short, and 15 chunks have fewer than 100 tokens. Merging them is a candidate experiment for step 6.
+- **Verified [2026-10-08]** (every chunk sent through bge-m3, reading Ollama's `prompt_eval_count`):
+  - **Calibration:**
+    - The first guess of 1.35 tokens per word under-estimated chunks by 62 tokens on average, which let real chunks reach 593 tokens.
+    - The corpus measures 1.68 tokens per word (prose 1.61, tables 1.86), plus 2 special tokens per input.
+    - Counting words predicts the size better than counting characters (error spread 12 % vs 16 %).
+  - **Final result:**
+    - 195 chunks from 89 sections, of which 32 were split.
+    - Real tokens: mean 268, median 273, minimum 20, maximum 595.
+    - Distribution: <100: 15, 100–199: 31, 200–299: 71, 300–399: 62, 400–499: 13, ≥500: 3.
+    - 43 of the 44 tables stay whole in one chunk.
+    - 87 of the 106 cuts carry overlap.
+    - The output is deterministic: a second run writes byte-identical files.

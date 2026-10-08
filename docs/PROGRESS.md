@@ -1,18 +1,18 @@
 # Progress
 
-_Last updated: 2026-10-08_
+_Last updated: 2026-10-09_
 
 ## Current step
 
-**Step 3: Ingest and chunking.** Not started. Step 2 was approved on 2026-10-08.
+**Step 4: Indexing.** Not started. Step 3 was approved on 2026-10-09.
 
 | Step | Scope | Status |
 |---|---|---|
 | 0 | Bootstrap and environment | Done |
 | 1 | Ollama and models (`gemma4:e4b-it-qat`, `bge-m3`) | Done |
 | 2 | Postgres + pgvector (`docker-compose.yml`, `schema.sql`, `make up` / `make down` / `make clean`) | Done |
-| 3 | Ingest and chunking (`sources.yaml`, cached download, section chunker) | Next |
-| 4 | Indexing (batched embeddings, HNSW, idempotency) | Pending |
+| 3 | Ingest and chunking (`sources.yaml`, cached download, section chunker) | Done |
+| 4 | Indexing (batched embeddings, HNSW, idempotency) | Next |
 | 5 | Query (`make ask`, prompt, citations) | Pending |
 | 6 | Retrieval eval (hit@1, hit@5, MRR) | Pending |
 | 7 | Documentation (README, final review of the decisions) | Pending |
@@ -50,6 +50,21 @@ _Last updated: 2026-10-08_
   - Data survives `make down` / `make up`, and `make clean` resets the database.
   - Python (psycopg + pgvector) connects.
 
+### Step 3
+
+- `sources.yaml`: the 5 pages of the Sentinel-1 subtree (D-010).
+- `make ingest` (`src/sentinel1_rag/`):
+  - `fetch.py` downloads the pages politely into `data/raw/` (D-011).
+  - `extract.py` turns each page into sections (D-012).
+  - `chunking.py` cuts the sections into chunks (D-013).
+  - `ingest.py` writes the result to `data/chunks/<page>.json` and prints the statistics.
+- `make clean` now also deletes `data/`.
+- Result: 195 chunks from 89 sections. Real bge-m3 size: mean 268 tokens, median 273, minimum 20, maximum 595.
+- Fixed during the step:
+  - The token estimate was calibrated against real counts (from 1.35 to 1.68 tokens per word).
+  - Tables are no longer split when they fit in a chunk.
+  - The wiki's `[n]` reference markers are removed.
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -66,14 +81,15 @@ _Last updated: 2026-10-08_
 
 ## Findings that affect later steps
 
-- **Corpus (step 3):**
-  - Size: the Sentinel-1 SentiWiki is a landing page plus 4 long chapters (`s1-mission`, `s1-products`, `s1-processing`, `s1-applications`), not 15–20 pages. That is roughly 28k words (rough count) under about 90 h2–h4 headings.
-  - Format: server-rendered HTML (Scroll Sites on top of Confluence), and `robots.txt` allows everything.
-  - Anchors: every heading has a stable `id`, so citation URLs look like `/web/s1-mission#Interferometric-Wide-Swath`.
-  - Chunker: skip the "On this Page" table-of-contents heading, and handle h4 headings (their own chunk, or merged into the parent section).
-  - Possible extra sources, linked from the chapters: `/web/safe-format` and `/web/precise-orbit-determination`.
-- **Pipeline shape (steps 3 and 4, from D-008):** `make ingest` writes its chunks to `data/` and never touches the database. `make index` is the only step that writes rows: one page per transaction, with every chunk inserted together with its embedding.
-- **Idempotency (step 4):** skip a page only when both its `content_hash` (page text) and its `index_config` (chunking settings + embedding model) are unchanged.
+- **Indexing input (step 4):**
+  - `make index` reads `data/chunks/<page>.json`. Each file holds `url`, `title`, `content_hash`, `fetched_at`, `chunking` (the settings plus `tokens_per_word`) and the chunks (`chunk_index`, `section`, `anchor`, `content`, `tokens`).
+  - The text to embed is `section + "\n\n" + content`. The section path already starts with the page title, so it is the "Page > Section" prefix.
+  - Pages that disappear from `sources.yaml` have to be deleted from the database.
+- **Pipeline shape (step 4, from D-008):** `make index` is the only step that writes rows: one page per transaction, with every chunk inserted together with its embedding.
+- **Idempotency (step 4):** skip a page only when both its `content_hash` (page text) and its `index_config` are unchanged. `index_config` must cover the `chunking` settings and the embedding model.
+- **Experiments for step 6:**
+  - Add the cross-mission candidate pages (POD, Glossary; D-010).
+  - Merge small sections: 15 chunks have fewer than 100 tokens.
 - **Embedding API (step 4):**
   - Use `/api/embed` with an array `input`.
   - Its `prompt_eval_count` gives the real token count, which can validate the chunker's token estimate.
@@ -87,19 +103,14 @@ _Last updated: 2026-10-08_
 
 ## Next
 
-**Step 3:**
-- `sources.yaml` with the pages, reviewed together. Decide whether to add `safe-format` and `precise-orbit-determination`.
-- Cached download into `data/raw/`: at most 1 request per second, an identifying User-Agent, and respect for `robots.txt`.
-- A section chunker:
-  - Decide how to handle h4 headings, and skip "On this Page".
-  - Aim for 300–500 tokens per chunk with 10–15 % overlap.
-  - Prefix each chunk with "Page title > Section" and keep its anchor.
-  - Write the chunks to `data/`, with no database writes.
-- Show the statistics (count, average, minimum and maximum length) and 3 example chunks.
+**Step 4:**
+- `make index`: embed the chunks in batches with bge-m3 (`/api/embed`, `truncate: false`), then insert each page's chunks in one transaction.
+- Make it idempotent with `content_hash` + `index_config`, and check this by running it twice.
+- Look at the HNSW index at work (`EXPLAIN`).
 
 ## How to resume
 
 1. `cd ~/sentinel1-rag && uv sync`
 2. Check that Ollama is running and has both models: `systemctl is-active ollama && ollama list`.
-3. Start the database: `make up`.
+3. Start the database with `make up`, and rebuild the chunks with `make ingest` (it uses the cache in `data/raw/`).
 4. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.

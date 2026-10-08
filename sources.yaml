@@ -1,0 +1,9 @@
+# Pages that make up the RAG corpus.
+# This is the whole Sentinel-1 subtree of the SentiWiki, as listed in its page tree
+# (https://sentiwiki.copernicus.eu/web/__pagetree.json): a landing page and 4 chapters.
+pages:
+  - https://sentiwiki.copernicus.eu/web/sentinel-1
+  - https://sentiwiki.copernicus.eu/web/s1-mission
+  - https://sentiwiki.copernicus.eu/web/s1-products
+  - https://sentiwiki.copernicus.eu/web/s1-processing
+  - https://sentiwiki.copernicus.eu/web/s1-applications
