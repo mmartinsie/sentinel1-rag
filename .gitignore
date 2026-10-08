@@ -25,5 +25,5 @@ wheels/
 # Downloaded corpus and derived artifacts (re-created by the ingest script)
 data/
 
-# Private working brief, not part of the project
-BRIEF.md
+# Private working brief (and its original Spanish copy), not part of the project
+BRIEF*.md

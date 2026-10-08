@@ -4,7 +4,7 @@ A small, local and free RAG (retrieval-augmented generation) system that answers
 
 Everything runs locally: Ollama for embeddings and generation, PostgreSQL + pgvector for retrieval.
 
-> **Status:** work in progress. See [docs/PROGRESS.md](docs/PROGRESS.md) for the current step and [docs/DECISIONS.md](docs/DECISIONS.md) for the design decisions.
+> **Status:** work in progress. See [docs/PROGRESS.md](docs/PROGRESS.md) for the current step and [docs/DECISIONS.md](docs/DECISIONS.md) for the design decisions. Each finished step has a plain-English write-up in [docs/steps/](docs/steps/).
 
 ## Extensions (not implemented)
 
