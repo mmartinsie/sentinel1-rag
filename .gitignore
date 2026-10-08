@@ -1,0 +1,29 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local configuration and secrets
+.env
+.claude/settings.local.json
+
+# Editors
+.vscode/
+.idea/
+
+# Downloaded corpus and derived artifacts (re-created by the ingest script)
+data/
+
+# Private working brief, not part of the project
+BRIEF.md
