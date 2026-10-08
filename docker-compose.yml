@@ -1,0 +1,30 @@
+# Local Postgres + pgvector for the RAG index.
+# Credentials are local-only defaults; override them in a .env file if needed.
+name: sentinel1-rag
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg18-trixie
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag}
+      POSTGRES_DB: ${POSTGRES_DB:-rag}
+    ports:
+      # Bound to localhost only: the database is not reachable from the network.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18 images keep PGDATA in /var/lib/postgresql/18/docker,
+      # so the volume goes on /var/lib/postgresql (not on .../data).
+      - pgdata:/var/lib/postgresql
+      # Runs only when the data volume is empty (first start or after `make clean`).
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      # Check over TCP: during init the temporary server only listens on the Unix
+      # socket, so this passes once the schema is applied and the real server is up.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:

@@ -134,3 +134,50 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - uv 0.12.21 with CPython 3.12.3.
   - All dependencies resolve and import: httpx 0.28.1, beautifulsoup4 4.15.0, psycopg 3.3.6, pgvector 0.5.0, PyYAML 6.0.3.
   - pgvector-python 0.5.0 does not depend on numpy, and `pgvector.Vector` accepts plain lists (stored as float32).
+
+## D-008: Database schema, adjusted from the brief
+
+- **Status:** Accepted (step 2, 2026-10-08)
+- **Decision:** the brief's two tables, with four changes:
+  1. `chunks.anchor` holds the heading id used in citation links (`documents.url` + `#` + `anchor`). It is nullable: `NULL` means the top of the page.
+  2. `documents.index_config` records the chunking settings and the embedding model used to build the page's chunks. A page is indexed again when its `content_hash` (the page text) or its `index_config` changes.
+  3. `chunks.embedding` is `NOT NULL`: a chunk is always inserted together with its embedding.
+  4. `UNIQUE (document_id, chunk_index)` guards against storing a page's chunks twice.
+
+  The HNSW index is named (`chunks_embedding_hnsw`) so it is easy to find in `EXPLAIN` output.
+- **Alternatives considered:**
+  - *Storing the full citation URL in every chunk:* the query gets simpler, but the page URL is repeated in every chunk.
+  - *A single hash covering both the text and the settings:* one column fewer, but it hides *why* a page was indexed again.
+  - *A nullable embedding with a two-phase pipeline* (ingest inserts the chunks, index fills in the vectors later): a run could resume halfway, but half-built rows would exist and every search would have to filter them out.
+- **Why:**
+  - Citations need the anchor.
+  - Re-indexing must react to every input that shapes the chunks and vectors, not only to the page text. Vectors from two different models or chunkings must never be mixed in one index, because their distances would not be comparable.
+  - Every row in `chunks` can be searched.
+- **Trade-offs:**
+  - This fixes the shape of the pipeline: `make ingest` writes its chunks to `data/` and never touches the database, and `make index` is the only step that writes rows, one page per transaction.
+  - If embedding fails halfway through a page, that page is rolled back and retried rather than saved half-indexed.
+- **Verified in step 2 [2026-10-08]:**
+  - `\d documents` and `\d chunks` show the expected columns and constraints, and the index `chunks_embedding_hnsw` uses `hnsw (embedding vector_cosine_ops)`.
+  - A 3-dimensional vector is rejected ("expected 1024 dimensions, not 3"), and so is a chunk without an embedding (not-null violation).
+  - Nearest-neighbour smoke test: querying with e1 against e1, e1+e2 and e3 returns cosine distances of 0.000, 0.293 and 1.000, as the maths predicts.
+
+## D-009: Local database setup with Docker Compose
+
+- **Status:** Accepted (step 2, 2026-10-08)
+- **Decision:**
+  - A single `db` service, with the port published on `127.0.0.1` only.
+  - Local credentials (`rag` / `rag`, database `rag`) written as overridable defaults (`${POSTGRES_USER:-rag}`), so a clean clone works without a `.env` file.
+  - A `pg_isready` healthcheck over TCP. `make up` runs `docker compose up -d --wait`.
+  - An explicit Compose project name, `sentinel1-rag`, so containers and volumes never collide with other projects. `make clean` (`docker compose down -v`) therefore only deletes this project's volume.
+- **Alternatives considered:**
+  - *A required `.env` file with an `.env.example`:* one more setup step for a local-only database.
+  - *Publishing the port on all interfaces:* the database would be reachable from the local network.
+  - *A healthcheck over the Unix socket:* it can report "ready" before the schema exists.
+  - *A fixed `sleep` in `make up`:* either slow or flaky.
+- **Why:** it works from a clean clone with no setup, the defaults are safe, and readiness is deterministic.
+- **Trade-offs:** a known default password lives in the repo. That is acceptable only because the port is bound to localhost and the data is public documentation. There is no TLS.
+- **Verified in step 2 [2026-10-08]:**
+  - `make up` reaches *healthy* in about 11 s, and `ss` shows the listener on `127.0.0.1:5432` only.
+  - The image's `docker-entrypoint.sh` (line 297) starts the temporary init server with `listen_addresses=''`, so the TCP check cannot pass during init.
+  - Data survives `make down` + `make up`. After `make clean`, the volume is gone and the next `make up` applies `schema.sql` again.
+  - From Python, psycopg 3.3.6 and pgvector 0.5.0 connect and compute the same cosine distance (0.293).
