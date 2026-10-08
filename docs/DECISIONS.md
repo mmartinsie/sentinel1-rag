@@ -22,10 +22,13 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - Ollama GPU docs: NVIDIA compute capability 5.0+ is supported, and CC 5.0–6.2 needs driver ≥ 570. The GTX 1070 is listed.
   - Microsoft WSL networking docs: mirrored mode requires Windows 11 22H2 or later.
   - Ollama is not installed (neither in WSL nor on Windows), and port 11434 is free.
+- **Verified in step 1 [2026-10-08]:**
+  - Ollama 0.40.1 runs as a systemd service. On WSL2 the installer stops before the driver-installation part (lines 256–262 of `install.sh`).
+  - The server log shows the GTX 1070 detected as CUDA compute 6.1 and served by the bundled `cuda_v12` runner. The `cuda_v13` runner shipped alongside it no longer supports Pascal.
 
 ## D-002: LLM is `gemma4:e4b-it-qat`
 
-- **Status:** Accepted (step 0, 2026-10-08). GPU fit still to be confirmed in step 1.
+- **Status:** Accepted (step 0, 2026-10-08). GPU fit confirmed in step 1.
 - **Decision:** `gemma4:e4b-it-qat` with `num_ctx = 8192` and `temperature = 0.2`, both set per request. Fallback: `gemma4:e2b-it-qat`.
 - **Alternatives considered:**
   - *`gemma4:e4b` (default tag):* Q4_K_M post-training quantization, 6.58 GB including a speculative-decoding draft model. Bigger, and not QAT.
@@ -36,16 +39,25 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - QAT (quantization-aware training) trains the model to tolerate 4-bit weights, so Q4_0 loses less quality than post-training quantization, at a smaller size.
   - 8192 tokens is about 2.5× the expected prompt: 5 chunks × ≤ 500 tokens, plus instructions and the question, is roughly 3k tokens.
   - A low temperature gives more repeatable answers that stay closer to the context.
-- **Trade-offs:** a model with about 4.5B effective parameters reasons and writes worse than 12B+ models. The download includes a vision/audio projector of about 1 GB that we will not use. It requires Ollama ≥ 0.30.5.
+- **Trade-offs:** a model with about 4.5B effective parameters reasons and writes worse than 12B+ models. The vision and audio encoders (about 1 GB) are loaded onto the GPU even though we only send text. It requires Ollama ≥ 0.30.5.
 - **Verified [2026-10-08]** (Ollama registry manifests and GGUF header):
   - `e4b-it-qat`: Q4_0, 7.5B total parameters, 5.16 GB of weights plus a 0.99 GB projector, 6.15 GB in total. Requires Ollama ≥ 0.30.5.
   - `e2b-it-qat`: Q4_0, 4.34 GB in total.
   - Default sampling parameters are temperature 1, top_k 64 and top_p 0.95, so temperature must be overridden.
   - Architecture: 42 layers, 18 of which reuse another layer's KV cache, and sliding-window attention (512 tokens) on most layers, with a maximum context of 128K. The KV cache at 8K context should therefore be small.
+- **Verified in step 1 [2026-10-08]** (`ollama ps`, `/api/ps`, llama.cpp load log, `nvidia-smi`):
+  - 100% GPU with `num_ctx = 8192`: all 43 layers are offloaded.
+  - VRAM: 2,696 MiB of weights, a 168 MiB KV cache at 8192 tokens (small, as expected from the sliding window and the shared KV layers) and a 110 MiB compute buffer. On top of that come the vision and audio encoders (up to about 1.1 GiB). With Gemma loaded, `nvidia-smi` reports 4.6 GiB used out of 8 GiB.
+  - System RAM: llama.cpp keeps 2,730 MiB of weights on the CPU, namely the input embedding tables, which are large in E4B. The runner process uses 3.3 GiB.
+  - Speed: about 41 tokens/s generating and about 835 tokens/s reading the prompt (a 3.7k-token prompt takes 4.5 s).
+  - The first load takes about 70 s, because the WSL virtual disk lives on a hard drive (HDD).
+  - With `think: false` the response contains no thinking.
+  - On this GPU, Ollama's default context is 4096, which is why `num_ctx` has to be sent with every request.
+  - The fallback model was not needed.
 
 ## D-003: Embeddings with `bge-m3` via Ollama
 
-- **Status:** Accepted (step 0, 2026-10-08). Dimension still to be confirmed with a real call in step 1.
+- **Status:** Accepted (step 0, 2026-10-08). Dimension confirmed in step 1.
 - **Decision:** `bge-m3` dense embeddings (1024 dimensions), requested in batches through Ollama's `/api/embed`.
 - **Alternatives considered:**
   - *English-only embedding models* (e.g. `nomic-embed-text`, `mxbai-embed-large`): smaller and faster, but Spanish questions would not match English passages well.
@@ -63,6 +75,11 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - GGUF metadata in the Ollama registry: `bert.embedding_length = 1024`, `bert.context_length = 8192`, `bert.pooling_type = 2` (CLS), F16, 567M parameters.
   - Model card: "the BGE-M3 model no longer requires adding instructions to the queries".
   - Ollama API docs: `/api/embed` accepts an array `input` and returns `prompt_eval_count`.
+- **Verified in step 1 [2026-10-08]:**
+  - `/api/embed` returns 1024-dimensional vectors with an L2 norm of 1.0. Because they are normalized, ranking by cosine distance and by inner product gives the same order.
+  - Cross-lingual check: a Spanish question about GRD vs SLC scored 0.631 against an English passage that answers it, 0.271 against an unrelated English sentence and 0.220 against an unrelated Spanish sentence.
+  - Ollama loads bge-m3 with its default 4096-token context, far above our chunk size.
+  - Gemma and bge-m3 fit in VRAM together (5.4 GiB used out of 8 GiB), so embedding the question does not evict Gemma.
 
 ## D-004: Vector store is PostgreSQL 18 + pgvector 0.8.7 in Docker Compose
 
