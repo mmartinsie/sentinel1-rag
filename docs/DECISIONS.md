@@ -116,6 +116,11 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 - **Alternatives considered:** no index (exact k-NN through a sequential scan), or IVFFlat.
 - **Why:** the goal is to learn how an approximate nearest-neighbour index works and be able to explain it. At this scale (a few hundred chunks) exact search takes milliseconds, so **the index is not there for performance**, and the docs say so.
 - **Trade-offs:** results are approximate (recall can drop below 100 %), and inserts are slower and use more memory. With so few rows the planner may choose a sequential scan anyway, so showing the index at work needs `EXPLAIN` with `enable_seqscan = off`.
+- **Verified in step 4 [2026-10-09]** (195 chunks):
+  - With default settings the planner picks a sequential scan plus a top-N sort, which runs in 1.1 ms.
+  - With `enable_seqscan = off` the plan becomes `Index Scan using chunks_embedding_hnsw`: 0.5 ms, and 254 buffers read instead of 717. Both times are negligible.
+  - Recall@5 of HNSW against exact search, using the 195 stored vectors as queries, is 1.000 with `hnsw.ef_search` set to 5, 10 and 40 (the default). Every query returns the same top 5.
+  - The index takes 1.6 MB, built with pgvector's defaults (`m = 16`, `ef_construction = 64`).
 
 ## D-007: Python 3.12 + uv, src layout, minimal dependencies, raw HTTP to Ollama
 
@@ -273,3 +278,39 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
     - 43 of the 44 tables stay whole in one chunk.
     - 87 of the 106 cuts carry overlap.
     - The output is deterministic: a second run writes byte-identical files.
+
+## D-014: Indexing: per-page transactions, skip unchanged pages, batches of 32
+
+- **Status:** Accepted (step 4, 2026-10-09)
+- **Decision:**
+  - **Input:** `make index` reads `data/chunks/*.json`. The text embedded for each chunk is its section path, a blank line and its content (`EMBED_TEMPLATE`).
+  - **Embedding requests:** sent to Ollama's `/api/embed` in batches of 32, with `truncate: false`.
+  - **Skip check:** a page is skipped when its stored `content_hash` and `index_config` both match. `index_config` is a JSON document with the chunking settings, the embedding model's name and digest, and the template.
+  - **Re-indexing a page:**
+    1. Compute all its embeddings first, outside any transaction.
+    2. Then, in a single transaction, delete the document (its chunks go with it, through `ON DELETE CASCADE`) and insert the document and its chunks with `executemany`.
+  - **Removed pages:** documents whose page no longer appears in `data/chunks/` are deleted.
+  - **Connection:** it runs in autocommit mode, so that `conn.transaction()` issues a real `BEGIN`/`COMMIT` instead of a savepoint.
+- **Alternatives considered:**
+  - *Updating chunks in place* (upserts): more SQL, and leftover rows when a page gets shorter.
+  - *One transaction for the whole run:* a failure on the last page would undo all the others, and the locks would be held longer.
+  - *Embedding inside the transaction:* the transaction would stay open while waiting on Ollama.
+  - *Other batch sizes:* one chunk per request is the slowest, and one request for everything is no faster and fails as a whole.
+  - *`COPY` instead of `INSERT`:* faster at scale, unnecessary for about 200 rows.
+  - *The model name without its digest:* a model pulled again with new weights would go unnoticed.
+- **Why:** each page is always either fully indexed with one recipe or not indexed at all. Re-runs cost nothing, and every input that shapes a vector is tracked.
+- **Trade-offs:**
+  - The unit of change is the page: one changed paragraph re-embeds the whole page (at most 63 chunks, about 5 s).
+  - Document ids change on every re-index; nothing outside the database refers to them.
+  - Ollama has to be reachable even when every page is skipped, because the run asks it for the model digest.
+- **Verified [2026-10-09]:**
+  - **Batch size**, timing all 195 chunks:
+    - 1 per request: 20.8 s (107 ms per chunk). 8, 32 or all at once: about 15.8 s (81 ms per chunk).
+    - The vectors are identical whatever the batch size (largest difference: 0).
+  - **First run:** 5 pages and 195 chunks in 16.8 s.
+  - **Second run:** all 5 pages skipped and no embeddings computed. A fingerprint of every row (ids, text and vectors) is identical before and after.
+  - **Change detection:**
+    - An altered `content_hash` re-indexes only that page, and an altered stored `index_config` only that page.
+    - A removed page file deletes its document and its 50 chunks.
+    - Restoring the files brings the database back to 5 documents and 195 chunks, and one more run skips everything.
+  - **Retrieval sanity check:** the brief's example question, in Spanish, returns 5 chunks that all mention GRD and SLC, at cosine distances from 0.356 to 0.455. The first is the Level-1 list "Single Look Complex (SLC) products / Ground Range Detected (GRD) products".

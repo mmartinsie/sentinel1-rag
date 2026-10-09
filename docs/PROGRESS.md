@@ -4,7 +4,7 @@ _Last updated: 2026-10-09_
 
 ## Current step
 
-**Step 4: Indexing.** Not started. Step 3 was approved on 2026-10-09.
+**Step 5: Query.** Not started. Step 4 was approved on 2026-10-09.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -12,8 +12,8 @@ _Last updated: 2026-10-09_
 | 1 | Ollama and models (`gemma4:e4b-it-qat`, `bge-m3`) | Done |
 | 2 | Postgres + pgvector (`docker-compose.yml`, `schema.sql`, `make up` / `make down` / `make clean`) | Done |
 | 3 | Ingest and chunking (`sources.yaml`, cached download, section chunker) | Done |
-| 4 | Indexing (batched embeddings, HNSW, idempotency) | Next |
-| 5 | Query (`make ask`, prompt, citations) | Pending |
+| 4 | Indexing (batched embeddings, HNSW, idempotency) | Done |
+| 5 | Query (`make ask`, prompt, citations) | Next |
 | 6 | Retrieval eval (hit@1, hit@5, MRR) | Pending |
 | 7 | Documentation (README, final review of the decisions) | Pending |
 
@@ -65,6 +65,18 @@ _Last updated: 2026-10-09_
   - Tables are no longer split when they fit in a chunk.
   - The wiki's `[n]` reference markers are removed.
 
+### Step 4
+
+- `make index` (`index.py`, with the new `ollama.py` and `db.py`) embeds the chunks in batches of 32 and writes each page in its own transaction. It skips pages whose `content_hash` and `index_config` are unchanged, and deletes pages that are gone (D-014).
+- Verified:
+  - First run: 195 chunks in 16.8 s.
+  - Second run: nothing to do, and the database is identical, row by row.
+  - Changing the text, changing the recipe and removing a page each touch only the page concerned.
+- HNSW (D-006):
+  - The planner prefers a sequential scan at this size (1.1 ms). Forcing the index gives 0.5 ms.
+  - Recall@5 against exact search is 1.000.
+- Retrieval sanity check: the brief's example question, in Spanish, returns 5 chunks about GRD and SLC products.
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -81,20 +93,15 @@ _Last updated: 2026-10-09_
 
 ## Findings that affect later steps
 
-- **Indexing input (step 4):**
-  - `make index` reads `data/chunks/<page>.json`. Each file holds `url`, `title`, `content_hash`, `fetched_at`, `chunking` (the settings plus `tokens_per_word`) and the chunks (`chunk_index`, `section`, `anchor`, `content`, `tokens`).
-  - The text to embed is `section + "\n\n" + content`. The section path already starts with the page title, so it is the "Page > Section" prefix.
-  - Pages that disappear from `sources.yaml` have to be deleted from the database.
-- **Pipeline shape (step 4, from D-008):** `make index` is the only step that writes rows: one page per transaction, with every chunk inserted together with its embedding.
-- **Idempotency (step 4):** skip a page only when both its `content_hash` (page text) and its `index_config` are unchanged. `index_config` must cover the `chunking` settings and the embedding model.
+- **Query (step 5):**
+  - Embed the raw question with bge-m3, with no instruction prefix (D-003). The stored vectors embed `section + "\n\n" + content`.
+  - Retrieve with `ORDER BY embedding <=> %s LIMIT k`. If the planner ever uses the HNSW index, keep `hnsw.ef_search` (40 by default) at or above k, because the index scan only produces about `ef_search` candidates.
+  - A citation URL is `documents.url` + `#` + `anchor`, or just `documents.url` when the anchor is `NULL`.
+  - The `Ollama` client in `ollama.py` needs a `chat` method for Gemma.
+  - Retrieval already looks right for the brief's example question: the top 5 chunks are all about GRD and SLC (cosine distances 0.36–0.46).
 - **Experiments for step 6:**
   - Add the cross-mission candidate pages (POD, Glossary; D-010).
   - Merge small sections: 15 chunks have fewer than 100 tokens.
-- **Embedding API (step 4):**
-  - Use `/api/embed` with an array `input`.
-  - Its `prompt_eval_count` gives the real token count, which can validate the chunker's token estimate.
-  - Send `truncate: false` so that long inputs fail instead of being cut silently.
-  - The vectors come back L2-normalized (checked in step 1).
 - **Gemma 4 requests (step 5):**
   - Send `think: false`, `num_ctx: 8192` and `temperature: 0.2` with every request. On this GPU Ollama's default context is 4096, so without `num_ctx` a long RAG prompt would be cut.
   - The model's own defaults are temperature 1, top_k 64 and top_p 0.95.
@@ -103,14 +110,17 @@ _Last updated: 2026-10-09_
 
 ## Next
 
-**Step 4:**
-- `make index`: embed the chunks in batches with bge-m3 (`/api/embed`, `truncate: false`), then insert each page's chunks in one transaction.
-- Make it idempotent with `content_hash` + `index_config`, and check this by running it twice.
-- Look at the HNSW index at work (`EXPLAIN`).
+**Step 5:**
+- `make ask Q="..."`:
+  1. Embed the question and retrieve the 5 closest chunks.
+  2. Build a prompt with the chunks numbered.
+  3. Ask Gemma (`/api/chat` with `think: false`, `num_ctx: 8192` and `temperature: 0.2`) to answer only from those chunks, cite them with [n], say so when the answer isn't there, and reply in the language of the question.
+- Print the answer followed by its sources: page, section and URL with anchor. `--show-context` also prints the retrieved chunks with their distances.
+- Test with 3 questions, two that the corpus answers and one that it doesn't, and review the prompt together.
 
 ## How to resume
 
 1. `cd ~/sentinel1-rag && uv sync`
 2. Check that Ollama is running and has both models: `systemctl is-active ollama && ollama list`.
-3. Start the database with `make up`, and rebuild the chunks with `make ingest` (it uses the cache in `data/raw/`).
+3. Start the database with `make up`. If `data/` is missing, rebuild everything with `make ingest && make index`; otherwise `make index` alone confirms there is nothing to do.
 4. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.

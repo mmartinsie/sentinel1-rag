@@ -1,5 +1,6 @@
-"""Paths, project identity and the list of source pages."""
+"""Paths, services, models, project identity and the list of source pages."""
 
+import os
 from pathlib import Path
 
 import yaml
@@ -11,6 +12,12 @@ CHUNKS_DIR = DATA_DIR / "chunks"
 SOURCES_FILE = ROOT / "sources.yaml"
 
 USER_AGENT = "sentinel1-rag/0.1 (+https://github.com/mmartinsie/sentinel1-rag; learning project)"
+
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+# Matches the defaults in docker-compose.yml; set it if you override them in .env.
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://rag:rag@localhost:5432/rag")
+
+EMBED_MODEL = "bge-m3"
 
 
 def load_sources(path: Path = SOURCES_FILE) -> list[str]:
