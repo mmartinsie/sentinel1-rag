@@ -4,7 +4,7 @@ _Last updated: 2026-10-09_
 
 ## Current step
 
-**Step 5: Query.** Not started. Step 4 was approved on 2026-10-09.
+**Step 6: Retrieval eval.** Not started. Step 5 was approved on 2026-10-09.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -13,8 +13,8 @@ _Last updated: 2026-10-09_
 | 2 | Postgres + pgvector (`docker-compose.yml`, `schema.sql`, `make up` / `make down` / `make clean`) | Done |
 | 3 | Ingest and chunking (`sources.yaml`, cached download, section chunker) | Done |
 | 4 | Indexing (batched embeddings, HNSW, idempotency) | Done |
-| 5 | Query (`make ask`, prompt, citations) | Next |
-| 6 | Retrieval eval (hit@1, hit@5, MRR) | Pending |
+| 5 | Query (`make ask`, prompt, citations) | Done |
+| 6 | Retrieval eval (hit@1, hit@5, MRR) | Next |
 | 7 | Documentation (README, final review of the decisions) | Pending |
 
 ## Done
@@ -77,6 +77,22 @@ _Last updated: 2026-10-09_
   - Recall@5 against exact search is 1.000.
 - Retrieval sanity check: the brief's example question, in Spanish, returns 5 chunks about GRD and SLC products.
 
+### Step 5
+
+- `make ask Q="..."` (`ask.py`, the new `retrieval.py`, and `chat` in `ollama.py`):
+  1. Embed the question and take the 5 closest chunks (D-015).
+  2. Send Gemma the instructions in the system turn, and the numbered passages followed by the question in the user turn (D-016).
+  3. Print the answer, then only the cited sources, one entry per section with its URL.
+- `ARGS=--show-context` also prints the retrieved chunks with their distances.
+- Fixed during the step:
+  - **Answer language:** the first prompt wording made English questions get Spanish answers 8 times out of 10. With the new wording it was 20 out of 20 in the right language.
+  - **HNSW:** with the join inside the top-k query, the planner could never use the index. The top 5 now come from a subquery on `chunks`.
+  - **Output order:** progress and statistics went to stderr and came out of order when piped. Everything now goes to stdout, as in the other commands.
+- Verified with the 3 test questions, 3 runs each:
+  - The two answerable ones are answered in the question's language, with correct citations.
+  - The unanswerable one gets "No se encontró información…" every time.
+  - With the models loaded, an answer takes 1–3 s.
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -93,34 +109,34 @@ _Last updated: 2026-10-09_
 
 ## Findings that affect later steps
 
-- **Query (step 5):**
-  - Embed the raw question with bge-m3, with no instruction prefix (D-003). The stored vectors embed `section + "\n\n" + content`.
-  - Retrieve with `ORDER BY embedding <=> %s LIMIT k`. If the planner ever uses the HNSW index, keep `hnsw.ef_search` (40 by default) at or above k, because the index scan only produces about `ef_search` candidates.
-  - A citation URL is `documents.url` + `#` + `anchor`, or just `documents.url` when the anchor is `NULL`.
-  - The `Ollama` client in `ollama.py` needs a `chat` method for Gemma.
-  - Retrieval already looks right for the brief's example question: the top 5 chunks are all about GRD and SLC (cosine distances 0.36–0.46).
+- **Retrieval (step 6):**
+  - `retrieval.retrieve(conn, ollama, question, k)` is what the eval should call, so that it measures exactly what `make ask` uses.
+  - Several chunks of one long section can crowd out other sections. For the brief's example question, 3 of the top 5 come from `S1 Products > Level-1 Products`, while `S1 Processing > L1 Algorithms > Single Look Complex (SLC)` and `> Ground Range Detected (GRD)`, which explain the difference best, rank 9th and 11th.
+  - Distances alone cannot tell an answerable question from an unanswerable one (D-015).
+  - The eval measures retrieval only, so it needs bge-m3 and Postgres but not Gemma.
 - **Experiments for step 6:**
   - Add the cross-mission candidate pages (POD, Glossary; D-010).
   - Merge small sections: 15 chunks have fewer than 100 tokens.
-- **Gemma 4 requests (step 5):**
-  - Send `think: false`, `num_ctx: 8192` and `temperature: 0.2` with every request. On this GPU Ollama's default context is 4096, so without `num_ctx` a long RAG prompt would be cut.
-  - The model's own defaults are temperature 1, top_k 64 and top_p 0.95.
-- **Model loading (steps 5 and 6):** Ollama unloads a model after 5 idle minutes (`OLLAMA_KEEP_ALIVE`), and reloading Gemma from the HDD takes about 70 s. For eval runs, consider sending a longer `keep_alive` with the requests.
+  - Limit how many chunks of the same section enter the top k.
+- **Gemma 4 requests:** `ask.py` sends `think: false`, `num_ctx: 8192`, `temperature: 0.2` and `num_predict: 1024` with every request. On this GPU Ollama's default context is 4096. The model's own defaults are temperature 1, top_k 64 and top_p 0.95.
+- **Model loading:**
+  - Ollama unloads a model after 5 idle minutes (`OLLAMA_KEEP_ALIVE`). The first question after that takes about 70–90 s, almost all of it loading Gemma from the HDD.
+  - In a long session (step 5, before a WSL restart), Ollama saw little free RAM and evicted one model to load the other on every question, so each `make ask` paid a full reload. After the restart both models stayed loaded together. If it happens again, check `ollama ps` and the `evicting` lines in `journalctl -u ollama`.
+- **GPU detection after a WSL restart:** right after a restart, Ollama's GPU discovery timed out while reading its CUDA libraries from the cold HDD, and Ollama fell back to the CPU (`inference compute ... library=cpu` in the log). `sudo systemctl restart ollama` fixed it once the libraries were in the disk cache. Check after every restart (see "How to resume").
 - **Memory budget:** with both models loaded, the GPU uses 5.4 of 8 GiB and WSL uses 5.5 of 9.7 GiB of RAM. Postgres fits, but running other heavy workloads at the same time (such as a local Kubernetes cluster) could make RAM tight.
 
 ## Next
 
-**Step 5:**
-- `make ask Q="..."`:
-  1. Embed the question and retrieve the 5 closest chunks.
-  2. Build a prompt with the chunks numbered.
-  3. Ask Gemma (`/api/chat` with `think: false`, `num_ctx: 8192` and `temperature: 0.2`) to answer only from those chunks, cite them with [n], say so when the answer isn't there, and reply in the language of the question.
-- Print the answer followed by its sources: page, section and URL with anchor. `--show-context` also prints the retrieved chunks with their distances.
-- Test with 3 questions, two that the corpus answers and one that it doesn't, and review the prompt together.
+**Step 6:**
+- `eval/questions.yaml`: 10–15 questions, each with the URL and section that hold its answer. Claude drafts them from the real pages; the user writes or reviews them.
+- `make eval`: hit@1, hit@5 and MRR over those questions, with dated results in `eval/results/` and the failures printed.
+- Analyse the failures and decide whether to change the chunking or the top-k. Every change is measured again and recorded.
 
 ## How to resume
 
 1. `cd ~/sentinel1-rag && uv sync`
 2. Check that Ollama is running and has both models: `systemctl is-active ollama && ollama list`.
-3. Start the database with `make up`. If `data/` is missing, rebuild everything with `make ingest && make index`; otherwise `make index` alone confirms there is nothing to do.
-4. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.
+3. After a WSL restart, check that Ollama found the GPU: `journalctl -u ollama -b | grep "inference compute"` must show `library=CUDA`. If it shows `library=cpu`, run `sudo systemctl restart ollama` and check again.
+4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index`; otherwise `make index` alone confirms there is nothing to do.
+5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads.
+6. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.

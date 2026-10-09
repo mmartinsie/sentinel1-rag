@@ -18,6 +18,7 @@ OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://rag:rag@localhost:5432/rag")
 
 EMBED_MODEL = "bge-m3"
+CHAT_MODEL = "gemma4:e4b-it-qat"
 
 
 def load_sources(path: Path = SOURCES_FILE) -> list[str]:

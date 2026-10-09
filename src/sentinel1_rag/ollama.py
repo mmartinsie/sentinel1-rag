@@ -24,6 +24,14 @@ class Ollama:
             raise OllamaError(f"asked for {len(texts)} embeddings, got {len(vectors)}")
         return vectors
 
+    def chat(self, model: str, messages: list[dict[str, str]], options: dict[str, Any]) -> dict[str, Any]:
+        """One complete answer, not streamed, with thinking off.
+
+        Returns Ollama's whole response: the message plus token counts and timings.
+        """
+        payload = {"model": model, "messages": messages, "options": options, "stream": False, "think": False}
+        return self._call("POST", "/api/chat", payload)
+
     def digest(self, model: str) -> str:
         """Digest of a pulled model; it changes if the model is pulled again with new weights."""
         name = model if ":" in model else f"{model}:latest"

@@ -1,5 +1,5 @@
-# Project entry points. The remaining Python targets (ask, eval) come in later steps.
-.PHONY: up down ingest index clean
+# Project entry points. The eval target comes in a later step.
+.PHONY: up down ingest index ask clean
 
 # Start Postgres + pgvector and wait until it accepts connections.
 up:
@@ -16,6 +16,12 @@ ingest:
 # Embed the chunks and store them in Postgres. Unchanged pages are skipped.
 index:
 	uv run python -m sentinel1_rag.index
+
+# Answer a question with cited sources: make ask Q="..." [ARGS=--show-context]
+# make exports Q to the environment and the shell reads it as "$$Q", so quotes and
+# backticks in the question reach Python unchanged (a $ is still expanded by make).
+ask:
+	uv run python -m sentinel1_rag.ask $(ARGS) "$$Q"
 
 # Stop the containers, delete the database volume and the downloaded data.
 clean:

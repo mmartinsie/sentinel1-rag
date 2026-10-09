@@ -314,3 +314,77 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
     - A removed page file deletes its document and its 50 chunks.
     - Restoring the files brings the database back to 5 documents and 195 chunks, and one more run skips everything.
   - **Retrieval sanity check:** the brief's example question, in Spanish, returns 5 chunks that all mention GRD and SLC, at cosine distances from 0.356 to 0.455. The first is the Level-1 list "Single Look Complex (SLC) products / Ground Range Detected (GRD) products".
+
+## D-015: Retrieval: the raw question, the 5 closest chunks, top-k before the join
+
+- **Status:** Accepted (step 5, 2026-10-09)
+- **Decision:**
+  - **Query vector:** the question is embedded as it is, with bge-m3 and no prefix (D-003).
+  - **Top-k:** the 5 chunks with the smallest cosine distance (`<=>`), closest first. There is no distance threshold: deciding that the answer is missing is left to the model.
+  - **SQL shape:** a subquery picks the top 5 from `chunks` alone; `documents` is joined afterwards for the URL. The citation URL is `url#anchor`, or the bare URL when the anchor is `NULL`.
+  - **Module:** retrieval lives in `retrieval.py`, apart from `ask.py`, so that the step 6 eval measures exactly the retrieval that `make ask` uses.
+- **Alternatives considered:**
+  - *The join and the `ORDER BY ... LIMIT` in one query:* the planner never uses the HNSW index for it.
+  - *A distance threshold* to answer "not found" without calling the model: the distances of answerable and unanswerable questions overlap (see below).
+  - *Translating or rewriting the question before embedding it:* one more model call, and bge-m3 already matches Spanish questions to English text.
+  - *Another k:* the brief fixes 5; step 6 measures whether it is enough.
+- **Why:** the subquery keeps the index usable as the table grows. Five chunks of up to ~600 tokens fit easily in Gemma's context.
+- **Trade-offs:**
+  - The model always gets 5 chunks, even when none of them is relevant, so it has to recognise that itself.
+  - Chunks cut from the same long section can fill several places. For the brief's example question, 3 of the 5 come from `S1 Products > Level-1 Products`, while the sections that explain the difference best (`S1 Processing > L1 Algorithms > Single Look Complex (SLC)` and `> Ground Range Detected (GRD)`) rank 9th and 11th.
+- **Verified [2026-10-09]:**
+  - **Query plans** (`EXPLAIN ANALYZE` with `enable_seqscan = off`):
+    - Join inside: the planner reads `chunks` through its B-tree index, joins and sorts all 195 rows. Writing the distance expression in the `ORDER BY` instead of its alias changes nothing.
+    - Subquery: `Index Scan using chunks_embedding_hnsw`, same top 5, 0.3–0.4 ms and 258 buffers once warm, against 1.3–2.0 ms and 692 buffers for the exact search.
+    - With default settings the planner still prefers the exact search at this size (D-006).
+  - **Distances** of the 5 retrieved chunks:
+
+    | Question | Distances | Answer in the corpus |
+    |---|---|---|
+    | ¿Qué diferencia hay entre un producto GRD y uno SLC? | 0.356–0.455 | yes |
+    | What is the repeat cycle of Sentinel-1…? | 0.324–0.421 | yes |
+    | ¿Cuánto costó construir y lanzar la misión Sentinel-1? | 0.424–0.481 | no |
+
+    The unanswerable question's closest chunk (0.424) is closer than the 4th and 5th chunks of the first question, so no threshold separates the two cases.
+
+## D-016: Prompt and answer: instructions in the system turn, numbered passages, citations resolved in code
+
+- **Status:** Accepted (step 5, 2026-10-09)
+- **Decision:**
+  - **Messages:** the system turn holds the instructions. The user turn holds `Passages:`, then each chunk as `[n] <section path>` followed by its text (closest first), then `Question: <question>`. URLs are not in the prompt.
+  - **Instructions:** use only facts from the passages; cite the supporting passages after each sentence, as `[2]` or `[1][3]`; if the answer is not there, say only that it could not be found, and if it is partly there, answer that part and say what is missing; write in the language of the question, keeping acronyms such as GRD or SLC; be concise.
+  - **Generation:** `/api/chat`, not streamed, with `think: false`, `num_ctx: 8192`, `temperature: 0.2` (D-002) and `num_predict: 1024`, a cap for an answer that never ends.
+  - **Citations:** the code finds `[n]` and `[n, m]` in the answer and maps each number back to its chunk. The source list shows only the cited chunks, one entry per section (`[1][2][4] S1 Products > Level-1 Products` and its URL). It says "none cited" when there are none, and warns about numbers that match no passage.
+  - **Output:** the answer, the sources and a line with the token counts and the time, including how long loading the model took. `--show-context` first prints the retrieved chunks with their distances. `make ask` reads the question from the environment (`"$$Q"`), so quotes and backticks in it are safe.
+- **Alternatives considered:**
+  - *Everything in the user turn:* what Gemma 3 needed, since it had no system turn. Gemma 4 has one.
+  - *Listing all 5 retrieved chunks as sources:* it would show sources that the answer does not use, even next to a "not found" answer.
+  - *Letting the model write the source list:* it could invent sections or URLs.
+  - *Streaming the answer:* it appears sooner, but needs more code; a warm answer takes 1–3 s.
+  - *Few-shot examples or a fixed "not found" sentence:* not needed in the tests.
+  - *"Answer in the language of the question, even though the passages are in English":* the first wording, rejected after measuring it (below).
+- **Why:**
+  - The model only has to write text and numbers. The section and URL of every source come from the database, so a citation can point to a wrong passage but never to a place that doesn't exist.
+  - Passages before the question keep the question as the last thing the model reads.
+- **Trade-offs:**
+  - Answers vary a little between runs (no fixed seed).
+  - A 4.5B model decides when the answer is missing; it was tested on one unanswerable question here.
+  - Answers are only as good as the 5 passages: the GRD/SLC answer is correct but shallow, because the passages that explain the difference best were not retrieved (D-015).
+  - Small formatting quirks: once `$180^\circ$` (LaTeX) instead of 180°, and `[1, 5]` instead of `[1][5]` (the parser accepts both).
+- **Verified [2026-10-09]:**
+  - **Template:** Ollama's `_debug_render_only` shows Gemma 4 receiving `<|turn>system ... <turn|>` before the user turn, so the system turn is native.
+  - **Language of the answer**, 5 runs per question with the same passages:
+
+    | Wording | Spanish questions (2) | English questions (2) |
+    |---|---|---|
+    | "…even though the passages are in English" | 10/10 in Spanish | 2/10 in English, 8 in Spanish |
+    | "Write the answer in the same language as the question" (chosen) | 10/10 | 10/10 |
+    | the same, plus a reminder after the question | 10/10 | 10/10 |
+
+    Before the change, one English question had also been answered in Portuguese.
+  - **The 3 test questions**, 3 runs each with the final prompt:
+    - GRD vs SLC (Spanish): Spanish, cites [1][2][4] every time, and each cited sentence matches its passage.
+    - Repeat cycle (English): English, "12-day repeat cycle, 175 orbits per cycle" and "six-day repeat cycle" with two satellites, citing the Orbit section [1].
+    - Mission cost (Spanish, not in the corpus): "No se encontró información…" every time, with no citation and no number.
+  - **Sizes and times:** prompts of 1,272–1,792 tokens (of 8,192), answers of 21–108 tokens, 0.6–2.6 s with the model loaded.
+  - **CLI:** a question with double quotes, an apostrophe and backticks reaches Python unchanged. An empty question prints the usage line. With Ollama or Postgres down, the run ends with the same clear errors as `make index`.
