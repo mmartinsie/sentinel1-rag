@@ -461,7 +461,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-019: Lexical retrieval with Postgres full-text search
 
-- **Status:** Accepted (step 8, 2026-10-10)
+- **Status:** Accepted (step 8, 2026-10-10). Since D-023 the default ranking is BM25; `ts_rank` remains as `--lexical-ranking ts_rank`.
 - **Decision:**
   - **Column and index:** `chunks.tsv` is a stored generated column, `to_tsvector('english', section || E'\n\n' || content)`, built from the same text that is embedded (D-014). A GIN index (`chunks_tsv_gin`) maps each lexeme to the chunks that contain it.
   - **Query:** the question goes through `plainto_tsquery('english', ...)`, which normalizes it like the chunks, and its ANDs are replaced by ORs, so that a chunk matches if it contains any of the question's words.
@@ -564,7 +564,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-022: Default retrieval: hybrid search with a translated question and the top 5
 
-- **Status:** Accepted (step 10, 2026-10-11)
+- **Status:** Accepted (step 10, 2026-10-11). Since D-023 the full-text half ranks with BM25 (MRR@5 0.908 instead of 0.860).
 - **Decision:**
   - **Default:** `make ask` and `make eval` use hybrid search (D-020) with the question translated into English for the full-text half (D-021), and the model gets the top 5 chunks (`DEFAULT_METHOD = "hybrid"`, `TOP_K = 5`).
   - **Options:** translation is on wherever there is a full-text search; `--no-translate` turns it off, and `--method vector` never translates. `make ask` also takes `--top-k`, so the previous default is `--method vector --top-k 10`.
@@ -599,3 +599,30 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - **End to end,** `make ask` with the models loaded on 6 questions: 4.2–16.3 s with the new default, translation included, against 5.4–12.4 s for vector search with the top 10. The answer length dominates (about 40 tokens/s).
   - **The example question,** 2 runs with the new default: both cite only `S1 Products > Level-1 Products` and `SAR Products Overview`; one rendered "Single Look Complex" as "Complejo de Aspectos Únicos".
   - **Earlier behaviour reproducible:** with the new options, `--method vector --top-k 10`, `--method lexical|hybrid --no-translate --top-k 10` and `--method lexical|hybrid --top-k 10` reproduce the five cited runs of steps 6, 8 and 9 exactly.
+
+## D-023: BM25 in SQL ranks the full-text search
+
+- **Status:** Accepted (step 11, 2026-10-11)
+- **Decision:**
+  - **Ranking:** the full-text search ranks chunks with BM25 instead of `ts_rank`, written as one SQL query (`BM25_QUERY` in `retrieval.py`). For each word of the question that a chunk contains, it adds IDF × tf × (k1 + 1) / (tf + k1 × (1 − b + b × length / average length)), with IDF = ln(1 + (N − df + 0.5) / (df + 0.5)).
+  - **Parameters:** k1 = 1.2 and b = 0.75. Lengths count the words in the full-text index, without stop words. Ties are ordered by section and position, as in D-020.
+  - **Statistics:** N, the average length and each word's document frequency are computed on every query from the `tsv` column. There is no new table or column.
+  - **Options:** `--lexical-ranking ts_rank` keeps the previous ranking. The defaults of D-022 are unchanged otherwise.
+- **Alternatives considered:**
+  - *Keeping `ts_rank`:* simpler and faster (4 ms against 16), and the answers measured below are just as good. But it gives a word found in two thirds of the chunks the same weight as a rare one (D-019).
+  - *Statistics kept in a table or a materialized view,* refreshed by `make index`: faster queries, but one more thing to keep in step with the chunks, for 195 rows.
+  - *A BM25 extension* such as ParadeDB's `pg_search`, or a search engine (OpenSearch, which is listed as an extension): another image or service.
+  - *Computing BM25 in Python:* every chunk's lexemes would have to cross the connection on every query.
+- **Why:** it fixes the defect measured in D-019, ranks better on the eval, and makes the hybrid the standard recipe (BM25 + vectors + RRF), at no visible cost in time.
+- **Trade-offs:**
+  - **The answers do not improve.** The same 18 of 19 questions reach the model, and the answers cite a correct section just as often (below). The case for BM25 is the ranking, not the answers.
+  - **It reads every chunk on every query,** about 16 ms here. That does not scale to a large corpus.
+  - **About 40 lines of SQL** to maintain instead of one function call.
+- **Verified [2026-10-11]:**
+  - **Parameters and IDF:** Lucene's `BM25Similarity` defaults to k1 = 1.2 and b = 0.75, with IDF `log(1 + (docCount - docFreq + 0.5)/(docFreq + 0.5))` and the average length computed as total term frequency / document count. Elasticsearch documents the same defaults.
+  - **Correctness:** the SQL matches the Python BM25 of the throwaway script on all 38 queries (the 19 questions, original and translated): the same top 40 in the same order, with score differences below 4·10⁻¹⁵.
+  - **Time:** median 15.7 ms per query for the top 40, against 3.9 ms for `ts_rank` (50 runs).
+  - **Eval**, the default configuration of D-022 (hybrid, translated, top 5): hit@1 0.895 instead of 0.789, hit@3 0.895 instead of 0.947, hit@5 0.947 (unchanged), MRR@5 0.908 instead of 0.860; English questions 1.000 / 1.000; blind 0.800 / 0.650 instead of 0.800 / 0.667 (`eval/results/2026-10-11T013216-hybrid-en-bm25-k5.json`). Per question, `centre-frequency` and `orbit-files` move to rank 1 and `slc-content` from 3rd to 4th.
+  - **With 10 passages** (hit@10 / MRR@10): lexical 0.684 / 0.559, lexical translated 0.947 / 0.796, hybrid 0.789 / 0.670, hybrid translated 0.947 / 0.908 (`…013217-lexical-bm25.json`, `…013225-lexical-en-bm25.json`, `…013227-hybrid-bm25.json`, `…013236-hybrid-en-bm25.json`).
+  - **Answers** (throwaway script, 84: the 19 eval questions and 2 unanswerable ones, 2 runs, top 5 with `ts_rank` and with BM25): both cite a correct section in 36 of 38, both say "not found" for the mission cost and neither does for GeoTIFF, with median prompts of 1,615 and 1,583 tokens and a median generation of 3.7 s each. BM25 cites 1.6 sections per answer against 1.8. Read side by side: oil spills better with BM25 (it names the Level-2 wind products), product metadata worse (it presents ETAD documents as the way to consult any product's metadata), the product name the same.
+  - **Earlier runs:** with `--lexical-ranking ts_rank` where they used it, the six cited runs of steps 6 and 8 to 10 are reproduced exactly.

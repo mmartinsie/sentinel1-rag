@@ -9,31 +9,24 @@ $ make ask Q="¿Cómo se detectan los vertidos de petróleo en el mar con Sentin
 Lexical search in English: How are oil spills detected at sea with Sentinel-1 and which products should be used?
 
 Los vertidos de petróleo se detectan en imágenes SAR como características oscuras distintivas [1].
+Las detecciones pueden correlacionarse con las transmisiones de información del Sistema de
+Identificación Automática (AIS) de los barcos para determinar las fuentes y procesar a los
+infractores [1].
 
-Para la detección de vertidos de petróleo, se pueden utilizar los siguientes productos:
-*   Se pueden usar los productos GRD IW y EW en polarización dual para la detección de fugas de
-    petróleo que ocurren naturalmente desde el lecho marino [1].
-*   Los sistemas SAR, como los de Sentinel-1, pueden ofrecer información clave sobre el seguimiento
-    de derrames de petróleo en el océano [2].
-*   Los estimadores de SSW derivados de SAR son importantes en el monitoreo de derrames de petróleo,
-    ya que ayudan a diferenciar los simulacros de los derrames reales [5].
-
-Además, las detecciones de vertidos pueden correlacionarse con la información de transmisiones del
-Sistema de Identificación Automática (AIS) de los barcos, lo cual es posible con Sentinel-1C y
-Sentinel-1D [1].
+Para la detección de la dispersión de derrames de petróleo, se pueden usar productos IW y EW GRD en
+doble polarización [1]. Además, la estimación de campos de viento es importante en la monitorización
+de derrames de petróleo para ayudar a discriminar los vertidos reales de los parecidos [3].
 
 Sources:
 [1] S1 Applications > Maritime Monitoring > Oil Pollution Monitoring
     https://sentiwiki.copernicus.eu/web/s1-applications#Oil-Pollution-Monitoring
-[2] S1 Applications > Overview of S1 Applications
-    https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications
-[5] S1 Applications > Maritime Monitoring > Marine Waves and Winds
+[3] S1 Applications > Maritime Monitoring > Marine Waves and Winds
     https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds
 
-gemma4:e4b-it-qat: 1671 prompt tokens, 198 answer tokens, 4.7s
+gemma4:e4b-it-qat: 1525 prompt tokens, 129 answer tokens, 3.1s
 ```
 
-This is real output (line breaks added). The question is in Spanish and the documentation in English: Gemma first translates the question for the keyword half of the search, and the answer comes back in Spanish. Each `[n]` points to one of the passages the model was given, and the source list is built by the code from the database, so the model can cite the wrong passage but never invent a section or a URL. Small slips remain: "simulacros" is a loose rendering of the documentation's "look-alike", which it contrasts with actual spills.
+This is real output (line breaks added). The question is in Spanish and the documentation in English: Gemma first translates the question for the keyword half of the search, and the answer comes back in Spanish. Each `[n]` points to one of the passages the model was given, and the source list is built by the code from the database, so the model can cite the wrong passage but never invent a section or a URL. Small slips remain: the documentation recommends dual-polarisation IW and EW GRD products for spotting oil that seeps naturally from the ocean floor, and the answer stretches that to spills in general.
 
 ## How it works
 
@@ -80,7 +73,7 @@ flowchart TB
 1. **Translate:** Gemma rewrites the question in English for the keyword search, or leaves it as it is when it already is English. This takes about half a second.
 2. **Search twice:**
    - *Vector search* embeds the original question with `bge-m3` and takes the 40 chunks with the smallest cosine distance. The model is multilingual, so a Spanish question lands close to the English passage that answers it. An HNSW index is in place, although at 195 chunks Postgres prefers an exact scan, which takes about 1 ms; the index is there to learn how approximate search works.
-   - *Full-text search* looks up the English words in the full-text index and takes the 40 chunks where they occur most often (`ts_rank`).
+   - *Full-text search* looks up the English words in the full-text index and takes the 40 chunks with the best BM25 score, which rewards words that are rare in the corpus, stops rewarding a word after a few repetitions and discounts long chunks.
 3. **Fuse:** reciprocal rank fusion gives each chunk 1 / (60 + its rank) from each list it appears in, so chunks that both searches rank well come first. The top 5 go to the model.
 4. **Answer:** the prompt gives Gemma rules in the system turn (use only the passages, cite them as `[n]`, say when the answer is not there, answer in the question's language) and the 5 numbered passages followed by the question in the user turn.
 5. **Cite:** the code reads the `[n]` citations in the answer and prints the cited sections with their URLs.
@@ -96,11 +89,11 @@ Every design choice, with the alternatives weighed and what was measured, is rec
 
 | Questions | hit@1 | hit@3 | hit@5 | hit@10 | MRR@5 |
 |---|---|---|---|---|---|
-| **All (19)** | 0.789 | 0.947 | **0.947** | 0.947 | **0.860** |
-| Written without reading the pages (5) | 0.600 | 0.800 | 0.800 | 0.800 | 0.667 |
-| Drafted from the text (14) | 0.857 | 1.000 | 1.000 | 1.000 | 0.929 |
+| **All (19)** | 0.895 | 0.895 | **0.947** | 0.947 | **0.908** |
+| Written without reading the pages (5) | 0.600 | 0.600 | 0.800 | 0.800 | 0.650 |
+| Drafted from the text (14) | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
 
-**hit@5 is 0.947 and MRR@5 0.860 over 19 questions**, from [eval/results/2026-10-11T011251-hybrid-en-k5.json](eval/results/2026-10-11T011251-hybrid-en-k5.json). The eval is deterministic: the translations are made at temperature 0, and repeated runs give the same chunks in the same order.
+**hit@5 is 0.947 and MRR@5 0.908 over 19 questions**, from [eval/results/2026-10-11T013216-hybrid-en-bm25-k5.json](eval/results/2026-10-11T013216-hybrid-en-bm25-k5.json). The eval is deterministic: the translations are made at temperature 0, and repeated runs give the same chunks in the same order.
 
 How to read these numbers:
 
@@ -112,34 +105,41 @@ Each results file holds the rank of every question and the 20 chunks retrieved f
 
 ### Lexical and hybrid search
 
-The retrieval started as vector search alone, first with the top 5 (hit@5 0.895, MRR@5 0.761) and then with the top 10, so that the project's example question would receive the sections that explain SLC and GRD ([D-018](docs/DECISIONS.md#d-018-top-k-raised-from-5-to-10)). It was then compared with Postgres full-text search and with a hybrid of both. Because the pages are in English and 12 of the 19 questions are in Spanish, the full-text search was also tried on the question translated into English. With 10 passages each:
+The retrieval started as vector search alone, first with the top 5 (hit@5 0.895, MRR@5 0.761) and then with the top 10, so that the project's example question would receive the sections that explain SLC and GRD ([D-018](docs/DECISIONS.md#d-018-top-k-raised-from-5-to-10)). It was then compared with Postgres full-text search, ranked first with Postgres's own `ts_rank` and then with BM25, and with a hybrid of vector and full-text search. Because the pages are in English and 12 of the 19 questions are in Spanish, the full-text search was also tried on the question translated into English. With 10 passages each:
 
 | Method (hit@10 / MRR@10) | All (19) | Spanish (12) | English (7) | Blind (5, all Spanish) | hit@3 |
 |---|---|---|---|---|---|
 | Vector | 0.947 / 0.766 | 0.917 / 0.672 | 1.000 / 0.929 | 0.800 / 0.522 | 0.789 |
 | Lexical (`ts_rank`) | 0.737 / 0.500 | 0.583 / 0.284 | 1.000 / 0.871 | 0.600 / 0.158 | 0.579 |
-| Lexical, question translated | 0.947 / 0.746 | 0.917 / 0.674 | 1.000 / 0.871 | 0.800 / 0.417 | 0.842 |
-| Hybrid (RRF) | 0.842 / 0.633 | 0.750 / 0.461 | 1.000 / 0.929 | 0.600 / 0.329 | 0.684 |
-| Hybrid, full-text half translated | 0.947 / **0.860** | 0.917 / **0.819** | 1.000 / 0.929 | 0.800 / **0.667** | **0.947** |
+| Lexical (BM25) | 0.684 / 0.559 | 0.500 / 0.302 | 1.000 / 1.000 | 0.400 / 0.300 | 0.632 |
+| Lexical, question translated (`ts_rank`) | 0.947 / 0.746 | 0.917 / 0.674 | 1.000 / 0.871 | 0.800 / 0.417 | 0.842 |
+| Lexical, question translated (BM25) | 0.947 / 0.796 | 0.917 / 0.676 | 1.000 / 1.000 | 0.800 / 0.357 | 0.842 |
+| Hybrid (RRF, `ts_rank`) | 0.842 / 0.633 | 0.750 / 0.461 | 1.000 / 0.929 | 0.600 / 0.329 | 0.684 |
+| Hybrid, full-text half translated (`ts_rank`) | 0.947 / 0.860 | 0.917 / 0.819 | 1.000 / 0.929 | 0.800 / **0.667** | **0.947** |
+| Hybrid, full-text half translated (BM25) | 0.947 / **0.908** | 0.917 / **0.854** | 1.000 / **1.000** | 0.800 / 0.650 | 0.895 |
 
 Then the answers themselves were compared: the 19 questions plus two that the documentation does not answer, twice each.
 
 | Configuration | Answers citing a correct section | Median prompt | Median answer time |
 |---|---|---|---|
-| Vector, top 10 (the previous default) | 36 of 38 | 2,851 tokens | 5.4 s |
-| Hybrid, translated, top 10 | 36 of 38 | 3,147 tokens | 6.2 s |
-| **Hybrid, translated, top 5 (the default)** | 36 of 38 | 1,615 tokens | 3.7 s |
-| Hybrid, translated, top 3 | 36 of 38 | 1,042 tokens | 2.7 s |
+| Vector, top 10 (the default until step 10) | 36 of 38 | 2,851 tokens | 5.4 s |
+| Hybrid, translated, top 10, `ts_rank` | 36 of 38 | 3,147 tokens | 6.2 s |
+| Hybrid, translated, top 5, `ts_rank` | 36 of 38 | 1,615 tokens | 3.7 s |
+| Hybrid, translated, top 3, `ts_rank` | 36 of 38 | 1,042 tokens | 2.7 s |
+| **Hybrid, translated, top 5, BM25 (the default)** | 36 of 38 | 1,583 tokens | 3.7 s |
+
+The last row comes from a second run of the experiment, side by side with the `ts_rank` top 5 again, which gave the same counts and prompt sizes as the first time.
 
 What the comparison showed:
 
-- **Lexical search cannot cross languages.** On its own, a Spanish question only matches the chunks through acronyms, numbers and "Sentinel-1". The acronyms that were expected to favour it are also too common here, with "GRD" in 43 of the 195 chunks and "SLC" in 47, and Postgres's `ts_rank` has no notion of how rare a word is (no IDF).
+- **Lexical search cannot cross languages.** On its own, a Spanish question only matches the chunks through acronyms, numbers and "Sentinel-1". The acronyms that were expected to favour it are also too common here, with "GRD" in 43 of the 195 chunks and "SLC" in 47. Postgres's `ts_rank` also has no notion of how rare a word is (no IDF); BM25 does, but it cannot fix the language gap either (hit@10 0.684 without translation).
 - **Fusing a weak list with a strong one hurts.** Without translation, the hybrid improved 2 questions and worsened 6, because RRF rewards chunks that both lists rank, even poorly.
 - **Translation fixes the lexical half.** Translated, full-text search matches vector search on hit@10, and the hybrid ranks the right section first for 15 of the 19 questions (hit@1 0.789 against 0.684).
 - **Better ranking allows fewer passages.** The translated hybrid gets as many answers into its top 5, or even its top 3, as vector search does into its top 10. The answers cite a correct section just as often, the prompt is about 40 % shorter and generation about 30 % faster, and some answers are more focused. The top 5 rather than 3 keeps the breadth of the old answers (1.8 sections cited per answer, against 1.4 with 3) and leaves a margin for new questions whose answer ranks 4th or 5th.
 - **The cost is one question and one model call.** The project's original example, "¿Qué diferencia hay entre un producto GRD y uno SLC?", loses the section that explains SLC (see [Limitations](#limitations)). The translation adds 0.2–0.7 s.
+- **BM25 ranks better, but the answers stay the same.** With BM25 instead of `ts_rank`, the right section comes first for 17 of the 19 questions instead of 15, and every English question is answered from rank 1. The same 18 questions reach the model, and the answers cite a correct section just as often. BM25 is the default because it fixes `ts_rank`'s blindness to common words and is the standard ranking for this kind of search, not because the answers improved.
 
-The details, including other ranking variants and a BM25 written by hand, are in [D-019](docs/DECISIONS.md#d-019-lexical-retrieval-with-postgres-full-text-search) to [D-022](docs/DECISIONS.md#d-022-default-retrieval-hybrid-search-with-a-translated-question-and-the-top-5); the runs are in [eval/results/](eval/results/).
+The details, including other ranking variants, are in [D-019](docs/DECISIONS.md#d-019-lexical-retrieval-with-postgres-full-text-search) to [D-023](docs/DECISIONS.md#d-023-bm25-in-sql-ranks-the-full-text-search); the runs are in [eval/results/](eval/results/).
 
 ## Running it on WSL
 
@@ -182,7 +182,7 @@ To check that the models run on the GPU, run `ollama ps` while asking a question
 | `make down` | Stops the database. The data is kept. |
 | `make ingest` | Downloads the pages in `sources.yaml` (once; cached in `data/raw/`) and writes the chunks to `data/chunks/`. |
 | `make index` | Embeds the chunks and stores them. Pages that have not changed are skipped. |
-| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores. `--method vector`, `lexical` or `hybrid`, `--no-translate` and `--top-k N` change the retrieval; the default is hybrid, translated, top 5. |
+| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores. `--method vector`, `lexical` or `hybrid`, `--no-translate`, `--top-k N` and `--lexical-ranking ts_rank` change the retrieval; the default is hybrid, translated, BM25, top 5. |
 | `make eval` | Measures retrieval, with the same defaults and options as `make ask`. `ARGS="--label name"` names the run. |
 | `make clean` | Stops the database and deletes its volume and `data/`. |
 
@@ -223,6 +223,7 @@ docs/PROGRESS.md          build log and notes for resuming work
 - **A small model.** `gemma4:e4b-it-qat` has about 4.5B effective parameters. Answers can be shallow, vary slightly between runs (temperature 0.2, no fixed seed), render technical terms loosely in Spanish (once "Single Look Complex" as "Complejo de Aspectos Únicos") and have small formatting quirks, such as `$180^\circ$` instead of 180°.
 - **A frozen, site-specific corpus.** Cached pages are never refreshed: delete `data/raw/` or run `make clean` to download them again. The extractor is written for the SentiWiki's layout and stops with "unexpected page layout" if it changes.
 - **HNSW is not needed at this size.** With 195 chunks the Postgres planner prefers an exact scan (about 1 ms). The index is there to learn how it works.
+- **BM25 is computed the slow way.** Postgres has no BM25, so the SQL works out the corpus statistics (how many chunks contain each word, the average chunk length) on every query, reading every chunk: about 16 ms here, but it would not scale to a large corpus, which would need those statistics kept in a table or an index built for BM25.
 - **No automated tests.** The checks run while building it are recorded under "Verified" in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Extensions (not implemented)
@@ -234,7 +235,7 @@ The first planned extension, a lexical baseline and hybrid search, is done, and 
 3. **MCP server** exposing `search_docs` and `search_scenes`.
 4. **OpenSearch k-NN** instead of pgvector, comparing results.
 
-Smaller experiments that `make eval` can measure in minutes, not run yet: BM25 instead of `ts_rank` in the code (MRR@10 0.908 in a throwaway test), merging the 15 chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, adding the SentiWiki's POD or Glossary pages, and a reranker over the top 20.
+Smaller experiments that `make eval` can measure in minutes, not run yet: merging the 15 chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, adding the SentiWiki's POD or Glossary pages, and a reranker over the top 20.
 
 ## License
 

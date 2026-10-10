@@ -1,0 +1,2228 @@
+{
+  "run_at": "2026-10-11T01:32:25+02:00",
+  "label": "lexical-en-bm25",
+  "method": "lexical",
+  "translate": true,
+  "lexical_ranking": "bm25",
+  "top_k": 10,
+  "depth": 20,
+  "chunks": 195,
+  "index_config": [
+    {
+      "chunking": {
+        "max_tokens": 500,
+        "overlap_tokens": 60,
+        "target_tokens": 400,
+        "tokens_per_word": 1.68,
+        "version": 1
+      },
+      "embed_model": "bge-m3",
+      "embed_model_digest": "7907646426070047a77226ac3e684fbbe8410524f7b4a74d02837e43f2146bab",
+      "embed_template": "{section}\n\n{content}"
+    }
+  ],
+  "metrics": {
+    "all": {
+      "hit@1": 0.7368421052631579,
+      "hit@3": 0.8421052631578947,
+      "hit@5": 0.9473684210526315,
+      "hit@10": 0.9473684210526315,
+      "mrr@10": 0.7956140350877193,
+      "questions": 19
+    },
+    "blind": {
+      "hit@1": 0.2,
+      "hit@3": 0.4,
+      "hit@5": 0.8,
+      "hit@10": 0.8,
+      "mrr@10": 0.35666666666666663,
+      "questions": 5
+    },
+    "from-text": {
+      "hit@1": 0.9285714285714286,
+      "hit@3": 1.0,
+      "hit@5": 1.0,
+      "hit@10": 1.0,
+      "mrr@10": 0.9523809523809524,
+      "questions": 14
+    },
+    "en": {
+      "hit@1": 1.0,
+      "hit@3": 1.0,
+      "hit@5": 1.0,
+      "hit@10": 1.0,
+      "mrr@10": 1.0,
+      "questions": 7
+    },
+    "es": {
+      "hit@1": 0.5833333333333334,
+      "hit@3": 0.75,
+      "hit@5": 0.9166666666666666,
+      "hit@10": 0.9166666666666666,
+      "mrr@10": 0.6763888888888889,
+      "questions": 12
+    }
+  },
+  "questions": [
+    {
+      "id": "grd-vs-slc",
+      "written": "blind",
+      "lang": "es",
+      "question": "¿Qué diferencia hay entre un producto GRD y uno SLC?",
+      "english": "What is the difference between a GRD product and an SLC product?",
+      "expected": [
+        "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+        "S1 Processing > L1 Algorithms > Ground Range Detected (GRD)"
+      ],
+      "rank": 13,
+      "retrieved": [
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 7.1991
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 5.6463
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 5.5998
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 5.3768
+        },
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 5.2468
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 5.0975
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 4.853
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 4.7129
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 4.6279
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 4.4912
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 4.2955
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 4.2395
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 4.0332
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 4.0165
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 4.0148
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 4.0109
+        },
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 3.9173
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 3.9135
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 3.8529
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 3.8244
+        }
+      ]
+    },
+    {
+      "id": "sar-principle",
+      "written": "blind",
+      "lang": "es",
+      "question": "¿Cómo funciona el sensor SAR de Sentinel-1?",
+      "english": "How does the Sentinel-1 SAR sensor work?",
+      "expected": [
+        "S1 Mission > SAR Instrument > Geophysical Measurements",
+        "S1 Products > SAR Products Overview",
+        "S1 Mission > SAR Instrument"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 6.9192
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 6.0261
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.526
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 4.9753
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 4.8701
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 Global Backscatter Model (S1GBM)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-Global-Backscatter-Model-(S1GBM)",
+          "score": 4.6693
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Flood Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Flood-Monitoring",
+          "score": 4.4667
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Satellite Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Satellite-Description",
+          "score": 4.1085
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 4.031
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 3.9749
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 3.8975
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 3.0846
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 3.0513
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 3.0294
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 2.8556
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 2.4163
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 2.3761
+        },
+        {
+          "section": "Sentinel-1",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1",
+          "score": 2.3375
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 2.2456
+        },
+        {
+          "section": "S1 Mission > SAR Instrument",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument",
+          "score": 2.2158
+        }
+      ]
+    },
+    {
+      "id": "product-metadata",
+      "written": "blind",
+      "lang": "es",
+      "question": "¿Qué metadatos contiene un producto Sentinel-1 y cómo se consultan?",
+      "english": "What metadata does a Sentinel-1 product contain and how is it queried?",
+      "expected": [
+        "S1 Products > SAR Products Overview > SAR Naming Convention"
+      ],
+      "rank": 3,
+      "retrieved": [
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 6.5298
+        },
+        {
+          "section": "S1 Products > AIS AUX Products Overview > AIS AUX: Message Data Product Format",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#AIS-AUX:-Message-Data-Product-Format",
+          "score": 6.1028
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 5.7819
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 4.3186
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 Global Backscatter Model (S1GBM)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-Global-Backscatter-Model-(S1GBM)",
+          "score": 4.249
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 4.0791
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 Global Backscatter Model (S1GBM)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-Global-Backscatter-Model-(S1GBM)",
+          "score": 3.9718
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 3.7644
+        },
+        {
+          "section": "S1 Products > AIS AUX Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#AIS-AUX-Products-Overview",
+          "score": 3.4818
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 3.3992
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 3.374
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 3.2574
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 3.2252
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Radial Velocity Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Radial-Velocity-Processing",
+          "score": 3.2079
+        },
+        {
+          "section": "S1 Processing > L0 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L0-Algorithms",
+          "score": 3.1409
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 3.0553
+        },
+        {
+          "section": "Sentinel-1 > S1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1#S1-Mission",
+          "score": 3.0421
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 3.0205
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ship Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ship-Monitoring",
+          "score": 2.9989
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Wave",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Wave",
+          "score": 2.9131
+        }
+      ]
+    },
+    {
+      "id": "grd-content",
+      "written": "blind",
+      "lang": "es",
+      "question": "¿Qué información contiene un producto Sentinel-1 GRD?",
+      "english": "What information does a Sentinel-1 GRD product contain?",
+      "expected": [
+        "S1 Processing > L1 Algorithms > Ground Range Detected (GRD)",
+        "S1 Products > Level-1 Products",
+        "S1 Products > SAR Products Overview > Level-1 Products Formatting"
+      ],
+      "rank": 5,
+      "retrieved": [
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 6.1983
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Wind Field Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Wind-Field-Processing",
+          "score": 5.7748
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 5.4008
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ship Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ship-Monitoring",
+          "score": 5.2168
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 5.1234
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 4.9938
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 4.9702
+        },
+        {
+          "section": "S1 Products > Related Production > Burst ID Maps",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Burst-ID-Maps",
+          "score": 4.8227
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Ground Range Detected (GRD)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ground-Range-Detected-(GRD)",
+          "score": 4.7708
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L1-Algorithms",
+          "score": 4.7684
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 4.6427
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Oil Pollution Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Oil-Pollution-Monitoring",
+          "score": 4.6355
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 4.5248
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 4.5021
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 4.3906
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Radial Velocity Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Radial-Velocity-Processing",
+          "score": 4.3734
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 4.3186
+        },
+        {
+          "section": "S1 Processing > Processing Baseline > L1 - L2 Processing Baseline > SETAP Processing Baseline",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#SETAP-Processing-Baseline",
+          "score": 4.2939
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 4.2834
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Satellite Parameters for POD",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Satellite-Parameters-for-POD",
+          "score": 4.2822
+        }
+      ]
+    },
+    {
+      "id": "slc-content",
+      "written": "blind",
+      "lang": "es",
+      "question": "¿Qué información contiene un producto Sentinel-1 SLC?",
+      "english": "What information does a Sentinel-1 SLC product contain?",
+      "expected": [
+        "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+        "S1 Products > SAR Products Overview > Level-1 Products Formatting"
+      ],
+      "rank": 4,
+      "retrieved": [
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 7.3728
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Radial Velocity Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Radial-Velocity-Processing",
+          "score": 6.9411
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 6.1844
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 5.8614
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 5.6227
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 5.5703
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 5.5458
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 5.0026
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 4.8655
+        },
+        {
+          "section": "S1 Products > Related Production > Burst ID Maps",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Burst-ID-Maps",
+          "score": 4.8227
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 4.7733
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L1-Algorithms",
+          "score": 4.6702
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 4.6427
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 4.5685
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 4.5482
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 4.5248
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Swell Spectra Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Swell-Spectra-Processing",
+          "score": 4.4067
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 4.3906
+        },
+        {
+          "section": "S1 Processing > Processing Baseline > L1 - L2 Processing Baseline > SETAP Processing Baseline",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#SETAP-Processing-Baseline",
+          "score": 4.2939
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Satellite Parameters for POD",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Satellite-Parameters-for-POD",
+          "score": 4.2822
+        }
+      ]
+    },
+    {
+      "id": "repeat-cycle",
+      "written": "from-text",
+      "lang": "en",
+      "question": "What is the repeat cycle of Sentinel-1, and how does a second satellite change it?",
+      "english": "What is the repeat cycle of Sentinel-1, and how does a second satellite change it?",
+      "expected": [
+        "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+        "S1 Mission > Overview of Sentinel-1 Mission > Geographical Coverage"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Orbit",
+          "score": 11.5479
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Geographical Coverage",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geographical-Coverage",
+          "score": 10.2073
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 8.1138
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 6.9203
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 6.9058
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 6.7194
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 5.6249
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 5.4347
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 5.2496
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Earthquake Analysis",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Earthquake-Analysis",
+          "score": 5.1484
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Pre-Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Pre-Processing-Algorithms",
+          "score": 4.9715
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 4.8515
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Forestry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Forestry",
+          "score": 4.8503
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 4.7976
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 4.7585
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 4.683
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 4.6057
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 4.5386
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 4.333
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons > AUX_PREORB (second orbit)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#AUX_PREORB-(second-orbit)",
+          "score": 4.2641
+        }
+      ]
+    },
+    {
+      "id": "iw-swath-resolution",
+      "written": "from-text",
+      "lang": "es",
+      "question": "¿Qué anchura de barrido y qué resolución espacial tiene el modo IW?",
+      "english": "What swath width and spatial resolution does the IW mode have?",
+      "expected": [
+        "S1 Mission > Acquisition Modes > Interferometric Wide Swath"
+      ],
+      "rank": 3,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Acquisition Modes > Stripmap",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Stripmap",
+          "score": 11.0367
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Extra Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Extra-Wide-Swath",
+          "score": 10.9346
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 10.1814
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 9.4623
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 9.2545
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 8.947
+        },
+        {
+          "section": "S1 Mission > Performance > Radiometric Resolution",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Radiometric-Resolution",
+          "score": 8.2823
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Radial Velocity Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Radial-Velocity-Processing",
+          "score": 7.9942
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Wave",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Wave",
+          "score": 7.8819
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Ground Range Detected (GRD)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ground-Range-Detected-(GRD)",
+          "score": 7.8211
+        },
+        {
+          "section": "S1 Mission > SAR Instrument",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument",
+          "score": 7.0911
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 6.9528
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 6.8269
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 6.5399
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 6.1643
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 5.8825
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes",
+          "score": 5.8066
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 5.7983
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 5.7866
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.6801
+        }
+      ]
+    },
+    {
+      "id": "topsar-vs-scansar",
+      "written": "from-text",
+      "lang": "en",
+      "question": "How does the TOPSAR technique improve on conventional ScanSAR?",
+      "english": "How does the TOPSAR technique improve on conventional ScanSAR?",
+      "expected": [
+        "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+        "S1 Processing > L1 Algorithms > Algorithm Overview"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 14.1737
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 11.7355
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 10.3215
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 10.14
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 6.7777
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 6.0328
+        },
+        {
+          "section": "S1 Mission > SAR Instrument",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument",
+          "score": 6.0245
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 5.9845
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 5.8988
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-2 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products-Formatting",
+          "score": 5.7181
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 5.3481
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 4.994
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 4.4812
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Extra Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Extra-Wide-Swath",
+          "score": 3.5569
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 3.546
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 3.4253
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 3.4033
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 3.3925
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting > ETAD Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products-Formatting",
+          "score": 3.1629
+        },
+        {
+          "section": "Sentinel-1 > S1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1#S1-Products",
+          "score": 3.1515
+        }
+      ]
+    },
+    {
+      "id": "ew-mode-use",
+      "written": "from-text",
+      "lang": "es",
+      "question": "¿Para qué se utiliza principalmente el modo Extra Wide swath?",
+      "english": "What is the primary use of the Extra Wide swath mode?",
+      "expected": [
+        "S1 Mission > Acquisition Modes > Extra Wide Swath",
+        "S1 Mission > Acquisition Modes"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Acquisition Modes > Extra Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Extra-Wide-Swath",
+          "score": 13.9098
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes",
+          "score": 13.2675
+        },
+        {
+          "section": "S1 Processing > L0 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L0-Algorithms",
+          "score": 11.327
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 11.3248
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 10.1638
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 10.1557
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 9.9992
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 8.6416
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 8.5779
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 8.4062
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 7.5366
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 6.6113
+        },
+        {
+          "section": "S1 Mission > Performance > Radiometric Resolution",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Radiometric-Resolution",
+          "score": 5.8706
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Earthquake Analysis",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Earthquake-Analysis",
+          "score": 5.8285
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 5.7216
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Geographical Coverage",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geographical-Coverage",
+          "score": 5.4749
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 5.0309
+        },
+        {
+          "section": "S1 Mission > SAR Instrument",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument",
+          "score": 4.5396
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 4.4161
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 4.3684
+        }
+      ]
+    },
+    {
+      "id": "wave-vignettes",
+      "written": "from-text",
+      "lang": "en",
+      "question": "How large are the Wave mode vignettes, and how far apart are they along the orbit?",
+      "english": "How large are the Wave mode vignettes, and how far apart are they along the orbit?",
+      "expected": [
+        "S1 Mission > Acquisition Modes > Wave"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Acquisition Modes > Wave",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Wave",
+          "score": 18.1472
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 17.569
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Wave",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Wave",
+          "score": 12.703
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 9.721
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Wave",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Wave",
+          "score": 7.5251
+        },
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 7.4708
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 6.9222
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes",
+          "score": 6.8122
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > AIS Observation and Data Downlink Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#AIS-Observation-and-Data-Downlink-Scenario",
+          "score": 6.7582
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 6.2692
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 5.7372
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 5.5785
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 5.0275
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 4.7961
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 4.7855
+        },
+        {
+          "section": "S1 Mission > SAR Instrument",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument",
+          "score": 4.6773
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Orbit-Comparisons",
+          "score": 4.6023
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Orbit",
+          "score": 4.518
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 4.4673
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 4.4371
+        }
+      ]
+    },
+    {
+      "id": "centre-frequency",
+      "written": "from-text",
+      "lang": "en",
+      "question": "At what frequency does the Sentinel-1 radar operate, and what wavelength is that?",
+      "english": "At what frequency does the Sentinel-1 radar operate, and what wavelength is that?",
+      "expected": [
+        "S1 Mission > SAR Instrument"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > SAR Instrument",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument",
+          "score": 8.6521
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 7.5118
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 7.5064
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 7.487
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#POD-Sentinel-1-Products-Specification",
+          "score": 6.3487
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 5.821
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Swell Spectra Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Swell-Spectra-Processing",
+          "score": 5.709
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ice Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ice-Monitoring",
+          "score": 5.4628
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Radial Velocity Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Radial-Velocity-Processing",
+          "score": 5.4317
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 5.341
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 5.2561
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 5.2131
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 5.1111
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 4.399
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 4.1498
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes",
+          "score": 4.0361
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Orbit",
+          "score": 3.9092
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Pre-Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Pre-Processing-Algorithms",
+          "score": 3.8952
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > SLC Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#SLC-Processing-Algorithms",
+          "score": 3.8877
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 3.8417
+        }
+      ]
+    },
+    {
+      "id": "etad-corrections",
+      "written": "from-text",
+      "lang": "es",
+      "question": "¿Qué errores de geolocalización corrige el producto ETAD?",
+      "english": "What geolocation errors does the ETAD product correct?",
+      "expected": [
+        "S1 Products > Level-1 Products > ETAD Products",
+        "S1 Processing > L1 Algorithms > ETAD processing"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 14.3289
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 10.9653
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 10.9191
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 10.1605
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 7.7817
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 7.7667
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 7.2985
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 7.2719
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 6.7025
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 5.9644
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.5546
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 5.3835
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 5.2208
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 4.9748
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Radial Velocity Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Radial-Velocity-Processing",
+          "score": 4.832
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting > ETAD Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products-Formatting",
+          "score": 4.5994
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 4.4957
+        },
+        {
+          "section": "S1 Mission > Performance > System Noise",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#System-Noise",
+          "score": 4.4686
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 4.3516
+        },
+        {
+          "section": "S1 Processing > Processing Baseline > L1 - L2 Processing Baseline > SETAP Processing Baseline",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#SETAP-Processing-Baseline",
+          "score": 3.6038
+        }
+      ]
+    },
+    {
+      "id": "product-name",
+      "written": "from-text",
+      "lang": "en",
+      "question": "What information can be read from the name of a Sentinel-1 product folder?",
+      "english": "What information can be read from the name of a Sentinel-1 product folder?",
+      "expected": [
+        "S1 Products > SAR Products Overview > SAR Naming Convention"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 11.4199
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L2-Algorithms",
+          "score": 10.9794
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting > ETAD Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products-Formatting",
+          "score": 9.8433
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Wind Field Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Wind-Field-Processing",
+          "score": 9.5895
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-2 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products-Formatting",
+          "score": 9.5132
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 9.2921
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 7.7513
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 7.7133
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 7.5334
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 6.822
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 5.0925
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 Global Backscatter Model (S1GBM)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-Global-Backscatter-Model-(S1GBM)",
+          "score": 5.0506
+        },
+        {
+          "section": "Sentinel-1 > S1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1#S1-Products",
+          "score": 4.894
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 4.8909
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 4.677
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes",
+          "score": 4.52
+        },
+        {
+          "section": "S1 Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing",
+          "score": 4.1545
+        },
+        {
+          "section": "S1 Products > AIS AUX Products Overview > AIS AUX: Message Data Product Format",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#AIS-AUX:-Message-Data-Product-Format",
+          "score": 3.7058
+        },
+        {
+          "section": "S1 Products > Related Production > Burst ID Maps",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Burst-ID-Maps",
+          "score": 3.6773
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 3.514
+        }
+      ]
+    },
+    {
+      "id": "orbit-files",
+      "written": "from-text",
+      "lang": "es",
+      "question": "¿Qué tipos de ficheros de órbita hay para Sentinel-1 y en qué se diferencian en latencia y precisión?",
+      "english": "What types of orbit files are there for Sentinel-1 and how do they differ in latency and accuracy?",
+      "expected": [
+        "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+        "S1 Mission > Precise Orbit Determination Service"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 15.4958
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Orbit-Comparisons",
+          "score": 8.0645
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 8.059
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 7.6944
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Satellite Parameters for POD",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Satellite-Parameters-for-POD",
+          "score": 7.4772
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons > AUX_PREORB (first orbit)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#AUX_PREORB-(first-orbit)",
+          "score": 7.4058
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons > AUX_PREORB (second orbit)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#AUX_PREORB-(second-orbit)",
+          "score": 7.4058
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons > AUX_POEORB",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#AUX_POEORB",
+          "score": 7.3568
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons > AUX_MOEORB",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#AUX_MOEORB",
+          "score": 7.3504
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons > AUX_RESORB",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#AUX_RESORB",
+          "score": 7.2086
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 6.5378
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#POD-Sentinel-1-Products-Specification",
+          "score": 6.1831
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Orbit",
+          "score": 5.8167
+        },
+        {
+          "section": "S1 Mission > Precise Orbit Determination Service",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Precise-Orbit-Determination-Service",
+          "score": 5.7005
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.6294
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 5.4228
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.4103
+        },
+        {
+          "section": "S1 Products > AIS AUX Products Overview > AIS AUX: Message Data Product Format > AIS AUX: Messages Data Content",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#AIS-AUX:-Messages-Data-Content",
+          "score": 5.3704
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 5.3356
+        },
+        {
+          "section": "S1 Products > Related Production > Burst ID Maps",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Burst-ID-Maps",
+          "score": 5.3242
+        }
+      ]
+    },
+    {
+      "id": "level2-ocean",
+      "written": "from-text",
+      "lang": "en",
+      "question": "Which geophysical measurements does the Level-2 ocean product provide?",
+      "english": "What geophysical measurements does the Level-2 ocean product provide?",
+      "expected": [
+        "S1 Products > Level-2 Products",
+        "S1 Processing > L2 Algorithms"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 14.8793
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L2-Algorithms",
+          "score": 10.9843
+        },
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 9.0007
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-2 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products-Formatting",
+          "score": 8.6047
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Wind Field Processing > Calibration and Pre-processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Calibration-and-Pre-processing",
+          "score": 8.4783
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 8.0333
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 7.8695
+        },
+        {
+          "section": "S1 Mission > SAR Calibration and Validation Activities",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Calibration-and-Validation-Activities",
+          "score": 7.3146
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 7.2203
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Wind Field Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Wind-Field-Processing",
+          "score": 6.9863
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Radial Velocity Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Radial-Velocity-Processing",
+          "score": 6.8894
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 6.7395
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 6.6396
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 6.3681
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Swell Spectra Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Swell-Spectra-Processing",
+          "score": 6.2741
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 6.2692
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 6.0803
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 5.7908
+        },
+        {
+          "section": "Sentinel-1 > S1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1#S1-Products",
+          "score": 5.7752
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.4909
+        }
+      ]
+    },
+    {
+      "id": "oil-spills",
+      "written": "from-text",
+      "lang": "es",
+      "question": "¿Cómo se detectan los vertidos de petróleo en el mar con Sentinel-1 y qué productos conviene usar?",
+      "english": "How are oil spills detected at sea with Sentinel-1 and which products should be used?",
+      "expected": [
+        "S1 Applications > Maritime Monitoring > Oil Pollution Monitoring"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Applications > Maritime Monitoring > Oil Pollution Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Oil-Pollution-Monitoring",
+          "score": 19.7929
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 13.6795
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 13.6785
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 12.6563
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 8.1191
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Extra Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Extra-Wide-Swath",
+          "score": 8.0018
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 5.6473
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Swell Spectra Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Swell-Spectra-Processing",
+          "score": 5.2738
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ship Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ship-Monitoring",
+          "score": 5.1755
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Ground Range Detected (GRD)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ground-Range-Detected-(GRD)",
+          "score": 5.1153
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes",
+          "score": 5.0439
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Pre-Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Pre-Processing-Algorithms",
+          "score": 4.9886
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Forestry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Forestry",
+          "score": 4.9429
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 4.718
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ice Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ice-Monitoring",
+          "score": 4.6461
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 4.4922
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 4.4223
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 4.357
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 4.0816
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 4.0747
+        }
+      ]
+    },
+    {
+      "id": "flood-mapping",
+      "written": "from-text",
+      "lang": "en",
+      "question": "Why is Sentinel-1 good for mapping floods, and which polarisations are needed to detect flooded vegetation?",
+      "english": "Why is Sentinel-1 good for mapping floods, and which polarisations are needed to detect flooded vegetation?",
+      "expected": [
+        "S1 Applications > Emergency Management > Flood Monitoring"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Applications > Emergency Management > Flood Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Flood-Monitoring",
+          "score": 16.4633
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Forestry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Forestry",
+          "score": 13.9237
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 10.4519
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 10.2591
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 8.9005
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Urban Deformation Mapping",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Urban-Deformation-Mapping",
+          "score": 7.2835
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 6.7165
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 6.5895
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 Global Backscatter Model (S1GBM)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-Global-Backscatter-Model-(S1GBM)",
+          "score": 6.355
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 6.1608
+        },
+        {
+          "section": "S1 Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing",
+          "score": 6.0693
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 5.6224
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 5.5927
+        },
+        {
+          "section": "S1 Mission > SAR Instrument",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument",
+          "score": 5.2463
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ice Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ice-Monitoring",
+          "score": 5.2074
+        },
+        {
+          "section": "S1 Processing > L0 Algorithms > Packet Encoding",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Packet-Encoding",
+          "score": 4.8787
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ship Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ship-Monitoring",
+          "score": 4.7758
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 4.7302
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Ground Range Detected (GRD)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ground-Range-Detected-(GRD)",
+          "score": 4.6625
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 4.6344
+        }
+      ]
+    },
+    {
+      "id": "ground-subsidence",
+      "written": "from-text",
+      "lang": "es",
+      "question": "¿Cómo puede Sentinel-1 medir hundimientos del terreno de pocos milímetros al año?",
+      "english": "How can Sentinel-1 measure ground subsidence of a few millimetres per year?",
+      "expected": [
+        "S1 Mission > SAR Instrument > Interferometry",
+        "S1 Applications > Land Monitoring > Urban Deformation Mapping"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Applications > Land Monitoring > Urban Deformation Mapping",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Urban-Deformation-Mapping",
+          "score": 19.4124
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 10.9924
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Landslide and Volcano Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Landslide-and-Volcano-Monitoring",
+          "score": 9.6375
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 8.6126
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 7.0192
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Landslide and Volcano Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Landslide-and-Volcano-Monitoring",
+          "score": 6.8837
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 6.8414
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 6.6993
+        },
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 5.8912
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 5.6759
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 5.4836
+        },
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 5.4724
+        },
+        {
+          "section": "S1 Products > AIS AUX Products Overview > AIS AUX: Message Data Product Format > AIS AUX: Messages Data Content",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#AIS-AUX:-Messages-Data-Content",
+          "score": 5.1338
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Orbit-Comparisons",
+          "score": 4.9153
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 4.854
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#POD-Sentinel-1-Products-Specification",
+          "score": 4.7684
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-2 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products-Formatting",
+          "score": 4.6556
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 4.4962
+        },
+        {
+          "section": "S1 Mission > SAR Calibration and Validation Activities",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Calibration-and-Validation-Activities",
+          "score": 4.4238
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 4.4014
+        }
+      ]
+    },
+    {
+      "id": "product-slicing",
+      "written": "from-text",
+      "lang": "es",
+      "question": "¿Por qué los productos de nivel 1 se cortan en slices y cómo se vuelven a ensamblar?",
+      "english": "Why are the Level-1 products sliced and how are they reassembled?",
+      "expected": [
+        "S1 Processing > Product Slicing Handling"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 8.1831
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 7.8708
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 7.8332
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 7.635
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 7.5909
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 7.009
+        },
+        {
+          "section": "Sentinel-1 > S1 Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1#S1-Processing",
+          "score": 6.0121
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 5.979
+        },
+        {
+          "section": "S1 Processing > L0 Algorithms > Generation Concept",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Generation-Concept",
+          "score": 5.3664
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 4.9533
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 4.2207
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 2.5615
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 2.541
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 2.5282
+        },
+        {
+          "section": "Sentinel-1 > S1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1#S1-Products",
+          "score": 2.4982
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 2.4977
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 2.4826
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 2.4763
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L1-Algorithms",
+          "score": 2.4386
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L2-Algorithms",
+          "score": 2.4259
+        }
+      ]
+    }
+  ]
+}

@@ -13,7 +13,7 @@ import textwrap
 from sentinel1_rag.config import CHAT_MODEL, CHAT_NUM_CTX
 from sentinel1_rag.db import connect
 from sentinel1_rag.ollama import Ollama
-from sentinel1_rag.retrieval import DEFAULT_METHOD, METHODS, SCORE_LABEL, TOP_K, Hit, retrieve
+from sentinel1_rag.retrieval import DEFAULT_METHOD, DEFAULT_RANKING, METHODS, RANKINGS, TOP_K, Hit, retrieve, score_label
 from sentinel1_rag.translate import to_english, use_translation
 
 # Sent with every request (D-002). num_predict stops an answer that never ends.
@@ -50,8 +50,8 @@ def cited_numbers(answer: str) -> list[int]:
     return sorted({int(n) for group in CITATION.findall(answer) for n in group.split(",")})
 
 
-def print_context(hits: list[Hit], method: str) -> None:
-    print(f"Retrieved chunks ({method} retrieval; {SCORE_LABEL[method]})\n")
+def print_context(hits: list[Hit], method: str, ranking: str) -> None:
+    print(f"Retrieved chunks ({method} retrieval; {score_label(method, ranking)})\n")
     for n, hit in enumerate(hits, start=1):
         print(f"[{n}] {hit.score:.3f}  {hit.section}\n    {hit.url}\n")
         print(textwrap.indent(hit.content, "    ") + "\n")
@@ -95,6 +95,10 @@ def main() -> None:
         help="translate the question into English for the lexical search (default: on, except with --method vector)",
     )
     parser.add_argument("--top-k", type=int, default=TOP_K, help=f"passages given to the model (default {TOP_K})")
+    parser.add_argument(
+        "--lexical-ranking", choices=RANKINGS, default=DEFAULT_RANKING,
+        help=f"how the full-text search ranks chunks (default {DEFAULT_RANKING})",
+    )
     args = parser.parse_args()
     question = args.question.strip()
     if not question:
@@ -108,11 +112,13 @@ def main() -> None:
     if english is not None and english != question:
         print(f"Lexical search in English: {english}\n")
     with connect() as conn:
-        hits = retrieve(conn, ollama, question, k=args.top_k, method=args.method, english=english)
+        hits = retrieve(
+            conn, ollama, question, k=args.top_k, method=args.method, english=english, ranking=args.lexical_ranking
+        )
     if not hits:
         raise SystemExit("The index is empty. Run `make ingest` and `make index` first.")
     if args.show_context:
-        print_context(hits, args.method)
+        print_context(hits, args.method, args.lexical_ranking)
 
     # Flushed so the line shows up while waiting, even when the output goes to a pipe.
     print(f"Asking {CHAT_MODEL}...", flush=True)

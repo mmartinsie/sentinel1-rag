@@ -2,7 +2,8 @@
 
 Three methods:
 - vector: cosine distance between bge-m3 embeddings (D-015);
-- lexical: Postgres full-text search, ranking chunks by the question's words they contain (D-019);
+- lexical: Postgres full-text search, ranking chunks by the question's words they contain with
+  BM25 (D-023) or Postgres's ts_rank (D-019);
 - hybrid (the default): both lists merged with reciprocal rank fusion (D-020, D-022).
 
 The lexical search can take the question translated into English instead (translate.py, D-021).
@@ -22,12 +23,63 @@ TOP_K = 5
 
 METHODS = ("vector", "lexical", "hybrid")
 DEFAULT_METHOD = "hybrid"
-# What Hit.score means for each method.
-SCORE_LABEL = {
-    "vector": "cosine distance: lower is closer",
-    "lexical": "ts_rank: higher is closer",
-    "hybrid": "RRF score: higher is closer",
-}
+# How the lexical search ranks the chunks that share words with the question.
+RANKINGS = ("bm25", "ts_rank")
+DEFAULT_RANKING = "bm25"
+
+# BM25's parameters, at the defaults of Lucene and Elasticsearch: k1 sets how quickly further
+# occurrences of a word stop adding to the score, and b how much longer chunks are discounted.
+BM25_K1 = 1.2
+BM25_B = 0.75
+
+# BM25 in SQL (D-023). Postgres has no BM25 of its own, and its ts_rank ignores how common a word
+# is. The corpus statistics are computed on every query, which reads every chunk's tsv: about
+# 16 ms here, against 4 for ts_rank. A large corpus would keep them in a table, or use an index
+# built for BM25.
+BM25_QUERY = """
+WITH terms AS (
+    -- The question's words, normalized like the chunks (English stemming, no stop words).
+    SELECT DISTINCT lexeme FROM unnest(to_tsvector('english', %(question)s))
+),
+lengths AS (
+    -- Each chunk's length in words, stop words left out, as the full-text index counts them.
+    SELECT id, (SELECT sum(cardinality(positions)) FROM unnest(tsv)) AS len FROM chunks
+),
+corpus AS (
+    SELECT count(*) AS n, avg(len) AS avg_len FROM lengths
+),
+matches AS (
+    -- How often each question word occurs in each chunk that contains it.
+    SELECT c.id, t.lexeme, cardinality(t.positions) AS tf
+    FROM chunks c CROSS JOIN unnest(c.tsv) t JOIN terms USING (lexeme)
+),
+doc_freq AS (
+    -- In how many chunks each question word occurs.
+    SELECT lexeme, count(*) AS df FROM matches GROUP BY lexeme
+),
+scores AS (
+    -- Sum over the question's words: rarity (IDF) x saturated, length-normalized frequency.
+    SELECT m.id, sum(
+        ln(1 + (corpus.n - doc_freq.df + 0.5) / (doc_freq.df + 0.5))
+        * m.tf * (%(k1)s + 1) / (m.tf + %(k1)s * (1 - %(b)s + %(b)s * lengths.len / corpus.avg_len))
+    ) AS score
+    FROM matches m JOIN doc_freq USING (lexeme) JOIN lengths USING (id) CROSS JOIN corpus
+    GROUP BY m.id
+)
+SELECT c.id, c.document_id, c.section, c.chunk_index, c.anchor, c.content, s.score
+FROM scores s JOIN chunks c USING (id)
+ORDER BY s.score DESC, c.section, c.chunk_index
+LIMIT %(k)s
+"""
+
+
+def score_label(method: str, ranking: str = DEFAULT_RANKING) -> str:
+    """What Hit.score means for a method."""
+    return {
+        "vector": "cosine distance: lower is closer",
+        "lexical": f"{ranking}: higher is closer",
+        "hybrid": "RRF score: higher is closer",
+    }[method]
 
 # Hybrid search fuses this many chunks from each list. An HNSW scan returns at most
 # hnsw.ef_search (40) rows, so the vector list cannot be longer.
@@ -44,7 +96,7 @@ class Hit:
     chunk_index: int  # position within the page
     url: str  # page URL, plus #anchor when the section has one
     content: str
-    score: float  # depends on the method: see SCORE_LABEL
+    score: float  # depends on the method: see score_label
 
     def tie_break(self) -> tuple[str, int]:
         """Orders chunks with equal scores. Chunk ids change whenever a page is indexed again,
@@ -57,21 +109,23 @@ def retrieve(
     ollama: Ollama,
     question: str,
     k: int = TOP_K,
-    method: str = "vector",
+    method: str = DEFAULT_METHOD,
     english: str | None = None,
+    ranking: str = DEFAULT_RANKING,
 ) -> list[Hit]:
     """The k chunks that best match the question, best first.
 
-    `english`, the question translated into English, replaces it in the lexical search only.
+    `english`, the question translated into English, replaces it in the lexical search only,
+    and `ranking` picks how that search ranks its chunks.
     """
     if method == "vector":
         if english is not None:
             raise ValueError("the English translation only applies to lexical and hybrid search")
         return vector_search(conn, ollama, question, k)
     if method == "lexical":
-        return lexical_search(conn, english or question, k)
+        return lexical_search(conn, english or question, k, ranking)
     if method == "hybrid":
-        return hybrid_search(conn, ollama, question, k, english)
+        return hybrid_search(conn, ollama, question, k, english, ranking)
     raise ValueError(f"unknown retrieval method {method!r}; expected one of {METHODS}")
 
 
@@ -89,7 +143,12 @@ def vector_search(conn: psycopg.Connection, ollama: Ollama, question: str, k: in
     )
 
 
-def lexical_search(conn: psycopg.Connection, question: str, k: int) -> list[Hit]:
+def lexical_search(conn: psycopg.Connection, question: str, k: int, ranking: str = DEFAULT_RANKING) -> list[Hit]:
+    if ranking == "bm25":
+        params = {"question": question, "k": k, "k1": BM25_K1, "b": BM25_B}
+        return _fetch(conn, BM25_QUERY, params, best_first="DESC")
+    if ranking != "ts_rank":
+        raise ValueError(f"unknown ranking {ranking!r}; expected one of {RANKINGS}")
     # plainto_tsquery normalizes the question like the chunks (English stemming, stop words
     # removed) but joins its words with AND, and almost no chunk contains every word of a
     # question. Turning the ANDs into ORs matches any of them; ts_rank then favours the
@@ -107,7 +166,12 @@ def lexical_search(conn: psycopg.Connection, question: str, k: int) -> list[Hit]
 
 
 def hybrid_search(
-    conn: psycopg.Connection, ollama: Ollama, question: str, k: int, english: str | None = None
+    conn: psycopg.Connection,
+    ollama: Ollama,
+    question: str,
+    k: int,
+    english: str | None = None,
+    ranking: str = DEFAULT_RANKING,
 ) -> list[Hit]:
     """Reciprocal rank fusion: each list adds 1 / (RRF_K + rank) to a chunk's score (D-020).
 
@@ -116,7 +180,7 @@ def hybrid_search(
     """
     lists = [
         vector_search(conn, ollama, question, CANDIDATES),
-        lexical_search(conn, english or question, CANDIDATES),
+        lexical_search(conn, english or question, CANDIDATES, ranking),
     ]
     scores: dict[int, float] = {}
     hits: dict[int, Hit] = {}

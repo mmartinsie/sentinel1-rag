@@ -25,7 +25,7 @@ import yaml
 from sentinel1_rag.config import EMBED_MODEL, QUESTIONS_FILE, RESULTS_DIR, ROOT
 from sentinel1_rag.db import connect
 from sentinel1_rag.ollama import Ollama
-from sentinel1_rag.retrieval import DEFAULT_METHOD, METHODS, SCORE_LABEL, TOP_K, Hit, retrieve
+from sentinel1_rag.retrieval import DEFAULT_METHOD, DEFAULT_RANKING, METHODS, RANKINGS, TOP_K, Hit, retrieve, score_label
 from sentinel1_rag.translate import to_english, use_translation
 
 # Retrieve deeper than the top k so that a miss still shows how far down the answer was.
@@ -76,11 +76,17 @@ def scores_by_group(results: list[dict], top_k: int) -> dict[str, dict[str, floa
 
 
 def print_report(
-    results: list[dict], scores: dict[str, dict[str, float]], chunks: int, top_k: int, method: str, translate: bool
+    results: list[dict],
+    scores: dict[str, dict[str, float]],
+    chunks: int,
+    top_k: int,
+    method: str,
+    translate: bool,
+    ranking: str,
 ) -> None:
     model = f" | {EMBED_MODEL}" if method != "lexical" else ""
-    translated = " (lexical search in English)" if translate else ""
-    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {method}{translated}{model} | top {top_k}")
+    lexical = "" if method == "vector" else f" ({ranking}{', question in English' if translate else ''})"
+    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {method}{lexical}{model} | top {top_k}")
     for name, group in scores.items():
         values = " | ".join(f"{metric} {value:.3f}" for metric, value in group.items() if metric != "questions")
         print(f"  {name + ' (' + str(group['questions']) + ')':<16} {values}")
@@ -92,7 +98,7 @@ def print_report(
     print(f"  (rank of the first chunk from an expected section; '-' means not in the top {DEPTH})")
 
     misses = [r for r in results if r["rank"] is None or r["rank"] > top_k]
-    print(f"\nNot in the top {top_k}: {len(misses)} (scores are {SCORE_LABEL[method]})")
+    print(f"\nNot in the top {top_k}: {len(misses)} (scores are {score_label(method, ranking)})")
     for r in misses:
         where = f"rank {r['rank']}" if r["rank"] else f"not in the top {DEPTH}"
         print(f"\n{r['id']} ({where}): {r['question']}")
@@ -114,6 +120,10 @@ def main() -> None:
     parser.add_argument(
         "--translate", action=argparse.BooleanOptionalAction,
         help="translate the questions into English for the lexical search (default: on, except with --method vector)",
+    )
+    parser.add_argument(
+        "--lexical-ranking", choices=RANKINGS, default=DEFAULT_RANKING,
+        help=f"how the full-text search ranks chunks (default {DEFAULT_RANKING})",
     )
     args = parser.parse_args()
     if not 1 <= args.top_k <= DEPTH:
@@ -140,7 +150,9 @@ def main() -> None:
         results = []
         for q in questions:
             english = to_english(ollama, q["question"]) if args.translate else None
-            hits = retrieve(conn, ollama, q["question"], k=DEPTH, method=args.method, english=english)
+            hits = retrieve(
+                conn, ollama, q["question"], k=DEPTH, method=args.method, english=english, ranking=args.lexical_ranking
+            )
             relevant = {r["url"] for r in q["relevant"]}
             results.append(
                 {
@@ -158,7 +170,7 @@ def main() -> None:
             )
 
     scores = scores_by_group(results, args.top_k)
-    print_report(results, scores, chunks, args.top_k, args.method, args.translate)
+    print_report(results, scores, chunks, args.top_k, args.method, args.translate, args.lexical_ranking)
 
     now = datetime.now().astimezone()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -168,6 +180,7 @@ def main() -> None:
         "label": args.label,
         "method": args.method,
         "translate": args.translate,
+        "lexical_ranking": None if args.method == "vector" else args.lexical_ranking,
         "top_k": args.top_k,
         "depth": DEPTH,
         "chunks": chunks,

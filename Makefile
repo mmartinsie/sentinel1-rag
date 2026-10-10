@@ -25,7 +25,7 @@ ask:
 	uv run python -m sentinel1_rag.ask $(ARGS) "$$Q"
 
 # Measure retrieval on eval/questions.yaml (hit@k, MRR) and save the run in eval/results/.
-# Same defaults and options as ask (--method, --no-translate, --top-k); name a run with
+# Same defaults and options as ask (--method, --no-translate, --top-k, --lexical-ranking); name a run with
 # ARGS="--label <name>". The default translates the questions, so Gemma is loaded.
 eval:
 	uv run python -m sentinel1_rag.evaluate $(ARGS)

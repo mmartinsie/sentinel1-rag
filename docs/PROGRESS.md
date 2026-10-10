@@ -4,7 +4,7 @@ _Last updated: 2026-10-10_
 
 ## Current step
 
-**Step 11: BM25 for the full-text half.** In progress. Step 10 (translated hybrid search with the top 5 as the default) was approved on 2026-10-11, and the user chose this follow-up. All steps of the brief (0–7) are done, and so are the extension steps 8 to 10.
+**Step 12: Technical PDFs (the next extension in the README).** Not started. Step 11 (BM25) was approved on 2026-10-11, together with the recommendation to continue with the PDFs. All steps of the brief (0–7) are done, and so are the extension steps 8 to 11.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -19,7 +19,8 @@ _Last updated: 2026-10-10_
 | 8 | Extension 1: lexical baseline and hybrid search | Done |
 | 9 | Translate the question before the lexical search | Done |
 | 10 | Hybrid search with translation and a smaller top-k, judged on the answers | Done |
-| 11 | BM25 instead of `ts_rank` for the full-text search | In progress |
+| 11 | BM25 instead of `ts_rank` for the full-text search | Done |
+| 12 | Extension: technical PDFs from the Sentinel-1 document library | Next |
 
 ## Done
 
@@ -156,6 +157,14 @@ _Last updated: 2026-10-10_
 - README: new example (oil spills), diagram with both searches and the fusion, results for the new default, the answer comparison, and the GRD/SLC limitation.
 - End to end with the models loaded: 4.2–16.3 s for the new default and 5.4–12.4 s for vector top 10 on 6 questions; answer length dominates.
 
+### Step 11
+
+- **BM25 in SQL** (`BM25_QUERY` in `retrieval.py`, D-023): k1 1.2, b 0.75, Lucene's IDF; corpus statistics computed on every query from `tsv` (15.7 ms against 3.9 ms for `ts_rank`). It matches the throwaway Python BM25 on 38 queries to 4·10⁻¹⁵.
+- `--lexical-ranking bm25|ts_rank` in `make ask` and `make eval`, BM25 by default; results record `lexical_ranking`. The six cited runs of steps 6 and 8–10 reproduce with `ts_rank`.
+- **Eval, default configuration:** hit@1 0.789 → 0.895, MRR@5 0.860 → 0.908, hit@5 0.947 unchanged, hit@3 0.947 → 0.895 (`slc-content` 3rd → 4th). English questions all at rank 1. Runs at top 10 for lexical and hybrid, with and without translation, saved for the README table.
+- **Answers** (84, top 5, `ts_rank` vs BM25): the same 36 of 38 cite a correct section, the same "not found" behaviour, the same prompt size and time. Mixed differences when read: oil spills better, product metadata worse. Proposed anyway for the ranking, the IDF fix and the standard recipe.
+- README: new example output (BM25), BM25 in "How it works", results and comparison tables, the BM25 limitation (statistics on every query).
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -183,7 +192,9 @@ _Last updated: 2026-10-10_
 
 ## Next
 
-**Step 11:** BM25 written in SQL in place of `ts_rank` for the full-text search (a throwaway test gave the translated hybrid MRR@10 0.908 against 0.860), measured on the eval and on the answers. After that, the remaining extensions in the [README](../README.md#extensions-not-implemented), in order of value (PDFs first).
+**Step 12: technical PDFs** from the Sentinel-1 document library, the first of the remaining extensions in the [README](../README.md#extensions-not-implemented). As in every step: first the concept in Spanish, then a plan to review with the user before building (which PDFs, how to turn them into sections with citable locations, and new eval questions labelled on PDF sections), then build, measure, record the decisions as Proposed and stop for approval.
+
+The current pipeline, for reference: translate the question (Gemma, temperature 0), vector search (bge-m3, original question) and BM25 full-text search (English question), reciprocal rank fusion, top 5 passages to Gemma. Eval: hit@5 0.947, MRR@5 0.908 over 19 questions (`eval/results/2026-10-11T013216-hybrid-en-bm25-k5.json`).
 
 ## How to resume
 
@@ -193,3 +204,4 @@ _Last updated: 2026-10-10_
 4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index`; otherwise `make index` alone confirms there is nothing to do.
 5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in about 10 s once Gemma is loaded (it translates the questions); `ARGS="--method vector"` skips Gemma.
 6. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.
+7. The comparisons of generated answers (steps 10 and 11) and the BM25 cross-check ran as throwaway scripts in a session scratchpad, so they are not in the repo. What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 and D-023.
