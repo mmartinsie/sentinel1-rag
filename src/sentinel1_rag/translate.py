@@ -31,3 +31,13 @@ def to_english(ollama: Ollama, question: str) -> str:
     if response["done_reason"] == "length" or text.rstrip(".").upper() == "ENGLISH":
         return question
     return text
+
+
+def use_translation(method: str, option: bool | None) -> bool:
+    """Resolve --translate / --no-translate: translation is on by default wherever there is a
+    lexical search to translate for (D-022), and it cannot apply to vector search alone."""
+    if option is None:
+        return method != "vector"
+    if option and method == "vector":
+        raise SystemExit("--translate only changes the lexical search: use it with --method lexical or hybrid")
+    return option

@@ -350,7 +350,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-016: Prompt and answer: instructions in the system turn, numbered passages, citations resolved in code
 
-- **Status:** Accepted (step 5, 2026-10-09). Since D-018 the prompt carries 10 passages instead of 5.
+- **Status:** Accepted (step 5, 2026-10-09). Since D-018 the prompt carried 10 passages instead of 5, and since D-022 it carries 5 again, from hybrid search.
 - **Decision:**
   - **Messages:** the system turn holds the instructions. The user turn holds `Passages:`, then each chunk as `[n] <section path>` followed by its text (closest first), then `Question: <question>`. URLs are not in the prompt.
   - **Instructions:** use only facts from the passages; cite the supporting passages after each sentence, as `[2]` or `[1][3]`; if the answer is not there, say only that it could not be found, and if it is partly there, answer that part and say what is missing; write in the language of the question, keeping acronyms such as GRD or SLC; be concise.
@@ -392,7 +392,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-017: Retrieval eval: section-level labels, the real retrieval, MRR cut at the top k
 
-- **Status:** Accepted (step 6, 2026-10-10)
+- **Status:** Accepted (step 6, 2026-10-10). Since D-022 the default retrieval translates each question with Gemma, so the eval loads it.
 - **Decision:**
   - **Labels:** each question in `eval/questions.yaml` lists the sections that answer it, by citation URL (`page#anchor`) plus its heading path. `make eval` stops if a listed section is not in the index, so a typo cannot pass as a miss.
   - **Labelling rule (strict, chosen by the user):** a section is listed only if, read on its own, it answers the main part of the question; sections that only name the topic are left out. For a question that compares two things (GRD vs SLC), each section that explains one of them counts, because no single section explains both.
@@ -433,7 +433,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-018: Top-k raised from 5 to 10
 
-- **Status:** Accepted (step 6, 2026-10-10)
+- **Status:** Superseded by D-022 (step 10, 2026-10-11): the default is now hybrid search with the top 5. Accepted in step 6, 2026-10-10.
 - **Decision:** `retrieval.TOP_K` is 10, so `make ask` passes Gemma the 10 closest chunks and the eval reports MRR@10.
 - **Alternatives considered:**
   - *Keeping 5:* the project's example question keeps missing the sections that explain the difference.
@@ -498,7 +498,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-020: Hybrid search with reciprocal rank fusion; vector search stays the default
 
-- **Status:** Accepted (step 8, 2026-10-10)
+- **Status:** Accepted (step 8, 2026-10-10). The default changed in D-022, once the lexical half was translated (D-021).
 - **Decision:**
   - **Fusion:** `--method hybrid` takes the top 40 of vector search and the top 40 of lexical search and gives each chunk the sum of 1 / (60 + rank) over the lists it appears in (reciprocal rank fusion, RRF). The 40 is the most an HNSW scan can return with the default `hnsw.ef_search`.
   - **Ties:** chunks with equal scores in a list share its best rank (1, 2, 2, 4), and the remaining ties are ordered by section path and chunk position.
@@ -521,7 +521,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-021: Translate the question into English for the lexical search; vector search stays the default
 
-- **Status:** Accepted (step 9, 2026-10-10)
+- **Status:** Accepted (step 9, 2026-10-10). The default changed in D-022: with a smaller top-k, the better ranking pays off.
 - **Decision:**
   - **Translation:** `--translate` (in `make ask` and `make eval`, with `--method lexical` or `hybrid`) first asks Gemma to translate the question into English (`translate.py`), and the lexical search uses that translation. The vector search keeps the original question.
   - **Prompt:** detect first ("if the question is written in English, reply with the single word ENGLISH"), then translate with the standard terminology of radar remote sensing and British spelling, keeping acronyms, product names and numbers. For ENGLISH, or a translation cut off at the token limit, the original question is used.
@@ -561,3 +561,41 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
     - "¿Qué información contiene un producto Sentinel-1 SLC?": the hybrid answer cites `Level-1 Products Formatting` (a complex measurement dataset in GeoTIFF per polarisation), on point. The vector answer wanders through ETAD and availability dates.
     - Mission cost (not in the corpus): still "No se encontró información…", with no citation.
   - **Eval time:** 9 s with Gemma loaded, against 5–8 s without translation.
+
+## D-022: Default retrieval: hybrid search with a translated question and the top 5
+
+- **Status:** Accepted (step 10, 2026-10-11)
+- **Decision:**
+  - **Default:** `make ask` and `make eval` use hybrid search (D-020) with the question translated into English for the full-text half (D-021), and the model gets the top 5 chunks (`DEFAULT_METHOD = "hybrid"`, `TOP_K = 5`).
+  - **Options:** translation is on wherever there is a full-text search; `--no-translate` turns it off, and `--method vector` never translates. `make ask` also takes `--top-k`, so the previous default is `--method vector --top-k 10`.
+  - **Eval:** it measures the default, so it now loads Gemma for the translations.
+- **Alternatives considered:**
+  - *Vector search with the top 10* (D-018, the previous default): the same number of answers reach the model, with prompts about 75 % longer, and the example question keeps its SLC section.
+  - *Hybrid with translation, top 3:* the same coverage on the eval and the shortest prompts, but the answers cite fewer sections (1.36 per answer against 1.74 with vector search): the ETAD answer lost one of its two sections, and the answer on how the SAR works lost the acquisition modes. It also leaves no margin for a new question whose answer ranks 4th or 5th.
+  - *Hybrid with translation, top 10:* no more answers than the top 5, with the longest prompts.
+  - *Vector search with the top 5* (the D-017 baseline): hit@5 0.895, one answer fewer.
+- **Why:**
+  - With the better ranking, the top 5 holds as many answers as vector search's top 10: 18 of 19 questions.
+  - The real answers cite a correct section just as often (36 of 38), with prompts about 43 % shorter and generation about 30 % faster.
+  - Some answers are more focused. For oil spills, vector search with 10 passages mixed ship-detection products into the list of products for detecting oil.
+- **Trade-offs:**
+  - **The example question:** "¿Qué diferencia hay entre un producto GRD y uno SLC?" loses the SLC section (rank 18), and its answer no longer explains the phase information and complex samples, which D-018 raised top-k to obtain. `--method vector --top-k 10` brings it back. In exchange, "¿Qué información contiene un producto Sentinel-1 SLC?" now gets its section (rank 3, from 16).
+  - **A model call in retrieval:** every question, and every eval run, needs a Gemma call first (D-021).
+  - **Chosen on the eval questions:** like D-018, on the same 19 questions, here backed by the answers to them.
+- **Verified [2026-10-11]:**
+  - **Eval** (`eval/results/2026-10-11T011251-hybrid-en-k5.json`): hit@1 0.789, hit@3 0.947, hit@5 0.947, MRR@5 0.860. Blind 0.800 / 0.667, drafted from the text 1.000 / 0.929. The top 3 gives the same coverage and MRR@3 0.860.
+  - **Answers** (throwaway script, 168 in total: the 19 eval questions and 2 that the corpus does not answer, 4 configurations, 2 runs each):
+
+    | Configuration | Cited a correct section | Prompt tokens (median / max) | Answer tokens (median) | Generation (median) |
+    |---|---|---|---|---|
+    | vector, top 10 | 36 / 38 | 2,851 / 3,804 | 116 | 5.4 s |
+    | hybrid, translated, top 10 | 36 / 38 | 3,147 / 3,563 | 115 | 6.2 s |
+    | hybrid, translated, top 5 | 36 / 38 | 1,615 / 2,171 | 90 | 3.7 s |
+    | hybrid, translated, top 3 | 36 / 38 | 1,042 / 1,524 | 75 | 2.7 s |
+
+    - In every configuration, an answer cited a correct section whenever one was in the prompt. The two misses are `grd-vs-slc` for the hybrids and `slc-content` for vector search.
+    - Mission cost: "not found" in 2 of 2 runs for every configuration. Exporting to GeoTIFF: never said to be missing, in any configuration (the limitation in D-018).
+    - Answers read side by side: orbit files (all configurations give the full latency and accuracy table), ETAD, the SAR principle, oil spills, floods, ground subsidence and the repeat cycle.
+  - **End to end,** `make ask` with the models loaded on 6 questions: 4.2–16.3 s with the new default, translation included, against 5.4–12.4 s for vector search with the top 10. The answer length dominates (about 40 tokens/s).
+  - **The example question,** 2 runs with the new default: both cite only `S1 Products > Level-1 Products` and `SAR Products Overview`; one rendered "Single Look Complex" as "Complejo de Aspectos Únicos".
+  - **Earlier behaviour reproducible:** with the new options, `--method vector --top-k 10`, `--method lexical|hybrid --no-translate --top-k 10` and `--method lexical|hybrid --top-k 10` reproduce the five cited runs of steps 6, 8 and 9 exactly.

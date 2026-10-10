@@ -13,8 +13,8 @@ import textwrap
 from sentinel1_rag.config import CHAT_MODEL, CHAT_NUM_CTX
 from sentinel1_rag.db import connect
 from sentinel1_rag.ollama import Ollama
-from sentinel1_rag.retrieval import METHODS, SCORE_LABEL, Hit, retrieve
-from sentinel1_rag.translate import to_english
+from sentinel1_rag.retrieval import DEFAULT_METHOD, METHODS, SCORE_LABEL, TOP_K, Hit, retrieve
+from sentinel1_rag.translate import to_english, use_translation
 
 # Sent with every request (D-002). num_predict stops an answer that never ends.
 CHAT_OPTIONS = {"num_ctx": CHAT_NUM_CTX, "temperature": 0.2, "num_predict": 1024}
@@ -89,21 +89,26 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Answer a question about Sentinel-1, citing the SentiWiki.")
     parser.add_argument("question")
     parser.add_argument("--show-context", action="store_true", help="also print the retrieved chunks")
-    parser.add_argument("--method", choices=METHODS, default="vector", help="retrieval method (default vector)")
-    parser.add_argument("--translate", action="store_true", help="translate the question into English for the lexical search")
+    parser.add_argument("--method", choices=METHODS, default=DEFAULT_METHOD, help=f"retrieval method (default {DEFAULT_METHOD})")
+    parser.add_argument(
+        "--translate", action=argparse.BooleanOptionalAction,
+        help="translate the question into English for the lexical search (default: on, except with --method vector)",
+    )
+    parser.add_argument("--top-k", type=int, default=TOP_K, help=f"passages given to the model (default {TOP_K})")
     args = parser.parse_args()
     question = args.question.strip()
     if not question:
         raise SystemExit('Usage: make ask Q="your question" [ARGS=--show-context]')
-    if args.translate and args.method == "vector":
-        raise SystemExit("--translate only changes the lexical search: use it with --method lexical or hybrid")
+    if not 1 <= args.top_k <= 20:
+        raise SystemExit("--top-k must be between 1 and 20")
+    translate = use_translation(args.method, args.translate)
 
     ollama = Ollama()
-    english = to_english(ollama, question) if args.translate else None
+    english = to_english(ollama, question) if translate else None
     if english is not None and english != question:
         print(f"Lexical search in English: {english}\n")
     with connect() as conn:
-        hits = retrieve(conn, ollama, question, method=args.method, english=english)
+        hits = retrieve(conn, ollama, question, k=args.top_k, method=args.method, english=english)
     if not hits:
         raise SystemExit("The index is empty. Run `make ingest` and `make index` first.")
     if args.show_context:

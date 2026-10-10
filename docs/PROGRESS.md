@@ -4,7 +4,7 @@ _Last updated: 2026-10-10_
 
 ## Current step
 
-**Step 10: Hybrid search with translation and a smaller top-k.** In progress. Step 9 (translating the question for the lexical search) was approved on 2026-10-10, and the user chose this follow-up. All steps of the brief (0–7) are done, and so are the extension steps 8 and 9.
+**Step 11: BM25 for the full-text half.** In progress. Step 10 (translated hybrid search with the top 5 as the default) was approved on 2026-10-11, and the user chose this follow-up. All steps of the brief (0–7) are done, and so are the extension steps 8 to 10.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -18,7 +18,8 @@ _Last updated: 2026-10-10_
 | 7 | Documentation (README, final review of the decisions) | Done |
 | 8 | Extension 1: lexical baseline and hybrid search | Done |
 | 9 | Translate the question before the lexical search | Done |
-| 10 | Hybrid search with translation and a smaller top-k, judged on the answers | In progress |
+| 10 | Hybrid search with translation and a smaller top-k, judged on the answers | Done |
+| 11 | BM25 instead of `ts_rank` for the full-text search | In progress |
 
 ## Done
 
@@ -146,6 +147,15 @@ _Last updated: 2026-10-10_
 - Translations repeated exactly in 4 probe runs and 2 eval runs; a translation takes 0.2–0.7 s.
 - New run `eval/results/2026-10-10T223354-vector.json`: the same retrieval as the cited top-10 run, with the per-language groups added in step 8.
 
+### Step 10
+
+- **Answer-level comparison** (throwaway script, 168 answers: 19 eval questions + 2 unanswerable, 2 runs) of vector top 10, and hybrid with translation at top 10, 5 and 3. Every configuration cites a correct section in 36 of 38 answers; the medians of prompt tokens are 2,851 / 3,147 / 1,615 / 1,042 and of generation time 5.4 / 6.2 / 3.7 / 2.7 s. The top 3 cites fewer sections per answer (1.36 against 1.74–2.0).
+- **New default (D-022):** hybrid search, question translated for the full-text half, top 5. Eval: hit@5 0.947, MRR@5 0.860 (`eval/results/2026-10-11T011251-hybrid-en-k5.json`). D-018 superseded.
+  - Cost: the example question (GRD vs SLC) loses the SLC section; `--method vector --top-k 10` brings it back. One Gemma call per question, also in the eval.
+- CLI: `--translate` defaults to on for lexical and hybrid (`--no-translate` turns it off); `make ask` takes `--top-k`. The five cited runs of steps 6, 8 and 9 are reproduced exactly with the new options.
+- README: new example (oil spills), diagram with both searches and the fusion, results for the new default, the answer comparison, and the GRD/SLC limitation.
+- End to end with the models loaded: 4.2–16.3 s for the new default and 5.4–12.4 s for vector top 10 on 6 questions; answer length dominates.
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -173,7 +183,7 @@ _Last updated: 2026-10-10_
 
 ## Next
 
-**Step 10:** hybrid search with translation and a top-k of 3 or 5 (open in D-021), compared with vector search and the top 10 on the answers themselves: which sections they cite, prompt size and time. After that, the remaining extensions in the [README](../README.md#extensions-not-implemented), in order of value.
+**Step 11:** BM25 written in SQL in place of `ts_rank` for the full-text search (a throwaway test gave the translated hybrid MRR@10 0.908 against 0.860), measured on the eval and on the answers. After that, the remaining extensions in the [README](../README.md#extensions-not-implemented), in order of value (PDFs first).
 
 ## How to resume
 
@@ -181,5 +191,5 @@ _Last updated: 2026-10-10_
 2. Check that Ollama is running and has both models: `systemctl is-active ollama && ollama list`.
 3. After a WSL restart, check that Ollama found the GPU: `journalctl -u ollama -b | grep "inference compute"` must show `library=CUDA`. If it shows `library=cpu`, run `sudo systemctl restart ollama` and check again.
 4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index`; otherwise `make index` alone confirms there is nothing to do.
-5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in a few seconds without Gemma.
+5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in about 10 s once Gemma is loaded (it translates the questions); `ARGS="--method vector"` skips Gemma.
 6. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.

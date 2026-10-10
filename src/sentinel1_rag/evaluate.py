@@ -10,8 +10,9 @@ records the rank of the first chunk that comes from one of those sections:
   `make ask` never shows the model anything below the top k (TOP_K, unless --top-k says
   otherwise, to see what another k would give).
 
-Only retrieval is measured, so Gemma is not used, except to translate the questions with
---translate. Each run is saved in eval/results/.
+Only retrieval is measured, so Gemma is used only to translate the questions for the lexical
+search (on by default; --method vector or --no-translate skip it). Each run is saved in
+eval/results/.
 """
 
 import argparse
@@ -24,8 +25,8 @@ import yaml
 from sentinel1_rag.config import EMBED_MODEL, QUESTIONS_FILE, RESULTS_DIR, ROOT
 from sentinel1_rag.db import connect
 from sentinel1_rag.ollama import Ollama
-from sentinel1_rag.retrieval import METHODS, SCORE_LABEL, TOP_K, Hit, retrieve
-from sentinel1_rag.translate import to_english
+from sentinel1_rag.retrieval import DEFAULT_METHOD, METHODS, SCORE_LABEL, TOP_K, Hit, retrieve
+from sentinel1_rag.translate import to_english, use_translation
 
 # Retrieve deeper than the top k so that a miss still shows how far down the answer was.
 # The top k of a deeper search are the same chunks that `make ask` gets.
@@ -109,13 +110,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Measure retrieval on eval/questions.yaml.")
     parser.add_argument("--label", default="", help="short name for this run, added to the results file name")
     parser.add_argument("--top-k", type=int, default=TOP_K, help=f"chunks passed to the model (default {TOP_K})")
-    parser.add_argument("--method", choices=METHODS, default="vector", help="retrieval method (default vector)")
-    parser.add_argument("--translate", action="store_true", help="translate the questions into English for the lexical search")
+    parser.add_argument("--method", choices=METHODS, default=DEFAULT_METHOD, help=f"retrieval method (default {DEFAULT_METHOD})")
+    parser.add_argument(
+        "--translate", action=argparse.BooleanOptionalAction,
+        help="translate the questions into English for the lexical search (default: on, except with --method vector)",
+    )
     args = parser.parse_args()
     if not 1 <= args.top_k <= DEPTH:
         raise SystemExit(f"--top-k must be between 1 and {DEPTH}")
-    if args.translate and args.method == "vector":
-        raise SystemExit("--translate only changes the lexical search: use it with --method lexical or hybrid")
+    args.translate = use_translation(args.method, args.translate)
 
     questions = load_questions()
     ollama = Ollama()

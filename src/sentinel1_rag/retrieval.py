@@ -1,9 +1,9 @@
 """Find the chunks closest to a question: the retrieval half of RAG, shared by `ask` and the eval.
 
 Three methods:
-- vector (the default): cosine distance between bge-m3 embeddings (D-015);
+- vector: cosine distance between bge-m3 embeddings (D-015);
 - lexical: Postgres full-text search, ranking chunks by the question's words they contain (D-019);
-- hybrid: both lists merged with reciprocal rank fusion (D-020).
+- hybrid (the default): both lists merged with reciprocal rank fusion (D-020, D-022).
 
 The lexical search can take the question translated into English instead (translate.py, D-021).
 """
@@ -16,11 +16,12 @@ from pgvector import Vector
 from sentinel1_rag.config import EMBED_MODEL
 from sentinel1_rag.ollama import Ollama
 
-# Raised from 5 after the step-6 eval: the sections that explain GRD and SLC best ranked 9th
-# and 11th for the project's example question (D-018).
-TOP_K = 10
+# Hybrid search with the lexical half in English finds as many answers in its top 5 as vector
+# search did in its top 10, with prompts about 40 % shorter (D-022; it was 10 in D-018).
+TOP_K = 5
 
 METHODS = ("vector", "lexical", "hybrid")
+DEFAULT_METHOD = "hybrid"
 # What Hit.score means for each method.
 SCORE_LABEL = {
     "vector": "cosine distance: lower is closer",
