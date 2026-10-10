@@ -1,5 +1,5 @@
-# Project entry points. The eval target comes in a later step.
-.PHONY: up down ingest index ask clean
+# Project entry points.
+.PHONY: up down ingest index ask eval clean
 
 # Start Postgres + pgvector and wait until it accepts connections.
 up:
@@ -22,6 +22,11 @@ index:
 # backticks in the question reach Python unchanged (a $ is still expanded by make).
 ask:
 	uv run python -m sentinel1_rag.ask $(ARGS) "$$Q"
+
+# Measure retrieval on eval/questions.yaml (hit@k, MRR) and save the run in eval/results/.
+# Name a run with ARGS="--label <name>"; ARGS="--top-k 5" scores another k.
+eval:
+	uv run python -m sentinel1_rag.evaluate $(ARGS)
 
 # Stop the containers, delete the database volume and the downloaded data.
 clean:

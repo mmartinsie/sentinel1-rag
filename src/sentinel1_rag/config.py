@@ -10,6 +10,8 @@ DATA_DIR = ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 CHUNKS_DIR = DATA_DIR / "chunks"
 SOURCES_FILE = ROOT / "sources.yaml"
+QUESTIONS_FILE = ROOT / "eval" / "questions.yaml"
+RESULTS_DIR = ROOT / "eval" / "results"
 
 USER_AGENT = "sentinel1-rag/0.1 (+https://github.com/mmartinsie/sentinel1-rag; learning project)"
 

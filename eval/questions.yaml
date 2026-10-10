@@ -1,0 +1,200 @@
+# Retrieval eval questions.
+#
+# Each question lists the sections that answer it. `url` is the citation URL that retrieval
+# returns for the section (page URL + "#" + heading anchor) and is what the eval matches on;
+# `section` is the readable heading path. `make eval` checks that both exist in the index, so a
+# typo fails loudly instead of counting as a miss. A question counts as found at rank r when
+# the r-th retrieved chunk comes from one of its sections.
+#
+# Labelling rule (strict): a section is listed only if, read on its own, it answers the main
+# part of the question. Sections that only name the topic are left out. For a question that
+# compares two things (GRD vs SLC), each section that explains one of them counts, because no
+# single section explains both. Questions about three or more things are not used (see the end).
+#
+# `written` records how the question was written:
+# - blind: by someone who had not read the pages, the way a user would ask;
+# - from-text: drafted after reading the section that answers it, so it may share its wording.
+
+questions:
+  - id: grd-vs-slc
+    written: blind
+    question: ¿Qué diferencia hay entre un producto GRD y uno SLC?
+    # "S1 Products > Level-1 Products" lists both product types and their resolutions, but
+    # only these two sections explain the difference (phase kept or lost, slant or ground range).
+    relevant:
+      - section: S1 Processing > L1 Algorithms > Single Look Complex (SLC)
+        url: https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)
+      - section: S1 Processing > L1 Algorithms > Ground Range Detected (GRD)
+        url: https://sentiwiki.copernicus.eu/web/s1-processing#Ground-Range-Detected-(GRD)
+
+  - id: sar-principle
+    written: blind
+    question: ¿Cómo funciona el sensor SAR de Sentinel-1?
+    # Three angles on the same question: the physics of the measurement, how the long antenna
+    # is synthesised, and the instrument's signal chain.
+    relevant:
+      - section: S1 Mission > SAR Instrument > Geophysical Measurements
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements
+      - section: S1 Products > SAR Products Overview
+        url: https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview
+      - section: S1 Mission > SAR Instrument
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument
+
+  - id: product-metadata
+    written: blind
+    question: ¿Qué metadatos contiene un producto Sentinel-1 y cómo se consultan?
+    # Only half of it is answerable: the section describes the SAFE folder (an XML manifest
+    # with the general metadata, plus annotation subfolders), but no page explains how to query it.
+    relevant:
+      - section: S1 Products > SAR Products Overview > SAR Naming Convention
+        url: https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention
+
+  - id: grd-content
+    written: blind
+    question: ¿Qué información contiene un producto Sentinel-1 GRD?
+    relevant:
+      - section: S1 Processing > L1 Algorithms > Ground Range Detected (GRD)
+        url: https://sentiwiki.copernicus.eu/web/s1-processing#Ground-Range-Detected-(GRD)
+      - section: S1 Products > Level-1 Products
+        url: https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products
+      - section: S1 Products > SAR Products Overview > Level-1 Products Formatting
+        url: https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting
+
+  - id: slc-content
+    written: blind
+    question: ¿Qué información contiene un producto Sentinel-1 SLC?
+    # "S1 Products > Level-1 Products" has one SLC row per mode in a resolution table, and
+    # "Interferometric Wide Swath" describes IW SLC products only, so neither is listed.
+    relevant:
+      - section: S1 Processing > L1 Algorithms > Single Look Complex (SLC)
+        url: https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)
+      - section: S1 Products > SAR Products Overview > Level-1 Products Formatting
+        url: https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting
+
+  - id: repeat-cycle
+    written: from-text
+    question: What is the repeat cycle of Sentinel-1, and how does a second satellite change it?
+    relevant:
+      - section: S1 Mission > Overview of Sentinel-1 Mission > Orbit
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Orbit
+      - section: S1 Mission > Overview of Sentinel-1 Mission > Geographical Coverage
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Geographical-Coverage
+
+  - id: iw-swath-resolution
+    written: from-text
+    question: ¿Qué anchura de barrido y qué resolución espacial tiene el modo IW?
+    relevant:
+      - section: S1 Mission > Acquisition Modes > Interferometric Wide Swath
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath
+
+  - id: topsar-vs-scansar
+    written: from-text
+    question: How does the TOPSAR technique improve on conventional ScanSAR?
+    relevant:
+      - section: S1 Mission > Acquisition Modes > Interferometric Wide Swath
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath
+      - section: S1 Processing > L1 Algorithms > Algorithm Overview
+        url: https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview
+
+  - id: ew-mode-use
+    written: from-text
+    question: ¿Para qué se utiliza principalmente el modo Extra Wide swath?
+    relevant:
+      - section: S1 Mission > Acquisition Modes > Extra Wide Swath
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Extra-Wide-Swath
+      - section: S1 Mission > Acquisition Modes
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes
+
+  - id: wave-vignettes
+    written: from-text
+    question: How large are the Wave mode vignettes, and how far apart are they along the orbit?
+    relevant:
+      - section: S1 Mission > Acquisition Modes > Wave
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Wave
+
+  - id: centre-frequency
+    written: from-text
+    question: At what frequency does the Sentinel-1 radar operate, and what wavelength is that?
+    # The answer is a row of the instrument table; many sections only say "C-band".
+    relevant:
+      - section: S1 Mission > SAR Instrument
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument
+
+  - id: etad-corrections
+    written: from-text
+    question: ¿Qué errores de geolocalización corrige el producto ETAD?
+    relevant:
+      - section: S1 Products > Level-1 Products > ETAD Products
+        url: https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products
+      - section: S1 Processing > L1 Algorithms > ETAD processing
+        url: https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing
+
+  - id: product-name
+    written: from-text
+    question: What information can be read from the name of a Sentinel-1 product folder?
+    relevant:
+      - section: S1 Products > SAR Products Overview > SAR Naming Convention
+        url: https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention
+
+  - id: orbit-files
+    written: from-text
+    question: ¿Qué tipos de ficheros de órbita hay para Sentinel-1 y en qué se diferencian en latencia y precisión?
+    # The latency and accuracy figures are in Products Description; the POD Service section
+    # names the four orbit products and their timeliness classes (NRT, STC, NTC), without figures.
+    relevant:
+      - section: S1 Processing > POD Sentinel-1 Products Specification > Products Description
+        url: https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description
+      - section: S1 Mission > Precise Orbit Determination Service
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Precise-Orbit-Determination-Service
+
+  - id: level2-ocean
+    written: from-text
+    question: Which geophysical measurements does the Level-2 ocean product provide?
+    # "S1 Products > SAR Products Overview" only names the components by their acronyms.
+    relevant:
+      - section: S1 Products > Level-2 Products
+        url: https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products
+      - section: S1 Processing > L2 Algorithms
+        url: https://sentiwiki.copernicus.eu/web/s1-processing#L2-Algorithms
+
+  - id: oil-spills
+    written: from-text
+    question: ¿Cómo se detectan los vertidos de petróleo en el mar con Sentinel-1 y qué productos conviene usar?
+    relevant:
+      - section: S1 Applications > Maritime Monitoring > Oil Pollution Monitoring
+        url: https://sentiwiki.copernicus.eu/web/s1-applications#Oil-Pollution-Monitoring
+
+  - id: flood-mapping
+    written: from-text
+    question: Why is Sentinel-1 good for mapping floods, and which polarisations are needed to detect flooded vegetation?
+    relevant:
+      - section: S1 Applications > Emergency Management > Flood Monitoring
+        url: https://sentiwiki.copernicus.eu/web/s1-applications#Flood-Monitoring
+
+  - id: ground-subsidence
+    written: from-text
+    question: ¿Cómo puede Sentinel-1 medir hundimientos del terreno de pocos milímetros al año?
+    # Interferometry explains the technique (DInSAR, PSI); Urban Deformation Mapping gives the
+    # millimetre accuracy.
+    relevant:
+      - section: S1 Mission > SAR Instrument > Interferometry
+        url: https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry
+      - section: S1 Applications > Land Monitoring > Urban Deformation Mapping
+        url: https://sentiwiki.copernicus.eu/web/s1-applications#Urban-Deformation-Mapping
+
+  - id: product-slicing
+    written: from-text
+    question: ¿Por qué los productos de nivel 1 se cortan en slices y cómo se vuelven a ensamblar?
+    relevant:
+      - section: S1 Processing > Product Slicing Handling
+        url: https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling
+
+# Written blind but not scored:
+# - "¿Cómo se exportan los resultados a GeoTIFF?": no page explains exporting; they only say
+#   that Level-1 measurement files are GeoTIFF. A good "not found" test for `make ask`.
+# - "¿Qué diferencias existen entre los productos SLC y GRD?": the same question as grd-vs-slc.
+# - "¿Qué diferencias hay entre los productos Level-0, Level-1 y Level-2?": each level has its
+#   own section, and a single search did not bring all three into reach (Level-0 at rank 2,
+#   Level-1 at 3, Level-2 at 14), so part of the answer is always lost. It counted as a hit
+#   anyway, because one section was enough for hit@k. Questions about three or more things
+#   are left out of the eval for that reason.

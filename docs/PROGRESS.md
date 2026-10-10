@@ -1,10 +1,10 @@
 # Progress
 
-_Last updated: 2026-10-09_
+_Last updated: 2026-10-10_
 
 ## Current step
 
-**Step 6: Retrieval eval.** Not started. Step 5 was approved on 2026-10-09.
+**Step 7: Documentation.** Not started. Step 6 was approved on 2026-10-10.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -14,8 +14,8 @@ _Last updated: 2026-10-09_
 | 3 | Ingest and chunking (`sources.yaml`, cached download, section chunker) | Done |
 | 4 | Indexing (batched embeddings, HNSW, idempotency) | Done |
 | 5 | Query (`make ask`, prompt, citations) | Done |
-| 6 | Retrieval eval (hit@1, hit@5, MRR) | Next |
-| 7 | Documentation (README, final review of the decisions) | Pending |
+| 6 | Retrieval eval (hit@k, MRR) and top-k 10 | Done |
+| 7 | Documentation (README, final review of the decisions) | Next |
 
 ## Done
 
@@ -93,6 +93,22 @@ _Last updated: 2026-10-09_
   - The unanswerable one gets "No se encontró información…" every time.
   - With the models loaded, an answer takes 1–3 s.
 
+### Step 6
+
+- `eval/questions.yaml`: 19 questions, each with the sections that answer it under a strict rule (D-017).
+  - 5 were written blind by the user, without reading the pages. 14 were drafted by Claude from the indexed text. The `written` field records which.
+  - Questions about three or more things are left out, on the user's decision. For "Level-0, Level-1 and Level-2", the three sections ranked 2, 3 and 14, so part of the answer never reached the model.
+- `make eval` (`evaluate.py`): runs `retrieval.retrieve` to depth 20 and reports hit@1/3/5/10 and MRR@k, overall and per `written` group. It prints the misses and saves every run in `eval/results/`. `ARGS="--label <name>"` names a run, and `--top-k` scores another k.
+- **Baseline with the top 5:** hit@1 0.684, hit@5 0.895, MRR@5 0.761.
+  - Blind questions: hit@5 0.600, MRR@5 0.500. Questions drafted from the text: hit@5 1.000, MRR@5 0.854.
+  - Misses: `grd-vs-slc` (rank 9) and `slc-content` (rank 16). The `S1 Processing > L1 Algorithms` sections on SLC and GRD rank low for every product question; chunks from the `S1 Products` page win.
+  - Capping the chunks per section, simulated on the saved results, changed no metric.
+- **Change: top-k from 5 to 10** (D-018), chosen by the user. hit@10 0.947, MRR@10 0.766; blind questions hit@10 0.800.
+  - `grd-vs-slc` is now found. In 3 runs out of 3, the answer uses the SLC section (phase, complex samples, slant range), which never reached Gemma before.
+  - `slc-content` is still a miss.
+- **Generation with 10 passages:** prompts of 2,150–3,804 tokens (worst case 4,288) out of 8,192. The unanswerable cost question still gets "No se encontró información…" and the English question an English answer, 3 runs out of 3 each.
+- Not run: the chunking experiments (chunk size, the "Page > Section" prefix, merging small sections, extra pages).
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -109,15 +125,13 @@ _Last updated: 2026-10-09_
 
 ## Findings that affect later steps
 
-- **Retrieval (step 6):**
-  - `retrieval.retrieve(conn, ollama, question, k)` is what the eval should call, so that it measures exactly what `make ask` uses.
-  - Several chunks of one long section can crowd out other sections. For the brief's example question, 3 of the top 5 come from `S1 Products > Level-1 Products`, while `S1 Processing > L1 Algorithms > Single Look Complex (SLC)` and `> Ground Range Detected (GRD)`, which explain the difference best, rank 9th and 11th.
+- **Numbers for the README (step 7):** with the top 10 over 19 questions, hit@10 0.947 and MRR@10 0.766, from `eval/results/2026-10-10T130918-top-k-10.json`. Report the blind subset too (hit@10 0.800 over 5 questions) and the caveat about questions drafted from the text (D-017).
+- **Limitations for the README:**
+  - Questions about products rank the `S1 Products` page above the `S1 Processing > L1 Algorithms` sections that explain SLC and GRD. `slc-content` is still missed at rank 16.
   - Distances alone cannot tell an answerable question from an unanswerable one (D-015).
-  - The eval measures retrieval only, so it needs bge-m3 and Postgres but not Gemma.
-- **Experiments for step 6:**
-  - Add the cross-mission candidate pages (POD, Glossary; D-010).
-  - Merge small sections: 15 chunks have fewer than 100 tokens.
-  - Limit how many chunks of the same section enter the top k.
+  - A question about three or more things cannot get every part into the top k with one search.
+  - **Partial answers:** for "¿Cómo se exportan los resultados a GeoTIFF?", which the corpus does not answer, Gemma states nearby facts (products are saved as GeoTIFF), with correct citations, but does not say that the export itself is not covered. The prompt asks it to say what is missing (D-016). It happens with the top 5 too, so top-k is not the cause. Left as a documented limitation.
+- **Ideas not measured:** merging small sections (15 chunks under 100 tokens), another chunk size, embedding without the "Page > Section" prefix, adding the POD or Glossary pages (D-010), a reranker or hybrid search (extensions).
 - **Gemma 4 requests:** `ask.py` sends `think: false`, `num_ctx: 8192`, `temperature: 0.2` and `num_predict: 1024` with every request. On this GPU Ollama's default context is 4096. The model's own defaults are temperature 1, top_k 64 and top_p 0.95.
 - **Model loading:**
   - Ollama unloads a model after 5 idle minutes (`OLLAMA_KEEP_ALIVE`). The first question after that takes about 70–90 s, almost all of it loading Gemma from the HDD.
@@ -127,10 +141,9 @@ _Last updated: 2026-10-09_
 
 ## Next
 
-**Step 6:**
-- `eval/questions.yaml`: 10–15 questions, each with the URL and section that hold its answer. Claude drafts them from the real pages; the user writes or reviews them.
-- `make eval`: hit@1, hit@5 and MRR over those questions, with dated results in `eval/results/` and the failures printed.
-- Analyse the failures and decide whether to change the chunking or the top-k. Every change is measured again and recorded.
+**Step 7: Documentation.**
+- `README.md` in English: what it is, an architecture diagram (Mermaid), how to run it on WSL, the eval results with their number, limitations and extensions.
+- Final review of `docs/DECISIONS.md`.
 
 ## How to resume
 
@@ -138,5 +151,5 @@ _Last updated: 2026-10-09_
 2. Check that Ollama is running and has both models: `systemctl is-active ollama && ollama list`.
 3. After a WSL restart, check that Ollama found the GPU: `journalctl -u ollama -b | grep "inference compute"` must show `library=CUDA`. If it shows `library=cpu`, run `sudo systemctl restart ollama` and check again.
 4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index`; otherwise `make index` alone confirms there is nothing to do.
-5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads.
+5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in a few seconds without Gemma.
 6. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.

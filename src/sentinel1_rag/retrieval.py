@@ -8,7 +8,9 @@ from pgvector import Vector
 from sentinel1_rag.config import EMBED_MODEL
 from sentinel1_rag.ollama import Ollama
 
-TOP_K = 5
+# Raised from 5 after the step-6 eval: the sections that explain GRD and SLC best ranked 9th
+# and 11th for the project's example question (D-018).
+TOP_K = 10
 
 
 @dataclass

@@ -317,7 +317,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-015: Retrieval: the raw question, the 5 closest chunks, top-k before the join
 
-- **Status:** Accepted (step 5, 2026-10-09)
+- **Status:** Accepted (step 5, 2026-10-09). The top-k is now 10: see D-018.
 - **Decision:**
   - **Query vector:** the question is embedded as it is, with bge-m3 and no prefix (D-003).
   - **Top-k:** the 5 chunks with the smallest cosine distance (`<=>`), closest first. There is no distance threshold: deciding that the answer is missing is left to the model.
@@ -388,3 +388,69 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
     - Mission cost (Spanish, not in the corpus): "No se encontró información…" every time, with no citation and no number.
   - **Sizes and times:** prompts of 1,272–1,792 tokens (of 8,192), answers of 21–108 tokens, 0.6–2.6 s with the model loaded.
   - **CLI:** a question with double quotes, an apostrophe and backticks reaches Python unchanged. An empty question prints the usage line. With Ollama or Postgres down, the run ends with the same clear errors as `make index`.
+
+## D-017: Retrieval eval: section-level labels, the real retrieval, MRR over the top 5
+
+- **Status:** Accepted (step 6, 2026-10-10)
+- **Decision:**
+  - **Labels:** each question in `eval/questions.yaml` lists the sections that answer it, by citation URL (`page#anchor`) plus its heading path. `make eval` stops if a listed section is not in the index, so a typo cannot pass as a miss.
+  - **Labelling rule (strict, chosen by the user):** a section is listed only if, read on its own, it answers the main part of the question; sections that only name the topic are left out. For a question that compares two things (GRD vs SLC), each section that explains one of them counts, because no single section explains both.
+  - **Questions:** 19, of which 5 were written *blind* by the user without reading the pages (including the project's example question) and 14 were drafted *from the text* by Claude. A `written` field records which, and every metric is also reported per group. Three more blind questions are listed in the file but not scored:
+    - one duplicates `grd-vs-slc`;
+    - one (exporting to GeoTIFF) has no answer in the corpus;
+    - one asks about three things (Level-0, Level-1 and Level-2). The user decided to leave such questions out: its three sections ranked 2, 3 and 14, so part of the answer never reaches the model, yet it counted as a hit because one section is enough.
+  - **What is measured:** each question goes through `retrieval.retrieve`, the same function `make ask` uses, at depth 20. The result per question is the rank of the first chunk from an expected section.
+  - **Metrics:** hit@1, hit@3, hit@5 and hit@10 (the share of questions with that rank or better), and MRR@k, the mean of 1/rank, which counts a rank below k as 0 because `make ask` only passes the top k to the model. k is `TOP_K` (D-018); `--top-k` scores another value on the same retrieval.
+  - **Output:** the metrics, a rank per question, and for each miss the expected sections next to the top 5 retrieved. Every run is saved as `eval/results/<timestamp>[-<label>].json`, with the index recipe (`index_config`), the chunk count and the 20 retrieved chunks per question, so runs can be compared later.
+- **Alternatives considered:**
+  - *Labels per chunk:* chunk ids change whenever the chunking changes, so every chunking experiment would need new labels.
+  - *A single expected section per question:* when two sections answer, retrieving the other one would count as a miss.
+  - *Evaluating the generated answers* (faithfulness, correctness): needs Gemma or a judge model and is far noisier; the brief limits the eval to retrieval.
+  - *MRR over the full depth:* rewards moving an answer from rank 15 to 11, which `make ask` never sees.
+  - *Requiring every side of a comparison in the top k:* more faithful for comparisons, but only one question needed it once the three-sided one was dropped.
+  - *Precision@k or nDCG:* they need every relevant chunk labelled, not just the first one found.
+- **Why:** labels survive changes to the chunking and the embedding, and the numbers describe exactly what `make ask` retrieves.
+- **Trade-offs:**
+  - With 19 questions, one question moves hit@k by 0.053, and by 0.2 within the 5 blind ones, so only differences of several questions mean anything. The brief asked for 10–15 questions; 19 keeps the blind ones without dropping the rest.
+  - The questions drafted from the text share its wording and are measurably easier (see below).
+  - Section labels are a judgement call: counting `S1 Products > Level-1 Products` as an answer to the GRD/SLC question would turn that miss into a hit at rank 1.
+  - A comparison counts as found when either side is retrieved, so hit@k cannot tell whether both reached the model.
+  - Changes are measured on the same 19 questions they are chosen from, with no held-out set, so a change is only kept with a reason beyond the number.
+- **Verified [2026-10-10]** (baseline with the top 5, `eval/results/2026-10-10T130917-baseline-k5.json`, 5 s):
+
+  | Questions | hit@1 | hit@3 | hit@5 | hit@10 | MRR@5 |
+  |---|---|---|---|---|---|
+  | all (19) | 0.684 | 0.789 | 0.895 | 0.947 | 0.761 |
+  | blind (5) | 0.400 | 0.600 | 0.600 | 0.800 | 0.500 |
+  | from-text (14) | 0.786 | 0.857 | 1.000 | 1.000 | 0.854 |
+
+  - The questions drafted from the text are all found in the top 5; the blind ones are not, which confirms they are easier.
+  - Misses: `grd-vs-slc` (rank 9) and `slc-content` (rank 16, behind `ETAD Products`, which keeps saying "standard SLC product"). For `grd-content` the GRD section is not in the top 20 either; it counts as a hit only through `S1 Products > Level-1 Products`.
+  - Capping the chunks per section at 1 or 2, simulated on the saved results, changes no metric: `grd-vs-slc` only moves to rank 6.
+
+  - An earlier run of the first 15 questions gave identical numbers on a second run: the eval is deterministic.
+
+## D-018: Top-k raised from 5 to 10
+
+- **Status:** Accepted (step 6, 2026-10-10)
+- **Decision:** `retrieval.TOP_K` is 10, so `make ask` passes Gemma the 10 closest chunks and the eval reports MRR@10.
+- **Alternatives considered:**
+  - *Keeping 5:* the project's example question keeps missing the sections that explain the difference.
+  - *9, the smallest k that finds it:* chosen from one question's rank; 10 is the round value the eval already reported.
+  - *16 or more, to also find `slc-content`:* prompts of 5k+ tokens and many more passages for a 4.5B model to sort through, for one question.
+  - *Capping the chunks per section:* simulated on the saved eval results, it changes no metric (D-017).
+  - *Changing the chunking* (chunk size, the "Page > Section" prefix, merging small sections) or adding pages: not run; the user chose the top-k change.
+  - *A reranker or hybrid search:* outside the brief's scope (hybrid search is listed in the README extensions).
+- **Why:** the sections that explain GRD and SLC best (ranks 9 and 11) are the ones the example question needs, and with 10 passages they reach the model. The prompt still fits comfortably in the 8,192-token context.
+- **Trade-offs:**
+  - Prompts are about twice as long (median 2,869 tokens instead of 1,272–1,792), so answers take a little longer and the model has more passages to ignore.
+  - The gain on the eval is one question of 19 (hit@10 0.947 against hit@5 0.895), within the noise described in D-017; the reason to keep it is the better answer to the example question.
+  - `slc-content` is still a miss (rank 16).
+- **Verified [2026-10-10]:**
+  - **Eval** (`eval/results/2026-10-10T130918-top-k-10.json`): hit@10 0.947, MRR@10 0.766 over 19 questions. Blind: hit@10 0.800, MRR@10 0.522. Drafted from the text: hit@10 1.000, MRR@10 0.854.
+  - **Prompt sizes** with the top 10, from Gemma's `prompt_eval_count`: 2,150–3,804 tokens over the 19 eval questions (median 2,869). The 10 largest chunks of the corpus together give 4,288 tokens, plus up to 1,024 for the answer, against `num_ctx` 8,192.
+  - **Answers**, 3 runs each with the top 10:
+    - GRD vs SLC: every answer cites the SLC section ([9]) for phase, complex samples and slant range, which never reached Gemma with the top 5. GRD facts still come from `S1 Products > Level-1 Products`.
+    - Mission cost (not in the corpus): "No se encontró información…", with no citation.
+    - Repeat cycle (English): answered in English, citing the Orbit section; once `$180^\circ$` instead of 180°.
+    - Exporting to GeoTIFF (not in the corpus): answered with nearby facts (Level-1 products and S1GBM tiles are GeoTIFF files), correctly cited, without saying that the export itself is not covered. The top 5 gives the same answer, so the top-k is not the cause; it is a limitation of the prompt (D-016).
