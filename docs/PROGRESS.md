@@ -4,7 +4,7 @@ _Last updated: 2026-10-10_
 
 ## Current step
 
-**Step 7: Documentation.** Not started. Step 6 was approved on 2026-10-10.
+**All steps of the brief are done.** Step 7 (documentation), the last one, was approved on 2026-10-10.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -15,7 +15,7 @@ _Last updated: 2026-10-10_
 | 4 | Indexing (batched embeddings, HNSW, idempotency) | Done |
 | 5 | Query (`make ask`, prompt, citations) | Done |
 | 6 | Retrieval eval (hit@k, MRR) and top-k 10 | Done |
-| 7 | Documentation (README, final review of the decisions) | Next |
+| 7 | Documentation (README, final review of the decisions) | Done |
 
 ## Done
 
@@ -109,6 +109,19 @@ _Last updated: 2026-10-10_
 - **Generation with 10 passages:** prompts of 2,150–3,804 tokens (worst case 4,288) out of 8,192. The unanswerable cost question still gets "No se encontró información…" and the English question an English answer, 3 runs out of 3 each.
 - Not run: the chunking experiments (chunk size, the "Page > Section" prefix, merging small sections, extra pages).
 
+### Step 7
+
+- `README.md` rewritten: what it is, a real example answer, a Mermaid diagram of the two pipelines (building the index, answering), the eval results with their caveats, how to run it on WSL with measured times, the commands, the project layout, the limitations and the extensions.
+- **Clean-clone check:** a fresh clone in a separate Compose project (`s1rag-cleancheck`, port 5433) ran `make up`, `make ingest`, `make index`, `make ask` and `make eval` with no manual step. The pages downloaded again were identical to the cached ones, and the eval matched the cited run exactly. The throwaway project and its volume were removed afterwards.
+  - Times: `make up` 13 s, `make ingest` 10 s, `make index` 33 s (bge-m3 loaded cold), first `make ask` 69 s (60 s loading Gemma).
+- **Answer time with the top 10**, models loaded: 3.9–7.4 s (prompts of 2,901–3,359 tokens). The 1–3 s measured in step 5 was with the top 5.
+- **Final review of [DECISIONS.md](DECISIONS.md):**
+  - D-002, D-016: notes that the prompt now carries 10 passages (D-018), with the measured sizes.
+  - D-010, D-013: the experiments planned for step 6 (extra pages, merging small chunks) were not run.
+  - D-017: title changed from "MRR over the top 5" to "MRR cut at the top k", since the cut follows `TOP_K`.
+  - D-018: the clean-clone reproduction and the new answer times.
+  - D-003: Ollama can unload bge-m3 when it loads Gemma (seen twice in this step).
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -123,27 +136,20 @@ _Last updated: 2026-10-10_
 | Ollama | 0.40.1 as the systemd service `ollama`. Models live in `/usr/share/ollama/.ollama/models` |
 | Ports | 5432: the project's Postgres (localhost only). 11434: Ollama |
 
-## Findings that affect later steps
+## Findings worth keeping
 
-- **Numbers for the README (step 7):** with the top 10 over 19 questions, hit@10 0.947 and MRR@10 0.766, from `eval/results/2026-10-10T130918-top-k-10.json`. Report the blind subset too (hit@10 0.800 over 5 questions) and the caveat about questions drafted from the text (D-017).
-- **Limitations for the README:**
-  - Questions about products rank the `S1 Products` page above the `S1 Processing > L1 Algorithms` sections that explain SLC and GRD. `slc-content` is still missed at rank 16.
-  - Distances alone cannot tell an answerable question from an unanswerable one (D-015).
-  - A question about three or more things cannot get every part into the top k with one search.
-  - **Partial answers:** for "¿Cómo se exportan los resultados a GeoTIFF?", which the corpus does not answer, Gemma states nearby facts (products are saved as GeoTIFF), with correct citations, but does not say that the export itself is not covered. The prompt asks it to say what is missing (D-016). It happens with the top 5 too, so top-k is not the cause. Left as a documented limitation.
-- **Ideas not measured:** merging small sections (15 chunks under 100 tokens), another chunk size, embedding without the "Page > Section" prefix, adding the POD or Glossary pages (D-010), a reranker or hybrid search (extensions).
+- **Eval numbers, limitations and experiments not run** are now in the [README](../README.md) (step 7): hit@10 0.947 and MRR@10 0.766 over 19 questions, 0.800 hit@10 for the 5 blind ones, from `eval/results/2026-10-10T130918-top-k-10.json`.
 - **Gemma 4 requests:** `ask.py` sends `think: false`, `num_ctx: 8192`, `temperature: 0.2` and `num_predict: 1024` with every request. On this GPU Ollama's default context is 4096. The model's own defaults are temperature 1, top_k 64 and top_p 0.95.
 - **Model loading:**
   - Ollama unloads a model after 5 idle minutes (`OLLAMA_KEEP_ALIVE`). The first question after that takes about 70–90 s, almost all of it loading Gemma from the HDD.
   - In a long session (step 5, before a WSL restart), Ollama saw little free RAM and evicted one model to load the other on every question, so each `make ask` paid a full reload. After the restart both models stayed loaded together. If it happens again, check `ollama ps` and the `evicting` lines in `journalctl -u ollama`.
+  - In step 7, loading Gemma while bge-m3 was loaded unloaded bge-m3 twice (D-003). Loading bge-m3 next to Gemma did not evict Gemma.
 - **GPU detection after a WSL restart:** right after a restart, Ollama's GPU discovery timed out while reading its CUDA libraries from the cold HDD, and Ollama fell back to the CPU (`inference compute ... library=cpu` in the log). `sudo systemctl restart ollama` fixed it once the libraries were in the disk cache. Check after every restart (see "How to resume").
 - **Memory budget:** with both models loaded, the GPU uses 5.4 of 8 GiB and WSL uses 5.5 of 9.7 GiB of RAM. Postgres fits, but running other heavy workloads at the same time (such as a local Kubernetes cluster) could make RAM tight.
 
 ## Next
 
-**Step 7: Documentation.**
-- `README.md` in English: what it is, an architecture diagram (Mermaid), how to run it on WSL, the eval results with their number, limitations and extensions.
-- Final review of `docs/DECISIONS.md`.
+Every step of the brief is done. What comes after is the user's choice: the extensions in the [README](../README.md#extensions-not-implemented), in order of value, or one of the smaller experiments listed there.
 
 ## How to resume
 

@@ -37,7 +37,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 - **Why:**
   - It is the largest Gemma 4 variant expected to fit entirely in VRAM. Partial CPU offload slows generation several times.
   - QAT (quantization-aware training) trains the model to tolerate 4-bit weights, so Q4_0 loses less quality than post-training quantization, at a smaller size.
-  - 8192 tokens is about 2.5× the expected prompt: 5 chunks × ≤ 500 tokens, plus instructions and the question, is roughly 3k tokens.
+  - 8192 tokens is about 2.5× the expected prompt: 5 chunks × ≤ 500 tokens, plus instructions and the question, is roughly 3k tokens. With the top 10 adopted later (D-018), the measured prompts are 2,150–3,804 tokens, still within budget.
   - A low temperature gives more repeatable answers that stay closer to the context.
 - **Trade-offs:** a model with about 4.5B effective parameters reasons and writes worse than 12B+ models. The vision and audio encoders (about 1 GB) are loaded onto the GPU even though we only send text. It requires Ollama ≥ 0.30.5.
 - **Verified [2026-10-08]** (Ollama registry manifests and GGUF header):
@@ -80,6 +80,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - Cross-lingual check: a Spanish question about GRD vs SLC scored 0.631 against an English passage that answers it, 0.271 against an unrelated English sentence and 0.220 against an unrelated Spanish sentence.
   - Ollama loads bge-m3 with its default 4096-token context, far above our chunk size.
   - Gemma and bge-m3 fit in VRAM together (5.4 GiB used out of 8 GiB), so embedding the question does not evict Gemma.
+- **Seen in step 7 [2026-10-10]:** the reverse is not guaranteed. Twice, loading Gemma while bge-m3 was loaded made Ollama unload bge-m3 first (log: `predicted="5.6 GiB"`, `gpu_free="6.4 GiB"`, `system_free="3.9 GiB"`, "evicting"), and the next question loaded bge-m3 again next to Gemma. The cause was not investigated; the cost is reloading the smaller model.
 
 ## D-004: Vector store is PostgreSQL 18 + pgvector 0.8.7 in Docker Compose
 
@@ -196,7 +197,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - *The Glossary:* about 6.5k words spread over 184 tiny entries, for every mission. It could help with acronyms.
   - *"SAFE Format":* about 190 words, with no mention of Sentinel-1.
   - *The PDFs in the document library:* an extension (see the README).
-- **Why:** the subtree is exactly "the Sentinel-1 SentiWiki". Pages shared across missions add facts about other satellites that retrieval would have to filter out. Whether a candidate helps can be measured in step 6.
+- **Why:** the subtree is exactly "the Sentinel-1 SentiWiki". Pages shared across missions add facts about other satellites that retrieval would have to filter out. Whether a candidate helps can be measured with `make eval`; step 6 did not try it, because the user chose the top-k change instead (D-018).
 - **Trade-offs:** acronyms are only defined where the Sentinel-1 pages define them, and orbit files are only covered by the POD section of `s1-mission`.
 - **Verified [2026-10-08]:**
   - `/web/__pagetree.json` lists exactly these 5 pages under Sentinel-1.
@@ -265,7 +266,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 - **Trade-offs:**
   - **Uneven estimate:** it has a spread of 38 tokens, and chunks dominated by tables are under-estimated by up to ~40 %. As a result, 3 chunks exceed 500 real tokens (the largest has 595). That is harmless here: Ollama runs bge-m3 with a 4096-token context.
   - **Gaps in the overlap:** 19 of the 106 cuts carry no overlap, because the previous chunk ends with a whole table or with a sentence longer than 60 tokens.
-  - **Small chunks:** short sections stay short, and 15 chunks have fewer than 100 tokens. Merging them is a candidate experiment for step 6.
+  - **Small chunks:** short sections stay short, and 15 chunks have fewer than 100 tokens. Merging them was a candidate experiment for step 6 that was not run (D-018); the README lists it among the experiments not tried.
 - **Verified [2026-10-08]** (every chunk sent through bge-m3, reading Ollama's `prompt_eval_count`):
   - **Calibration:**
     - The first guess of 1.35 tokens per word under-estimated chunks by 62 tokens on average, which let real chunks reach 593 tokens.
@@ -349,7 +350,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-016: Prompt and answer: instructions in the system turn, numbered passages, citations resolved in code
 
-- **Status:** Accepted (step 5, 2026-10-09)
+- **Status:** Accepted (step 5, 2026-10-09). Since D-018 the prompt carries 10 passages instead of 5.
 - **Decision:**
   - **Messages:** the system turn holds the instructions. The user turn holds `Passages:`, then each chunk as `[n] <section path>` followed by its text (closest first), then `Question: <question>`. URLs are not in the prompt.
   - **Instructions:** use only facts from the passages; cite the supporting passages after each sentence, as `[2]` or `[1][3]`; if the answer is not there, say only that it could not be found, and if it is partly there, answer that part and say what is missing; write in the language of the question, keeping acronyms such as GRD or SLC; be concise.
@@ -369,7 +370,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 - **Trade-offs:**
   - Answers vary a little between runs (no fixed seed).
   - A 4.5B model decides when the answer is missing; it was tested on one unanswerable question here.
-  - Answers are only as good as the 5 passages: the GRD/SLC answer is correct but shallow, because the passages that explain the difference best were not retrieved (D-015).
+  - Answers are only as good as the 5 passages: the GRD/SLC answer is correct but shallow, because the passages that explain the difference best were not retrieved (D-015). With the top 10 (D-018), the SLC section reaches the model.
   - Small formatting quirks: once `$180^\circ$` (LaTeX) instead of 180°, and `[1, 5]` instead of `[1][5]` (the parser accepts both).
 - **Verified [2026-10-09]:**
   - **Template:** Ollama's `_debug_render_only` shows Gemma 4 receiving `<|turn>system ... <turn|>` before the user turn, so the system turn is native.
@@ -389,7 +390,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - **Sizes and times:** prompts of 1,272–1,792 tokens (of 8,192), answers of 21–108 tokens, 0.6–2.6 s with the model loaded.
   - **CLI:** a question with double quotes, an apostrophe and backticks reaches Python unchanged. An empty question prints the usage line. With Ollama or Postgres down, the run ends with the same clear errors as `make index`.
 
-## D-017: Retrieval eval: section-level labels, the real retrieval, MRR over the top 5
+## D-017: Retrieval eval: section-level labels, the real retrieval, MRR cut at the top k
 
 - **Status:** Accepted (step 6, 2026-10-10)
 - **Decision:**
@@ -454,3 +455,6 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
     - Mission cost (not in the corpus): "No se encontró información…", with no citation.
     - Repeat cycle (English): answered in English, citing the Orbit section; once `$180^\circ$` instead of 180°.
     - Exporting to GeoTIFF (not in the corpus): answered with nearby facts (Level-1 products and S1GBM tiles are GeoTIFF files), correctly cited, without saying that the export itself is not covered. The top 5 gives the same answer, so the top-k is not the cause; it is a limitation of the prompt (D-016).
+- **Verified in step 7 [2026-10-10]:**
+  - **Clean clone:** a fresh `git clone`, run in a separate Compose project on another port, went through `make up`, `make ingest`, `make index`, `make ask` and `make eval` with no manual step. The pages downloaded again had the same `content_hash` and chunks as on 2026-10-08, and the eval matched the cited run: the same metrics, and the same sections and distances (to 6 decimals) for every question.
+  - **Answer time** with the top 10 and the models loaded: 3.9–7.4 s for prompts of 2,901–3,359 tokens, against 0.6–2.6 s with the top 5 (D-016).
