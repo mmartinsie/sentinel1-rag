@@ -4,7 +4,7 @@ _Last updated: 2026-10-10_
 
 ## Current step
 
-**Step 9: Translating the question before the lexical search.** In progress. Step 8 (lexical baseline and hybrid search, the first extension in the README) was approved on 2026-10-10, and the user chose this follow-up. All steps of the brief (0–7) are done.
+**Step 10: Hybrid search with translation and a smaller top-k.** In progress. Step 9 (translating the question for the lexical search) was approved on 2026-10-10, and the user chose this follow-up. All steps of the brief (0–7) are done, and so are the extension steps 8 and 9.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -17,7 +17,8 @@ _Last updated: 2026-10-10_
 | 6 | Retrieval eval (hit@k, MRR) and top-k 10 | Done |
 | 7 | Documentation (README, final review of the decisions) | Done |
 | 8 | Extension 1: lexical baseline and hybrid search | Done |
-| 9 | Translate the question before the lexical search | In progress |
+| 9 | Translate the question before the lexical search | Done |
+| 10 | Hybrid search with translation and a smaller top-k, judged on the answers | In progress |
 
 ## Done
 
@@ -135,6 +136,16 @@ _Last updated: 2026-10-10_
   - Variants measured with a throwaway script: `ts_rank` with length normalization, `ts_rank_cd` and a hand-written BM25. BM25 is the best lexical ranking by MRR (0.559) but no hybrid beats vector search.
 - README: new "Lexical and hybrid search" section, `--method` in the commands, extension 1 marked as done.
 
+### Step 9
+
+- `translate.py`: Gemma translates the question into English (temperature 0) for the lexical search only; `--translate` in `make ask` and `make eval`, with `--method lexical` or `hybrid` (D-021).
+  - Prompt: detect English first (reply ENGLISH, keep the original), then translate with British spelling, as the documentation. Earlier wordings reworded 2 or 3 of the 7 English questions, once with American spelling that broke the lexical match.
+  - `CHAT_NUM_CTX` moved to `config.py`: a request with another context size made Ollama reload Gemma (58 s).
+- **Results** (hit@10 / MRR@10, all 19): lexical 0.737 / 0.500 → translated 0.947 / 0.746; hybrid 0.842 / 0.633 → translated 0.947 / 0.860 (hit@1 0.789, hit@3 0.947). Vector search alone: 0.947 / 0.766. Translating the vector half too did not help (0.782 alone, 0.833 in the hybrid).
+- **Answers:** the translated hybrid loses the SLC section for the example question (shallower answer, the D-018 gain undone) and gains it for `slc-content`; the cost question is still "not found". hit@10 is equal, so `make ask` keeps vector search by default.
+- Translations repeated exactly in 4 probe runs and 2 eval runs; a translation takes 0.2–0.7 s.
+- New run `eval/results/2026-10-10T223354-vector.json`: the same retrieval as the cited top-10 run, with the per-language groups added in step 8.
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -162,7 +173,7 @@ _Last updated: 2026-10-10_
 
 ## Next
 
-**Step 9:** translate the question into English with Gemma before the lexical search, since the language gap is what sinks it (D-019), and measure lexical and hybrid search again. After that, the remaining extensions in the [README](../README.md#extensions-not-implemented), in order of value.
+**Step 10:** hybrid search with translation and a top-k of 3 or 5 (open in D-021), compared with vector search and the top 10 on the answers themselves: which sections they cite, prompt size and time. After that, the remaining extensions in the [README](../README.md#extensions-not-implemented), in order of value.
 
 ## How to resume
 

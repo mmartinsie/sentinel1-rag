@@ -327,7 +327,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 - **Alternatives considered:**
   - *The join and the `ORDER BY ... LIMIT` in one query:* the planner never uses the HNSW index for it.
   - *A distance threshold* to answer "not found" without calling the model: the distances of answerable and unanswerable questions overlap (see below).
-  - *Translating or rewriting the question before embedding it:* one more model call, and bge-m3 already matches Spanish questions to English text.
+  - *Translating or rewriting the question before embedding it:* one more model call, and bge-m3 already matches Spanish questions to English text. Measured in step 9 (D-021): MRR@10 0.782 instead of 0.766, with the same hit@k.
   - *Another k:* the brief fixes 5; step 6 measures whether it is enough.
 - **Why:** the subquery keeps the index usable as the table grows. Five chunks of up to ~600 tokens fit easily in Gemma's context.
 - **Trade-offs:**
@@ -484,7 +484,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - **Generated columns:** in Postgres 18 they are virtual by default (`attgenerated = v`), and indexing one fails with "indexes on virtual generated columns are not supported". The column is therefore declared `STORED`.
   - **Parser:** "Sentinel-1" becomes the word `sentinel` and the number `-1`, the same way in questions and in chunks, so they match.
   - **Query plan:** with `enable_seqscan = off`, `Bitmap Index Scan on chunks_tsv_gin`, about 1 ms. The index takes 240 kB.
-  - **Eval** (`eval/results/2026-10-10T213253-lexical.json`), hit@10 / MRR@10:
+  - **Eval** (`eval/results/2026-10-10T213253-lexical.json`; the vector numbers per language are from `…223354-vector.json`, saved in step 9), hit@10 / MRR@10:
 
     | Questions | vector (D-018) | lexical |
     |---|---|---|
@@ -508,7 +508,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - *Ranks by position, ties ordered by chunk id* (the first version): chunk ids change whenever a page is indexed again (D-014), so two databases with the same data gave different results. `ground-subsidence` came 7th in one and 17th in the other.
   - *RRF with the hand-written BM25* (D-019): hit@10 0.789, MRR@10 0.670.
   - *Weighting the lists, or fusing only for English questions:* tuned on these same 19 questions; on the English ones vector search already finds every answer.
-  - *Translating the question into English before the lexical search:* one more Gemma call per question. Not tried; it is the obvious next experiment.
+  - *Translating the question into English before the lexical search:* one more Gemma call per question. Tried in step 9 (D-021): it closes the language gap, and hybrid search reaches MRR@10 0.860 with the same hit@10 as vector search.
   - *Making hybrid the default:* rejected on the numbers below.
 - **Why:** RRF is the standard way to merge rankings whose scores are not comparable, and it needs no calibration. k = 60 comes from the paper that introduced it.
 - **Trade-offs:** two more retrieval methods in the code that `make ask` does not use by default, and a GIN index updated on every insert (negligible at this size).
@@ -518,3 +518,46 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - **Per question**, against vector search: better for `slc-content` (16th → 7th) and `orbit-files` (5th → 2nd), worse for six, among them the project's example question `grd-vs-slc` (9th → 16th, which would undo D-018) and `oil-spills` (1st → 15th). A chunk ranked 10th in both lists scores 2/70 = 0.029, more than one ranked 1st in a single list (1/61 = 0.016), so when one list is noise, chunks that are mediocre in both rise above the right one.
   - **Variants** of the lexical side, with the same tie handling: `ts_rank` divided by 1 + log(length) 0.842 / 0.602; `ts_rank_cd` 0.789 / 0.523; BM25 0.789 / 0.670. None reaches vector search alone.
   - **`make ask --method hybrid`:** "What is the repeat cycle of Sentinel-1?" is answered from the Orbit section, with a 3,262-token prompt in 6.6 s.
+
+## D-021: Translate the question into English for the lexical search; vector search stays the default
+
+- **Status:** Accepted (step 9, 2026-10-10)
+- **Decision:**
+  - **Translation:** `--translate` (in `make ask` and `make eval`, with `--method lexical` or `hybrid`) first asks Gemma to translate the question into English (`translate.py`), and the lexical search uses that translation. The vector search keeps the original question.
+  - **Prompt:** detect first ("if the question is written in English, reply with the single word ENGLISH"), then translate with the standard terminology of radar remote sensing and British spelling, keeping acronyms, product names and numbers. For ENGLISH, or a translation cut off at the token limit, the original question is used.
+  - **Request:** `temperature: 0` so that the translation is repeatable, `num_predict: 128`, and the same `num_ctx` as the answer (`CHAT_NUM_CTX` in `config.py`), since another value makes Ollama load the model again.
+  - **Default:** `make ask` keeps plain vector search. Hybrid search with translation is offered as an option.
+- **Alternatives considered:**
+  - *Translating for the vector search too:* MRR@10 0.782 instead of 0.766 for vector search alone, with the same hit@k; and 0.833 instead of 0.860 for the hybrid. bge-m3 does not need it, as D-003 and D-015 assumed.
+  - *Prompt wordings*, on the 7 English eval questions, which should come back untouched:
+    - "If the question is already in English, repeat it unchanged" (first try): 2 were reworded. One changed "polarisations" to "polarizations", which stems to `polar` instead of the corpus's `polaris` (57 chunks), so it would have broken the lexical match.
+    - The ENGLISH rule placed after the translation instructions: 3 reworded.
+    - The ENGLISH rule first (chosen): 1 changed, "Which" to "What", two stop words that full-text search ignores.
+  - *Detecting the language in code* (heuristics or a library): fragile rules or a new dependency, for a step the model already does. Not tried.
+  - *BM25 instead of `ts_rank` on the translated question* (throwaway script, D-019): hybrid MRR@10 0.908 and hit@1 0.895, the best ranking measured. Not implemented, for the same reason as in D-019.
+  - *Making hybrid search with translation the default:* better ranking, but the same hit@10, and the project's example question loses the section that explains SLC (below).
+  - *Hybrid search with translation and a smaller top-k:* its hit@3 (0.947) equals the hit@10 of vector search, so 3 to 5 passages could replace 10 and shorten the prompt about threefold. Not adopted here; it would change D-018 and the answers would need checking again.
+- **Why:** the language gap is what sank lexical search (D-019), and a translation closes it with the model that is already loaded. The default stays vector search because `make ask` passes 10 chunks to the model, so what decides the answer is whether the right section is in the top 10. That is hit@10, and there the two are equal.
+- **Trade-offs:**
+  - One more Gemma call per question (0.2–0.7 s with the model loaded).
+  - The eval of `--translate` needs Gemma loaded (about 60 s the first time) and depends on a generative model, although at temperature 0 its output repeated exactly.
+  - A wrong translation would silently weaken the lexical half.
+- **Verified [2026-10-10]:**
+  - **Translations** of the 19 eval questions and the 3 unscored ones: identical in 4 runs with the chosen prompt and in 2 runs of `make eval`. All 12 Spanish questions are translated correctly, with domain terms ("anchura de barrido" as "swath width", "hundimientos del terreno" as "ground subsidence", "millimetres").
+  - **Reload:** a request with `num_ctx` 4096 after 8192 took 58 s, loading the model again, and switching back another 56 s.
+  - **Eval** (hit@10 / MRR@10), from `eval/results/2026-10-10T223354-vector.json`, `…213253-lexical.json`, `…221424-lexical-en.json`, `…213254-hybrid.json` and `…221448-hybrid-en.json`:
+
+    | Method | all (19) | Spanish (12) | English (7) | blind (5) | hit@1 | hit@3 |
+    |---|---|---|---|---|---|---|
+    | vector | 0.947 / 0.766 | 0.917 / 0.672 | 1.000 / 0.929 | 0.800 / 0.522 | 0.684 | 0.789 |
+    | lexical | 0.737 / 0.500 | 0.583 / 0.284 | 1.000 / 0.871 | 0.600 / 0.158 | 0.421 | 0.579 |
+    | lexical + translate | 0.947 / 0.746 | 0.917 / 0.674 | 1.000 / 0.871 | 0.800 / 0.417 | 0.632 | 0.842 |
+    | hybrid | 0.842 / 0.633 | 0.750 / 0.461 | 1.000 / 0.929 | 0.600 / 0.329 | 0.526 | 0.684 |
+    | hybrid + translate | 0.947 / 0.860 | 0.917 / 0.819 | 1.000 / 0.929 | 0.800 / 0.667 | 0.789 | 0.947 |
+
+  - **Per question**, hybrid with translation against vector search: better for `product-metadata` (2nd → 1st), `slc-content` (16th → 3rd), `orbit-files` (5th → 2nd) and `ground-subsidence` (4th → 1st); worse only for `grd-vs-slc` (9th → 18th).
+  - **Answers** (`make ask`):
+    - GRD vs SLC: with hybrid search and translation the SLC section no longer reaches the model, and the answer loses the phase, complex samples and slant range that D-018 gained. Only `S1 Products > Level-1 Products` is cited.
+    - "¿Qué información contiene un producto Sentinel-1 SLC?": the hybrid answer cites `Level-1 Products Formatting` (a complex measurement dataset in GeoTIFF per polarisation), on point. The vector answer wanders through ETAD and availability dates.
+    - Mission cost (not in the corpus): still "No se encontró información…", with no citation.
+  - **Eval time:** 9 s with Gemma loaded, against 5–8 s without translation.

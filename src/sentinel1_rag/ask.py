@@ -10,14 +10,14 @@ import argparse
 import re
 import textwrap
 
-from sentinel1_rag.config import CHAT_MODEL
+from sentinel1_rag.config import CHAT_MODEL, CHAT_NUM_CTX
 from sentinel1_rag.db import connect
 from sentinel1_rag.ollama import Ollama
 from sentinel1_rag.retrieval import METHODS, SCORE_LABEL, Hit, retrieve
+from sentinel1_rag.translate import to_english
 
-# Sent with every request (D-002): Ollama's default context on this GPU is only 4096 tokens.
-# num_predict stops an answer that never ends.
-CHAT_OPTIONS = {"num_ctx": 8192, "temperature": 0.2, "num_predict": 1024}
+# Sent with every request (D-002). num_predict stops an answer that never ends.
+CHAT_OPTIONS = {"num_ctx": CHAT_NUM_CTX, "temperature": 0.2, "num_predict": 1024}
 
 # Wording matters with a small model: "answer in the language of the question, even though
 # the passages are in English" got English questions answered in Spanish 8 times out of 10.
@@ -90,14 +90,20 @@ def main() -> None:
     parser.add_argument("question")
     parser.add_argument("--show-context", action="store_true", help="also print the retrieved chunks")
     parser.add_argument("--method", choices=METHODS, default="vector", help="retrieval method (default vector)")
+    parser.add_argument("--translate", action="store_true", help="translate the question into English for the lexical search")
     args = parser.parse_args()
     question = args.question.strip()
     if not question:
         raise SystemExit('Usage: make ask Q="your question" [ARGS=--show-context]')
+    if args.translate and args.method == "vector":
+        raise SystemExit("--translate only changes the lexical search: use it with --method lexical or hybrid")
 
     ollama = Ollama()
+    english = to_english(ollama, question) if args.translate else None
+    if english is not None and english != question:
+        print(f"Lexical search in English: {english}\n")
     with connect() as conn:
-        hits = retrieve(conn, ollama, question, method=args.method)
+        hits = retrieve(conn, ollama, question, method=args.method, english=english)
     if not hits:
         raise SystemExit("The index is empty. Run `make ingest` and `make index` first.")
     if args.show_context:

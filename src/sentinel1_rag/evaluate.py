@@ -2,15 +2,16 @@
 
 eval/questions.yaml lists each question with the sections that answer it. Every question goes
 through retrieval.retrieve, exactly as in `make ask` (--method picks vector, lexical or hybrid
-retrieval), and the eval records the rank of the first chunk that comes from one of those
-sections:
+retrieval, and --translate gives the lexical search the question in English), and the eval
+records the rank of the first chunk that comes from one of those sections:
 
 - hit@k: the share of questions with such a chunk in the top k.
 - MRR@k: the mean of 1/rank, counting 0 when that chunk is below the top k, because
   `make ask` never shows the model anything below the top k (TOP_K, unless --top-k says
   otherwise, to see what another k would give).
 
-Only retrieval is measured, so Gemma is not used. Each run is saved in eval/results/.
+Only retrieval is measured, so Gemma is not used, except to translate the questions with
+--translate. Each run is saved in eval/results/.
 """
 
 import argparse
@@ -24,6 +25,7 @@ from sentinel1_rag.config import EMBED_MODEL, QUESTIONS_FILE, RESULTS_DIR, ROOT
 from sentinel1_rag.db import connect
 from sentinel1_rag.ollama import Ollama
 from sentinel1_rag.retrieval import METHODS, SCORE_LABEL, TOP_K, Hit, retrieve
+from sentinel1_rag.translate import to_english
 
 # Retrieve deeper than the top k so that a miss still shows how far down the answer was.
 # The top k of a deeper search are the same chunks that `make ask` gets.
@@ -73,10 +75,11 @@ def scores_by_group(results: list[dict], top_k: int) -> dict[str, dict[str, floa
 
 
 def print_report(
-    results: list[dict], scores: dict[str, dict[str, float]], chunks: int, top_k: int, method: str
+    results: list[dict], scores: dict[str, dict[str, float]], chunks: int, top_k: int, method: str, translate: bool
 ) -> None:
     model = f" | {EMBED_MODEL}" if method != "lexical" else ""
-    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {method}{model} | top {top_k}")
+    translated = " (lexical search in English)" if translate else ""
+    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {method}{translated}{model} | top {top_k}")
     for name, group in scores.items():
         values = " | ".join(f"{metric} {value:.3f}" for metric, value in group.items() if metric != "questions")
         print(f"  {name + ' (' + str(group['questions']) + ')':<16} {values}")
@@ -91,7 +94,10 @@ def print_report(
     print(f"\nNot in the top {top_k}: {len(misses)} (scores are {SCORE_LABEL[method]})")
     for r in misses:
         where = f"rank {r['rank']}" if r["rank"] else f"not in the top {DEPTH}"
-        print(f"\n{r['id']} ({where}): {r['question']}\n  expected:")
+        print(f"\n{r['id']} ({where}): {r['question']}")
+        if r.get("english", r["question"]) != r["question"]:
+            print(f"  lexical search: {r['english']}")
+        print("  expected:")
         for section in r["expected"]:
             print(f"    {section}")
         print("  retrieved:")
@@ -104,9 +110,12 @@ def main() -> None:
     parser.add_argument("--label", default="", help="short name for this run, added to the results file name")
     parser.add_argument("--top-k", type=int, default=TOP_K, help=f"chunks passed to the model (default {TOP_K})")
     parser.add_argument("--method", choices=METHODS, default="vector", help="retrieval method (default vector)")
+    parser.add_argument("--translate", action="store_true", help="translate the questions into English for the lexical search")
     args = parser.parse_args()
     if not 1 <= args.top_k <= DEPTH:
         raise SystemExit(f"--top-k must be between 1 and {DEPTH}")
+    if args.translate and args.method == "vector":
+        raise SystemExit("--translate only changes the lexical search: use it with --method lexical or hybrid")
 
     questions = load_questions()
     ollama = Ollama()
@@ -127,7 +136,8 @@ def main() -> None:
 
         results = []
         for q in questions:
-            hits = retrieve(conn, ollama, q["question"], k=DEPTH, method=args.method)
+            english = to_english(ollama, q["question"]) if args.translate else None
+            hits = retrieve(conn, ollama, q["question"], k=DEPTH, method=args.method, english=english)
             relevant = {r["url"] for r in q["relevant"]}
             results.append(
                 {
@@ -135,6 +145,7 @@ def main() -> None:
                     "written": q["written"],
                     "lang": q["lang"],
                     "question": q["question"],
+                    **({"english": english} if args.translate else {}),
                     "expected": [r["section"] for r in q["relevant"]],
                     "rank": first_rank(hits, relevant),
                     "retrieved": [
@@ -144,7 +155,7 @@ def main() -> None:
             )
 
     scores = scores_by_group(results, args.top_k)
-    print_report(results, scores, chunks, args.top_k, args.method)
+    print_report(results, scores, chunks, args.top_k, args.method, args.translate)
 
     now = datetime.now().astimezone()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -153,6 +164,7 @@ def main() -> None:
         "run_at": now.isoformat(timespec="seconds"),
         "label": args.label,
         "method": args.method,
+        "translate": args.translate,
         "top_k": args.top_k,
         "depth": DEPTH,
         "chunks": chunks,

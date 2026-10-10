@@ -69,7 +69,7 @@ flowchart TB
 **Answering a question** happens on every `make ask`:
 
 1. The question is embedded with the same model. `bge-m3` is multilingual, so a Spanish question lands close to the English passage that answers it.
-2. Postgres returns the 10 chunks with the smallest cosine distance to the question. An HNSW index is in place, although at 195 chunks Postgres prefers an exact scan, which takes about 1 ms; the index is there to learn how approximate search works. Full-text search and a hybrid of both can be chosen instead (see [Lexical and hybrid search](#lexical-and-hybrid-search)), but vector search alone scores best.
+2. Postgres returns the 10 chunks with the smallest cosine distance to the question. An HNSW index is in place, although at 195 chunks Postgres prefers an exact scan, which takes about 1 ms; the index is there to learn how approximate search works. Full-text search and a hybrid of both can be chosen instead (see [Lexical and hybrid search](#lexical-and-hybrid-search)); they rank better only when the question is first translated into English, and even then they bring no more answers into the top 10.
 3. The prompt gives Gemma rules in the system turn (use only the passages, cite them as `[n]`, say when the answer is not there, answer in the question's language) and the 10 numbered passages followed by the question in the user turn.
 4. The code reads the `[n]` citations in the answer and prints the cited sections with their URLs.
 
@@ -100,15 +100,24 @@ Each results file holds the rank of every question and the 20 chunks retrieved f
 
 ### Lexical and hybrid search
 
-Vector search was compared on the same eval with Postgres full-text search, which ranks chunks by the question's words they contain, and with a hybrid of both that merges the two rankings with reciprocal rank fusion (RRF). The eval also reports each language separately, because the pages are in English and 12 of the 19 questions are in Spanish.
+Vector search was compared on the same eval with Postgres full-text search, which ranks chunks by the question's words they contain, and with a hybrid of both that merges the two rankings with reciprocal rank fusion (RRF). Because the pages are in English and 12 of the 19 questions are in Spanish, the lexical search was also tried on the question translated into English by Gemma (`--translate`); the vector search always uses the original question. The eval reports each language separately.
 
-| Method (hit@10 / MRR@10) | All (19) | Spanish (12) | English (7) | Blind (5, all Spanish) |
-|---|---|---|---|---|
-| **Vector** (default) | **0.947 / 0.766** | **0.917 / 0.672** | 1.000 / 0.929 | **0.800 / 0.522** |
-| Lexical (`ts_rank`) | 0.737 / 0.500 | 0.583 / 0.284 | 1.000 / 0.871 | 0.600 / 0.158 |
-| Hybrid (RRF) | 0.842 / 0.633 | 0.750 / 0.461 | 1.000 / 0.929 | 0.600 / 0.329 |
+| Method (hit@10 / MRR@10) | All (19) | Spanish (12) | English (7) | Blind (5, all Spanish) | hit@3 |
+|---|---|---|---|---|---|
+| **Vector** (default) | **0.947 / 0.766** | 0.917 / 0.672 | 1.000 / 0.929 | 0.800 / 0.522 | 0.789 |
+| Lexical (`ts_rank`) | 0.737 / 0.500 | 0.583 / 0.284 | 1.000 / 0.871 | 0.600 / 0.158 | 0.579 |
+| Lexical, question translated | 0.947 / 0.746 | 0.917 / 0.674 | 1.000 / 0.871 | 0.800 / 0.417 | 0.842 |
+| Hybrid (RRF) | 0.842 / 0.633 | 0.750 / 0.461 | 1.000 / 0.929 | 0.600 / 0.329 | 0.684 |
+| Hybrid, lexical half translated | 0.947 / **0.860** | 0.917 / **0.819** | 1.000 / 0.929 | 0.800 / **0.667** | **0.947** |
 
-Lexical search cannot cross languages: a Spanish question only matches the chunks through acronyms, numbers and "Sentinel-1". The acronyms that were expected to favour it are too common here, with "GRD" in 43 of the 195 chunks and "SLC" in 47. Postgres's `ts_rank` also has no notion of how rare a word is (no IDF). A BM25 ranking written by hand put every English question's answer first, but it was not better overall. Fusing a weak list with a strong one hurt more than it helped: the hybrid improved 2 questions and worsened 6, including the project's example question (9th to 16th). So `make ask` keeps vector search, and `ARGS="--method lexical"` or `"--method hybrid"` selects the others. The details, including other ranking variants, are in [D-019](docs/DECISIONS.md#d-019-lexical-retrieval-with-postgres-full-text-search) and [D-020](docs/DECISIONS.md#d-020-hybrid-search-with-reciprocal-rank-fusion-vector-search-stays-the-default), from [lexical](eval/results/2026-10-10T213253-lexical.json) and [hybrid](eval/results/2026-10-10T213254-hybrid.json) runs.
+What the comparison showed:
+
+- **Lexical search cannot cross languages.** On its own, a Spanish question only matches the chunks through acronyms, numbers and "Sentinel-1". The acronyms that were expected to favour it are also too common here, with "GRD" in 43 of the 195 chunks and "SLC" in 47, and Postgres's `ts_rank` has no notion of how rare a word is (no IDF).
+- **Fusing a weak list with a strong one hurts.** Without translation, the hybrid improved 2 questions and worsened 6, because RRF rewards chunks that both lists rank, even poorly.
+- **Translation fixes the lexical half.** Translated, lexical search matches vector search on hit@10, and the hybrid ranks the right section first for 15 of the 19 questions (hit@1 0.789 against 0.684).
+- **The default is still vector search.** `make ask` gives the model 10 chunks, so what decides the answer is hit@10, and there the two are equal: the translated hybrid finds the SLC question that vector search misses but loses the sections that explain SLC for the project's example question, whose answer becomes shallower. The translation also adds a model call (0.2–0.7 s) to every question.
+
+`ARGS="--method hybrid --translate"` (or `--method lexical`) selects the alternatives. The details, including other ranking variants and a BM25 written by hand, are in [D-019](docs/DECISIONS.md#d-019-lexical-retrieval-with-postgres-full-text-search), [D-020](docs/DECISIONS.md#d-020-hybrid-search-with-reciprocal-rank-fusion-vector-search-stays-the-default) and [D-021](docs/DECISIONS.md#d-021-translate-the-question-into-english-for-the-lexical-search-vector-search-stays-the-default); the runs are in [eval/results/](eval/results/).
 
 ## Running it on WSL
 
@@ -151,8 +160,8 @@ To check that the models run on the GPU, run `ollama ps` while asking a question
 | `make down` | Stops the database. The data is kept. |
 | `make ingest` | Downloads the pages in `sources.yaml` (once; cached in `data/raw/`) and writes the chunks to `data/chunks/`. |
 | `make index` | Embeds the chunks and stores them. Pages that have not changed are skipped. |
-| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores; `ARGS="--method hybrid"` (or `lexical`) changes the retrieval. |
-| `make eval` | Measures retrieval. `ARGS="--label name"` names the run, `ARGS="--top-k 5"` scores another k, and `ARGS="--method lexical"` (or `hybrid`) measures another retrieval method. |
+| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores; `ARGS="--method hybrid --translate"` (or `lexical`, with or without `--translate`) changes the retrieval. |
+| `make eval` | Measures retrieval. `ARGS="--label name"` names the run, `ARGS="--top-k 5"` scores another k, and `ARGS="--method lexical"` (or `hybrid`, with `--translate` to search in English) measures another retrieval method. |
 | `make clean` | Stops the database and deletes its volume and `data/`. |
 
 The defaults work without configuration. `OLLAMA_URL` and `DATABASE_URL` override where the code finds Ollama and Postgres, and `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `POSTGRES_PORT` in a `.env` file override the database settings.
@@ -171,6 +180,7 @@ src/sentinel1_rag/
   db.py                   database connection
   index.py                make index
   retrieval.py            vector, lexical and hybrid top-k search, shared by ask and eval
+  translate.py            translates a question into English for the lexical search
   ask.py                  make ask: prompt, answer and citations
   evaluate.py             make eval
 eval/questions.yaml       19 questions labelled with the sections that answer them
@@ -201,7 +211,7 @@ The first planned extension, a lexical baseline and hybrid search, is done and m
 3. **MCP server** exposing `search_docs` and `search_scenes`.
 4. **OpenSearch k-NN** instead of pgvector, comparing results.
 
-Smaller experiments that `make eval` can measure in minutes, not run yet: translating the question into English before the lexical search, BM25 instead of `ts_rank` in the code, merging the 15 chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, adding the SentiWiki's POD or Glossary pages, and a reranker over the top 20.
+Smaller experiments that `make eval` can measure in minutes, not run yet: hybrid search with translation and a smaller top-k (its hit@3 equals the hit@10 of vector search), BM25 instead of `ts_rank` in the code, merging the 15 chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, adding the SentiWiki's POD or Glossary pages, and a reranker over the top 20.
 
 ## License
 

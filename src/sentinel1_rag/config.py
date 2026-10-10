@@ -21,6 +21,10 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://rag:rag@localhost:54
 
 EMBED_MODEL = "bge-m3"
 CHAT_MODEL = "gemma4:e4b-it-qat"
+# Context size sent with every request to the chat model (D-002). Ollama's default on this GPU is
+# 4096, and a request with a different size than the loaded model makes Ollama load it again
+# (about 60 s here), so answering and translating must use the same value.
+CHAT_NUM_CTX = 8192
 
 
 def load_sources(path: Path = SOURCES_FILE) -> list[str]:

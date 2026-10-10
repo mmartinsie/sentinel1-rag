@@ -4,6 +4,8 @@ Three methods:
 - vector (the default): cosine distance between bge-m3 embeddings (D-015);
 - lexical: Postgres full-text search, ranking chunks by the question's words they contain (D-019);
 - hybrid: both lists merged with reciprocal rank fusion (D-020).
+
+The lexical search can take the question translated into English instead (translate.py, D-021).
 """
 
 from dataclasses import dataclass, replace
@@ -50,15 +52,25 @@ class Hit:
 
 
 def retrieve(
-    conn: psycopg.Connection, ollama: Ollama, question: str, k: int = TOP_K, method: str = "vector"
+    conn: psycopg.Connection,
+    ollama: Ollama,
+    question: str,
+    k: int = TOP_K,
+    method: str = "vector",
+    english: str | None = None,
 ) -> list[Hit]:
-    """The k chunks that best match the question, best first."""
+    """The k chunks that best match the question, best first.
+
+    `english`, the question translated into English, replaces it in the lexical search only.
+    """
     if method == "vector":
+        if english is not None:
+            raise ValueError("the English translation only applies to lexical and hybrid search")
         return vector_search(conn, ollama, question, k)
     if method == "lexical":
-        return lexical_search(conn, question, k)
+        return lexical_search(conn, english or question, k)
     if method == "hybrid":
-        return hybrid_search(conn, ollama, question, k)
+        return hybrid_search(conn, ollama, question, k, english)
     raise ValueError(f"unknown retrieval method {method!r}; expected one of {METHODS}")
 
 
@@ -93,12 +105,18 @@ def lexical_search(conn: psycopg.Connection, question: str, k: int) -> list[Hit]
     )
 
 
-def hybrid_search(conn: psycopg.Connection, ollama: Ollama, question: str, k: int) -> list[Hit]:
+def hybrid_search(
+    conn: psycopg.Connection, ollama: Ollama, question: str, k: int, english: str | None = None
+) -> list[Hit]:
     """Reciprocal rank fusion: each list adds 1 / (RRF_K + rank) to a chunk's score (D-020).
 
     Only ranks are used, so the two scores (a distance and ts_rank) never have to be comparable.
+    The vector half always embeds the original question: translating it as well scored lower (D-021).
     """
-    lists = [vector_search(conn, ollama, question, CANDIDATES), lexical_search(conn, question, CANDIDATES)]
+    lists = [
+        vector_search(conn, ollama, question, CANDIDATES),
+        lexical_search(conn, english or question, CANDIDATES),
+    ]
     scores: dict[int, float] = {}
     hits: dict[int, Hit] = {}
     for ranked in lists:
