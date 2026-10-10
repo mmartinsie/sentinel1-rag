@@ -17,14 +17,15 @@ ingest:
 index:
 	uv run python -m sentinel1_rag.index
 
-# Answer a question with cited sources: make ask Q="..." [ARGS=--show-context]
+# Answer a question with cited sources: make ask Q="..." [ARGS="--show-context --method hybrid"]
 # make exports Q to the environment and the shell reads it as "$$Q", so quotes and
 # backticks in the question reach Python unchanged (a $ is still expanded by make).
 ask:
 	uv run python -m sentinel1_rag.ask $(ARGS) "$$Q"
 
 # Measure retrieval on eval/questions.yaml (hit@k, MRR) and save the run in eval/results/.
-# Name a run with ARGS="--label <name>"; ARGS="--top-k 5" scores another k.
+# Name a run with ARGS="--label <name>"; ARGS="--top-k 5" scores another k, and
+# ARGS="--method lexical" (or hybrid) measures another retrieval method.
 eval:
 	uv run python -m sentinel1_rag.evaluate $(ARGS)
 

@@ -1,8 +1,9 @@
 """`make eval`: measure how often retrieval finds the sections that answer known questions.
 
 eval/questions.yaml lists each question with the sections that answer it. Every question goes
-through retrieval.retrieve, exactly as in `make ask`, and the eval records the rank of the
-first chunk that comes from one of those sections:
+through retrieval.retrieve, exactly as in `make ask` (--method picks vector, lexical or hybrid
+retrieval), and the eval records the rank of the first chunk that comes from one of those
+sections:
 
 - hit@k: the share of questions with such a chunk in the top k.
 - MRR@k: the mean of 1/rank, counting 0 when that chunk is below the top k, because
@@ -22,7 +23,7 @@ import yaml
 from sentinel1_rag.config import EMBED_MODEL, QUESTIONS_FILE, RESULTS_DIR, ROOT
 from sentinel1_rag.db import connect
 from sentinel1_rag.ollama import Ollama
-from sentinel1_rag.retrieval import TOP_K, Hit, retrieve
+from sentinel1_rag.retrieval import METHODS, SCORE_LABEL, TOP_K, Hit, retrieve
 
 # Retrieve deeper than the top k so that a miss still shows how far down the answer was.
 # The top k of a deeper search are the same chunks that `make ask` gets.
@@ -60,18 +61,22 @@ def metrics(ranks: list[int | None], top_k: int) -> dict[str, float]:
 
 
 def scores_by_group(results: list[dict], top_k: int) -> dict[str, dict[str, float]]:
-    """Metrics for all questions, then for each way of writing them (blind vs from-text)."""
+    """Metrics for all questions, then by how they were written (blind vs from-text) and by language."""
     groups = {"all": results}
-    for written in sorted({r["written"] for r in results}):
-        groups[written] = [r for r in results if r["written"] == written]
+    for field in ("written", "lang"):
+        for value in sorted({r[field] for r in results}):
+            groups[value] = [r for r in results if r[field] == value]
     return {
         name: metrics([r["rank"] for r in group], top_k) | {"questions": len(group)}
         for name, group in groups.items()
     }
 
 
-def print_report(results: list[dict], scores: dict[str, dict[str, float]], chunks: int, top_k: int) -> None:
-    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {EMBED_MODEL} | top {top_k}")
+def print_report(
+    results: list[dict], scores: dict[str, dict[str, float]], chunks: int, top_k: int, method: str
+) -> None:
+    model = f" | {EMBED_MODEL}" if method != "lexical" else ""
+    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {method}{model} | top {top_k}")
     for name, group in scores.items():
         values = " | ".join(f"{metric} {value:.3f}" for metric, value in group.items() if metric != "questions")
         print(f"  {name + ' (' + str(group['questions']) + ')':<16} {values}")
@@ -83,7 +88,7 @@ def print_report(results: list[dict], scores: dict[str, dict[str, float]], chunk
     print(f"  (rank of the first chunk from an expected section; '-' means not in the top {DEPTH})")
 
     misses = [r for r in results if r["rank"] is None or r["rank"] > top_k]
-    print(f"\nNot in the top {top_k}: {len(misses)}")
+    print(f"\nNot in the top {top_k}: {len(misses)} (scores are {SCORE_LABEL[method]})")
     for r in misses:
         where = f"rank {r['rank']}" if r["rank"] else f"not in the top {DEPTH}"
         print(f"\n{r['id']} ({where}): {r['question']}\n  expected:")
@@ -91,13 +96,14 @@ def print_report(results: list[dict], scores: dict[str, dict[str, float]], chunk
             print(f"    {section}")
         print("  retrieved:")
         for rank, hit in enumerate(r["retrieved"][:top_k], start=1):
-            print(f"    {rank:>2} {hit['distance']:.3f}  {hit['section']}")
+            print(f"    {rank:>2} {hit['score']:.3f}  {hit['section']}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Measure retrieval on eval/questions.yaml.")
     parser.add_argument("--label", default="", help="short name for this run, added to the results file name")
     parser.add_argument("--top-k", type=int, default=TOP_K, help=f"chunks passed to the model (default {TOP_K})")
+    parser.add_argument("--method", choices=METHODS, default="vector", help="retrieval method (default vector)")
     args = parser.parse_args()
     if not 1 <= args.top_k <= DEPTH:
         raise SystemExit(f"--top-k must be between 1 and {DEPTH}")
@@ -121,23 +127,24 @@ def main() -> None:
 
         results = []
         for q in questions:
-            hits = retrieve(conn, ollama, q["question"], k=DEPTH)
+            hits = retrieve(conn, ollama, q["question"], k=DEPTH, method=args.method)
             relevant = {r["url"] for r in q["relevant"]}
             results.append(
                 {
                     "id": q["id"],
                     "written": q["written"],
+                    "lang": q["lang"],
                     "question": q["question"],
                     "expected": [r["section"] for r in q["relevant"]],
                     "rank": first_rank(hits, relevant),
                     "retrieved": [
-                        {"section": h.section, "url": h.url, "distance": round(h.distance, 4)} for h in hits
+                        {"section": h.section, "url": h.url, "score": round(h.score, 4)} for h in hits
                     ],
                 }
             )
 
     scores = scores_by_group(results, args.top_k)
-    print_report(results, scores, chunks, args.top_k)
+    print_report(results, scores, chunks, args.top_k, args.method)
 
     now = datetime.now().astimezone()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -145,6 +152,7 @@ def main() -> None:
     record = {
         "run_at": now.isoformat(timespec="seconds"),
         "label": args.label,
+        "method": args.method,
         "top_k": args.top_k,
         "depth": DEPTH,
         "chunks": chunks,

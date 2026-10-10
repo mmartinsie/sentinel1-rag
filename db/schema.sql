@@ -26,6 +26,10 @@ CREATE TABLE chunks (
     anchor      text,                   -- heading id for url#anchor; NULL = top of the page
     content     text NOT NULL,
     embedding   vector(1024) NOT NULL,  -- bge-m3
+    -- Words of the same text that is embedded, for full-text search (D-019). Postgres fills it
+    -- in. STORED because Postgres 18 makes generated columns virtual by default, and a virtual
+    -- column cannot be indexed.
+    tsv         tsvector GENERATED ALWAYS AS (to_tsvector('english', section || E'\n\n' || content)) STORED,
     UNIQUE (document_id, chunk_index)
 );
 
@@ -33,3 +37,6 @@ CREATE TABLE chunks (
 -- With a few hundred chunks exact search is already fast: this index is here
 -- to learn how HNSW works, not for performance.
 CREATE INDEX chunks_embedding_hnsw ON chunks USING hnsw (embedding vector_cosine_ops);
+
+-- Inverted index for full-text search (the @@ operator): lexeme -> chunks that contain it.
+CREATE INDEX chunks_tsv_gin ON chunks USING gin (tsv);

@@ -69,7 +69,7 @@ flowchart TB
 **Answering a question** happens on every `make ask`:
 
 1. The question is embedded with the same model. `bge-m3` is multilingual, so a Spanish question lands close to the English passage that answers it.
-2. Postgres returns the 10 chunks with the smallest cosine distance to the question. An HNSW index is in place, although at 195 chunks Postgres prefers an exact scan, which takes about 1 ms; the index is there to learn how approximate search works.
+2. Postgres returns the 10 chunks with the smallest cosine distance to the question. An HNSW index is in place, although at 195 chunks Postgres prefers an exact scan, which takes about 1 ms; the index is there to learn how approximate search works. Full-text search and a hybrid of both can be chosen instead (see [Lexical and hybrid search](#lexical-and-hybrid-search)), but vector search alone scores best.
 3. The prompt gives Gemma rules in the system turn (use only the passages, cite them as `[n]`, say when the answer is not there, answer in the question's language) and the 10 numbered passages followed by the question in the user turn.
 4. The code reads the `[n]` citations in the answer and prints the cited sections with their URLs.
 
@@ -97,6 +97,18 @@ How to read these numbers:
 - **Top-k was chosen on these same questions.** With the top 5 (hit@5 0.895, MRR@5 0.761) the project's own example question never received the sections that explain SLC and GRD, which ranked 9th and 11th. Raising k to 10 gives the answer above. There is no held-out set, so this change was kept for the better answer, not for the one-question gain.
 
 Each results file holds the rank of every question and the 20 chunks retrieved for it. The labelling rule and the questions left out are described in [D-017](docs/DECISIONS.md#d-017-retrieval-eval-section-level-labels-the-real-retrieval-mrr-cut-at-the-top-k) and [D-018](docs/DECISIONS.md#d-018-top-k-raised-from-5-to-10).
+
+### Lexical and hybrid search
+
+Vector search was compared on the same eval with Postgres full-text search, which ranks chunks by the question's words they contain, and with a hybrid of both that merges the two rankings with reciprocal rank fusion (RRF). The eval also reports each language separately, because the pages are in English and 12 of the 19 questions are in Spanish.
+
+| Method (hit@10 / MRR@10) | All (19) | Spanish (12) | English (7) | Blind (5, all Spanish) |
+|---|---|---|---|---|
+| **Vector** (default) | **0.947 / 0.766** | **0.917 / 0.672** | 1.000 / 0.929 | **0.800 / 0.522** |
+| Lexical (`ts_rank`) | 0.737 / 0.500 | 0.583 / 0.284 | 1.000 / 0.871 | 0.600 / 0.158 |
+| Hybrid (RRF) | 0.842 / 0.633 | 0.750 / 0.461 | 1.000 / 0.929 | 0.600 / 0.329 |
+
+Lexical search cannot cross languages: a Spanish question only matches the chunks through acronyms, numbers and "Sentinel-1". The acronyms that were expected to favour it are too common here, with "GRD" in 43 of the 195 chunks and "SLC" in 47. Postgres's `ts_rank` also has no notion of how rare a word is (no IDF). A BM25 ranking written by hand put every English question's answer first, but it was not better overall. Fusing a weak list with a strong one hurt more than it helped: the hybrid improved 2 questions and worsened 6, including the project's example question (9th to 16th). So `make ask` keeps vector search, and `ARGS="--method lexical"` or `"--method hybrid"` selects the others. The details, including other ranking variants, are in [D-019](docs/DECISIONS.md#d-019-lexical-retrieval-with-postgres-full-text-search) and [D-020](docs/DECISIONS.md#d-020-hybrid-search-with-reciprocal-rank-fusion-vector-search-stays-the-default), from [lexical](eval/results/2026-10-10T213253-lexical.json) and [hybrid](eval/results/2026-10-10T213254-hybrid.json) runs.
 
 ## Running it on WSL
 
@@ -139,8 +151,8 @@ To check that the models run on the GPU, run `ollama ps` while asking a question
 | `make down` | Stops the database. The data is kept. |
 | `make ingest` | Downloads the pages in `sources.yaml` (once; cached in `data/raw/`) and writes the chunks to `data/chunks/`. |
 | `make index` | Embeds the chunks and stores them. Pages that have not changed are skipped. |
-| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their distances. |
-| `make eval` | Measures retrieval. `ARGS="--label name"` names the run; `ARGS="--top-k 5"` scores another k. |
+| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores; `ARGS="--method hybrid"` (or `lexical`) changes the retrieval. |
+| `make eval` | Measures retrieval. `ARGS="--label name"` names the run, `ARGS="--top-k 5"` scores another k, and `ARGS="--method lexical"` (or `hybrid`) measures another retrieval method. |
 | `make clean` | Stops the database and deletes its volume and `data/`. |
 
 The defaults work without configuration. `OLLAMA_URL` and `DATABASE_URL` override where the code finds Ollama and Postgres, and `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `POSTGRES_PORT` in a `.env` file override the database settings.
@@ -149,7 +161,7 @@ The defaults work without configuration. `OLLAMA_URL` and `DATABASE_URL` overrid
 
 ```
 sources.yaml              the pages in the corpus
-db/schema.sql             tables, constraints and the HNSW index
+db/schema.sql             tables, constraints, the HNSW index and the full-text index
 src/sentinel1_rag/
   fetch.py                polite downloader with a local cache
   extract.py              HTML to sections with heading paths and anchors
@@ -158,7 +170,7 @@ src/sentinel1_rag/
   ollama.py               minimal REST client for /api/embed and /api/chat
   db.py                   database connection
   index.py                make index
-  retrieval.py            top-k search, shared by ask and eval
+  retrieval.py            vector, lexical and hybrid top-k search, shared by ask and eval
   ask.py                  make ask: prompt, answer and citations
   evaluate.py             make eval
 eval/questions.yaml       19 questions labelled with the sections that answer them
@@ -182,15 +194,14 @@ docs/PROGRESS.md          build log and notes for resuming work
 
 ## Extensions (not implemented)
 
-Ordered by expected value:
+The first planned extension, a lexical baseline and hybrid search, is done and measured: see [Lexical and hybrid search](#lexical-and-hybrid-search). The others, ordered by expected value:
 
-1. **Lexical baseline and hybrid search:** Postgres full-text search vs. vectors on the same eval, then a hybrid of both. SAR acronyms (GRD, SLC, IW, EW, ETAD) are where lexical search usually wins.
-2. **Technical PDFs** from the Sentinel-1 document library.
-3. **Agent** with a `search_scenes` tool over the Copernicus Data Space Ecosystem STAC API, with a hand-written agent loop.
-4. **MCP server** exposing `search_docs` and `search_scenes`.
-5. **OpenSearch k-NN** instead of pgvector, comparing results.
+1. **Technical PDFs** from the Sentinel-1 document library.
+2. **Agent** with a `search_scenes` tool over the Copernicus Data Space Ecosystem STAC API, with a hand-written agent loop.
+3. **MCP server** exposing `search_docs` and `search_scenes`.
+4. **OpenSearch k-NN** instead of pgvector, comparing results.
 
-Smaller experiments that `make eval` can measure in minutes, not run yet: merging the 15 chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, adding the SentiWiki's POD or Glossary pages, and a reranker over the top 20.
+Smaller experiments that `make eval` can measure in minutes, not run yet: translating the question into English before the lexical search, BM25 instead of `ts_rank` in the code, merging the 15 chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, adding the SentiWiki's POD or Glossary pages, and a reranker over the top 20.
 
 ## License
 

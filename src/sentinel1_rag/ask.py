@@ -13,7 +13,7 @@ import textwrap
 from sentinel1_rag.config import CHAT_MODEL
 from sentinel1_rag.db import connect
 from sentinel1_rag.ollama import Ollama
-from sentinel1_rag.retrieval import Hit, retrieve
+from sentinel1_rag.retrieval import METHODS, SCORE_LABEL, Hit, retrieve
 
 # Sent with every request (D-002): Ollama's default context on this GPU is only 4096 tokens.
 # num_predict stops an answer that never ends.
@@ -50,10 +50,10 @@ def cited_numbers(answer: str) -> list[int]:
     return sorted({int(n) for group in CITATION.findall(answer) for n in group.split(",")})
 
 
-def print_context(hits: list[Hit]) -> None:
-    print("Retrieved chunks (cosine distance: lower is closer)\n")
+def print_context(hits: list[Hit], method: str) -> None:
+    print(f"Retrieved chunks ({method} retrieval; {SCORE_LABEL[method]})\n")
     for n, hit in enumerate(hits, start=1):
-        print(f"[{n}] {hit.distance:.3f}  {hit.section}\n    {hit.url}\n")
+        print(f"[{n}] {hit.score:.3f}  {hit.section}\n    {hit.url}\n")
         print(textwrap.indent(hit.content, "    ") + "\n")
 
 
@@ -89,6 +89,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Answer a question about Sentinel-1, citing the SentiWiki.")
     parser.add_argument("question")
     parser.add_argument("--show-context", action="store_true", help="also print the retrieved chunks")
+    parser.add_argument("--method", choices=METHODS, default="vector", help="retrieval method (default vector)")
     args = parser.parse_args()
     question = args.question.strip()
     if not question:
@@ -96,11 +97,11 @@ def main() -> None:
 
     ollama = Ollama()
     with connect() as conn:
-        hits = retrieve(conn, ollama, question)
+        hits = retrieve(conn, ollama, question, method=args.method)
     if not hits:
         raise SystemExit("The index is empty. Run `make ingest` and `make index` first.")
     if args.show_context:
-        print_context(hits)
+        print_context(hits, args.method)
 
     # Flushed so the line shows up while waiting, even when the output goes to a pipe.
     print(f"Asking {CHAT_MODEL}...", flush=True)

@@ -150,7 +150,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   3. `chunks.embedding` is `NOT NULL`: a chunk is always inserted together with its embedding.
   4. `UNIQUE (document_id, chunk_index)` guards against storing a page's chunks twice.
 
-  The HNSW index is named (`chunks_embedding_hnsw`) so it is easy to find in `EXPLAIN` output.
+  The HNSW index is named (`chunks_embedding_hnsw`) so it is easy to find in `EXPLAIN` output. Step 8 added the `tsv` column and its GIN index for full-text search (D-019).
 - **Alternatives considered:**
   - *Storing the full citation URL in every chunk:* the query gets simpler, but the page URL is repeated in every chunk.
   - *A single hash covering both the text and the settings:* one column fewer, but it hides *why* a page was indexed again.
@@ -458,3 +458,63 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 - **Verified in step 7 [2026-10-10]:**
   - **Clean clone:** a fresh `git clone`, run in a separate Compose project on another port, went through `make up`, `make ingest`, `make index`, `make ask` and `make eval` with no manual step. The pages downloaded again had the same `content_hash` and chunks as on 2026-10-08, and the eval matched the cited run: the same metrics, and the same sections and distances (to 6 decimals) for every question.
   - **Answer time** with the top 10 and the models loaded: 3.9–7.4 s for prompts of 2,901–3,359 tokens, against 0.6–2.6 s with the top 5 (D-016).
+
+## D-019: Lexical retrieval with Postgres full-text search
+
+- **Status:** Accepted (step 8, 2026-10-10)
+- **Decision:**
+  - **Column and index:** `chunks.tsv` is a stored generated column, `to_tsvector('english', section || E'\n\n' || content)`, built from the same text that is embedded (D-014). A GIN index (`chunks_tsv_gin`) maps each lexeme to the chunks that contain it.
+  - **Query:** the question goes through `plainto_tsquery('english', ...)`, which normalizes it like the chunks, and its ANDs are replaced by ORs, so that a chunk matches if it contains any of the question's words.
+  - **Ranking:** `ts_rank` with no length normalization. Equal scores are ordered by section path and chunk position (D-020 explains why not by chunk id).
+  - **Interface:** `--method lexical` in `make eval` and `make ask`. Each eval question now has a `lang` field (`es` or `en`), and the eval reports every metric per language as well.
+- **Alternatives considered:**
+  - *The AND query that `plainto_tsquery` builds:* a chunk must contain every word of the question. 18 of the 19 eval questions match no chunk at all.
+  - *Other built-in rankings*, measured on the eval: `ts_rank` divided by 1 + log(length) gives hit@10 0.632 and MRR@10 0.435; `ts_rank_cd` (which rewards matched words that are close together) 0.526 and 0.374. Both are worse.
+  - *BM25 written by hand* (IDF computed over the chunks, k1 = 1.2, b = 0.75), measured with a throwaway script: hit@10 0.684 and MRR@10 0.559 against 0.737 and 0.500, with every English question at rank 1. It needs corpus statistics on every query (`ts_stat` or a table kept up to date), so it was not implemented.
+  - *A BM25 extension* such as ParadeDB's `pg_search`: another image and extension to maintain.
+  - *An expression index instead of a stored column:* every query would have to repeat the exact expression to use the index. The column keeps it in one place, and at 195 rows its storage is negligible.
+- **Why:** it is built into Postgres, adds no dependency and lives next to the vectors. It is the baseline that the first extension in the README asks for.
+- **Trade-offs:**
+  - **No IDF:** `ts_rank` ignores how common a word is in the corpus, so `sentinel` (in 128 chunks) and `-1` (in 146) count as much as a rare term.
+  - **One language:** the English configuration can only match a Spanish question through the tokens that both languages share: acronyms, numbers and "Sentinel-1". Words such as "diferencia" or "producto" appear in no chunk.
+  - **Many ties:** with one or two matching words, many chunks get exactly the same score.
+  - **Schema change:** a database created before this step needs the column and the index added, by hand (`ALTER TABLE`, as was done here) or with `make clean && make up && make ingest && make index` (D-005).
+- **Verified [2026-10-10]:**
+  - **Postgres 18 documentation:** `plainto_tsquery` inserts `&` (AND) between the words; the ranking functions "do not use any global information"; a generated `tsvector` column with a GIN index is the documented pattern, and only the form of `to_tsvector` with an explicit configuration can be indexed.
+  - **Generated columns:** in Postgres 18 they are virtual by default (`attgenerated = v`), and indexing one fails with "indexes on virtual generated columns are not supported". The column is therefore declared `STORED`.
+  - **Parser:** "Sentinel-1" becomes the word `sentinel` and the number `-1`, the same way in questions and in chunks, so they match.
+  - **Query plan:** with `enable_seqscan = off`, `Bitmap Index Scan on chunks_tsv_gin`, about 1 ms. The index takes 240 kB.
+  - **Eval** (`eval/results/2026-10-10T213253-lexical.json`), hit@10 / MRR@10:
+
+    | Questions | vector (D-018) | lexical |
+    |---|---|---|
+    | all (19) | 0.947 / 0.766 | 0.737 / 0.500 |
+    | Spanish (12) | 0.917 / 0.672 | 0.583 / 0.284 |
+    | English (7) | 1.000 / 0.929 | 1.000 / 0.871 |
+    | blind (5, all Spanish) | 0.800 / 0.522 | 0.600 / 0.158 |
+
+  - **The GRD/SLC question:** "GRD" appears in 43 chunks and "SLC" in 47, so they are too common to single out the two sections that explain them. Lexical search ranks the `S1 Products > Level-1 Products` chunks first, as vector search does, and the expected sections are not in its top 20.
+  - **Fresh and altered databases agree:** a database created from the new `schema.sql` and indexed from scratch returns the same chunks and scores, for every method, as the existing database after `ALTER TABLE`.
+
+## D-020: Hybrid search with reciprocal rank fusion; vector search stays the default
+
+- **Status:** Accepted (step 8, 2026-10-10)
+- **Decision:**
+  - **Fusion:** `--method hybrid` takes the top 40 of vector search and the top 40 of lexical search and gives each chunk the sum of 1 / (60 + rank) over the lists it appears in (reciprocal rank fusion, RRF). The 40 is the most an HNSW scan can return with the default `hnsw.ef_search`.
+  - **Ties:** chunks with equal scores in a list share its best rank (1, 2, 2, 4), and the remaining ties are ordered by section path and chunk position.
+  - **Default:** `make ask` and `make eval` keep vector search. Hybrid search is worse on this eval.
+- **Alternatives considered:**
+  - *Adding normalized scores* (a cosine distance and a `ts_rank`): the two scales are unrelated, and any normalization is another parameter to tune. RRF uses ranks only.
+  - *Ranks by position, ties ordered by chunk id* (the first version): chunk ids change whenever a page is indexed again (D-014), so two databases with the same data gave different results. `ground-subsidence` came 7th in one and 17th in the other.
+  - *RRF with the hand-written BM25* (D-019): hit@10 0.789, MRR@10 0.670.
+  - *Weighting the lists, or fusing only for English questions:* tuned on these same 19 questions; on the English ones vector search already finds every answer.
+  - *Translating the question into English before the lexical search:* one more Gemma call per question. Not tried; it is the obvious next experiment.
+  - *Making hybrid the default:* rejected on the numbers below.
+- **Why:** RRF is the standard way to merge rankings whose scores are not comparable, and it needs no calibration. k = 60 comes from the paper that introduced it.
+- **Trade-offs:** two more retrieval methods in the code that `make ask` does not use by default, and a GIN index updated on every insert (negligible at this size).
+- **Verified [2026-10-10]:**
+  - **Paper** (Cormack, Clarke and Büttcher, SIGIR 2009): RRFscore(d) = Σ 1/(k + r(d)), where "k = 60 was fixed during a pilot investigation and not altered during subsequent validation"; the pilot found it "near-optimal, but … the choice was not critical".
+  - **Eval** (`eval/results/2026-10-10T213254-hybrid.json`): hit@10 0.842 and MRR@10 0.633 against 0.947 and 0.766 for vector search. Spanish 0.750 / 0.461, English 1.000 / 0.929, blind 0.600 / 0.329.
+  - **Per question**, against vector search: better for `slc-content` (16th → 7th) and `orbit-files` (5th → 2nd), worse for six, among them the project's example question `grd-vs-slc` (9th → 16th, which would undo D-018) and `oil-spills` (1st → 15th). A chunk ranked 10th in both lists scores 2/70 = 0.029, more than one ranked 1st in a single list (1/61 = 0.016), so when one list is noise, chunks that are mediocre in both rise above the right one.
+  - **Variants** of the lexical side, with the same tie handling: `ts_rank` divided by 1 + log(length) 0.842 / 0.602; `ts_rank_cd` 0.789 / 0.523; BM25 0.789 / 0.670. None reaches vector search alone.
+  - **`make ask --method hybrid`:** "What is the repeat cycle of Sentinel-1?" is answered from the Orbit section, with a 3,262-token prompt in 6.6 s.

@@ -4,7 +4,7 @@ _Last updated: 2026-10-10_
 
 ## Current step
 
-**All steps of the brief are done.** Step 7 (documentation), the last one, was approved on 2026-10-10.
+**Step 9: Translating the question before the lexical search.** In progress. Step 8 (lexical baseline and hybrid search, the first extension in the README) was approved on 2026-10-10, and the user chose this follow-up. All steps of the brief (0–7) are done.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -16,6 +16,8 @@ _Last updated: 2026-10-10_
 | 5 | Query (`make ask`, prompt, citations) | Done |
 | 6 | Retrieval eval (hit@k, MRR) and top-k 10 | Done |
 | 7 | Documentation (README, final review of the decisions) | Done |
+| 8 | Extension 1: lexical baseline and hybrid search | Done |
+| 9 | Translate the question before the lexical search | In progress |
 
 ## Done
 
@@ -122,6 +124,17 @@ _Last updated: 2026-10-10_
   - D-018: the clean-clone reproduction and the new answer times.
   - D-003: Ollama can unload bge-m3 when it loads Gemma (seen twice in this step).
 
+### Step 8
+
+- **Lexical search** (D-019): a stored generated `tsv` column on `chunks` (English configuration, same text as the embedding) with a GIN index, queried with `plainto_tsquery` turned from AND into OR and ranked with `ts_rank`.
+  - Added to the existing database with `ALTER TABLE` (no re-indexing needed); `db/schema.sql` creates it for new databases. A fresh database built from `schema.sql` gave identical results.
+- **Hybrid search** (D-020): reciprocal rank fusion (k = 60) of the top 40 of each method. Tied scores share a rank, and ties are ordered by section and chunk position, not by chunk id.
+  - The first version ordered ties by chunk id, and two databases with the same data disagreed (`ground-subsidence` 7th vs 17th), because ids depend on the indexing history.
+- `--method vector|lexical|hybrid` in `make eval` and `make ask`; vector stays the default. Eval questions have a `lang` field, and the eval reports metrics per language.
+- **Results** (hit@10 / MRR@10, all 19): vector 0.947 / 0.766, lexical 0.737 / 0.500, hybrid 0.842 / 0.633. On the 7 English questions all three reach hit@10 1.000; the 12 Spanish ones (including the 5 blind ones) are where lexical search fails.
+  - Variants measured with a throwaway script: `ts_rank` with length normalization, `ts_rank_cd` and a hand-written BM25. BM25 is the best lexical ranking by MRR (0.559) but no hybrid beats vector search.
+- README: new "Lexical and hybrid search" section, `--method` in the commands, extension 1 marked as done.
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -149,7 +162,7 @@ _Last updated: 2026-10-10_
 
 ## Next
 
-Every step of the brief is done. What comes after is the user's choice: the extensions in the [README](../README.md#extensions-not-implemented), in order of value, or one of the smaller experiments listed there.
+**Step 9:** translate the question into English with Gemma before the lexical search, since the language gap is what sinks it (D-019), and measure lexical and hybrid search again. After that, the remaining extensions in the [README](../README.md#extensions-not-implemented), in order of value.
 
 ## How to resume
 
