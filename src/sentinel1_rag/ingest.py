@@ -1,6 +1,6 @@
-"""`make ingest`: download the source pages, split them into chunks and save them.
+"""`make ingest`: download the source pages and PDFs, split them into chunks and save them.
 
-Output: one JSON file per page in data/chunks/, read later by `make index`.
+Output: one JSON file per page or PDF in data/chunks/, read later by `make index`.
 Nothing is written to the database in this step.
 """
 
@@ -11,8 +11,9 @@ from collections import Counter
 from dataclasses import asdict
 
 from sentinel1_rag.chunking import SETTINGS, TOKENS_PER_WORD, Chunk, chunk_page
-from sentinel1_rag.config import CHUNKS_DIR, load_sources
+from sentinel1_rag.config import CHUNKS_DIR, load_pdfs, load_sources
 from sentinel1_rag.extract import extract
+from sentinel1_rag.extract_pdf import extract_pdf
 from sentinel1_rag.fetch import PoliteClient, fetch, slug
 
 
@@ -22,10 +23,12 @@ def main() -> None:
     for stale in CHUNKS_DIR.glob("*.json"):  # pages removed from sources.yaml disappear too
         stale.unlink()
 
+    # SentiWiki pages take their title from the page; PDFs from sources.yaml.
+    sources = [(url, None) for url in load_sources()] + [(pdf["url"], pdf["title"]) for pdf in load_pdfs()]
     pages, all_chunks = [], []
-    for url in load_sources():
+    for url, title in sources:
         raw = fetch(url, client)
-        page = extract(raw.html, url)
+        page = extract_pdf(raw.content, url, title) if title else extract(raw.html, url)
         chunks = chunk_page(page)
         record = {
             "url": url,
@@ -45,10 +48,11 @@ def main() -> None:
 
 
 def print_stats(pages: list[tuple], chunks: list[Chunk], requests: int) -> None:
-    print(f"Pages ({requests} HTTP requests made)")
-    print(f"  {'page':<18} {'source':<11} {'sections':>8} {'chunks':>7} {'words':>7}")
+    width = max(len(name) for name, *_ in pages)
+    print(f"Pages and PDFs ({requests} HTTP requests made)")
+    print(f"  {'name':<{width}} {'source':<11} {'sections':>8} {'chunks':>7} {'words':>7}")
     for name, source, sections, n_chunks, words in pages:
-        print(f"  {name:<18} {source:<11} {sections:>8} {n_chunks:>7} {words:>7}")
+        print(f"  {name:<{width}} {source:<11} {sections:>8} {n_chunks:>7} {words:>7}")
 
     tokens = [c.tokens for c in chunks]
     words = [len(c.content.split()) for c in chunks]

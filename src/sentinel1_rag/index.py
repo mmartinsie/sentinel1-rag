@@ -14,6 +14,7 @@ from pgvector import Vector
 
 from sentinel1_rag.config import CHUNKS_DIR, EMBED_MODEL
 from sentinel1_rag.db import connect
+from sentinel1_rag.fetch import slug
 from sentinel1_rag.ollama import Ollama
 
 # Texts per /api/embed request. Going from 1 to 8 saved ~25% of the time; larger
@@ -94,7 +95,7 @@ def main() -> None:
                             for c, v in zip(page["chunks"], vectors, strict=True)
                         ],
                     )
-            indexed.append(page["url"].rsplit("/", 1)[-1])
+            indexed.append(slug(page["url"]))
             embedded += len(vectors)
 
         # Pages that are no longer in data/chunks/ (removed from sources.yaml) go away too.
@@ -107,7 +108,7 @@ def main() -> None:
         ).fetchone()
 
     names = f" ({', '.join(indexed)})" if indexed else ""
-    print(f"Indexed {len(indexed)} pages{names} | skipped {skipped} unchanged"
+    print(f"Indexed {len(indexed)} documents{names} | skipped {skipped} unchanged"
           f" | removed {len(removed)} no longer in data/chunks/")
     if embedded:
         print(f"Embeddings: {embedded} chunks in {embed_seconds:.1f}s"

@@ -1,8 +1,9 @@
 # Retrieval eval questions.
 #
 # Each question lists the sections that answer it. `url` is the citation URL that retrieval
-# returns for the section (page URL + "#" + heading anchor) and is what the eval matches on;
-# `section` is the readable heading path. `make eval` checks that both exist in the index, so a
+# returns for the section (page URL + "#" + heading anchor, or for a PDF its URL + "#page=N",
+# the page where the section starts) and is what the eval matches on; `section` is the
+# readable heading path. `make eval` checks that both exist in the index, so a
 # typo fails loudly instead of counting as a miss. A question counts as found at rank r when
 # the r-th retrieved chunk comes from one of its sections.
 #
@@ -18,6 +19,10 @@
 # `lang` is the language of the question (es or en). The pages are in English, so lexical
 # search can only match a Spanish question through the words both languages share, such as
 # acronyms (D-019).
+#
+# Step 12 added six technical PDFs to the corpus (D-024). Every question written before was
+# checked against them with the same rule, and 11 of the 19 gained PDF sections. The questions
+# after product-slicing were written for the PDFs.
 
 questions:
   - id: grd-vs-slc
@@ -25,12 +30,21 @@ questions:
     lang: es
     question: ¿Qué diferencia hay entre un producto GRD y uno SLC?
     # "S1 Products > Level-1 Products" lists both product types and their resolutions, but
-    # only these two sections explain the difference (phase kept or lost, slant or ground range).
+    # only the two L1 Algorithms sections explain the difference (phase kept or lost, slant or
+    # ground range). In the Product Definition, 5.2 sets the two types side by side in a table
+    # (complex or detected, slant or ground range), and 5.2.1 and 5.2.2 explain one each;
+    # 5.1 only lists them with their resolutions, like "Level-1 Products".
     relevant:
       - section: S1 Processing > L1 Algorithms > Single Look Complex (SLC)
         url: https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)
       - section: S1 Processing > L1 Algorithms > Ground Range Detected (GRD)
         url: https://sentiwiki.copernicus.eu/web/s1-processing#Ground-Range-Detected-(GRD)
+      - section: Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=36
+      - section: Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC)
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=37
+      - section: Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.2 Ground Range, Multi-Look, Detected Products (GRD)
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=39
 
   - id: sar-principle
     written: blind
@@ -45,6 +59,8 @@ questions:
         url: https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview
       - section: S1 Mission > SAR Instrument
         url: https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument
+      - section: Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=23
 
   - id: product-metadata
     written: blind
@@ -67,6 +83,8 @@ questions:
         url: https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products
       - section: S1 Products > SAR Products Overview > Level-1 Products Formatting
         url: https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting
+      - section: Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.2 Ground Range, Multi-Look, Detected Products (GRD)
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=39
 
   - id: slc-content
     written: blind
@@ -79,6 +97,8 @@ questions:
         url: https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)
       - section: S1 Products > SAR Products Overview > Level-1 Products Formatting
         url: https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting
+      - section: Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC)
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=37
 
   - id: repeat-cycle
     written: from-text
@@ -97,6 +117,8 @@ questions:
     relevant:
       - section: S1 Mission > Acquisition Modes > Interferometric Wide Swath
         url: https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath
+      - section: Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=30
 
   - id: topsar-vs-scansar
     written: from-text
@@ -107,6 +129,8 @@ questions:
         url: https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath
       - section: S1 Processing > L1 Algorithms > Algorithm Overview
         url: https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview
+      - section: Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=30
 
   - id: ew-mode-use
     written: from-text
@@ -125,6 +149,8 @@ questions:
     relevant:
       - section: S1 Mission > Acquisition Modes > Wave
         url: https://sentiwiki.copernicus.eu/web/s1-mission#Wave
+      - section: Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.4 Wave Mode (WV)
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=32
 
   - id: centre-frequency
     written: from-text
@@ -134,6 +160,8 @@ questions:
     relevant:
       - section: S1 Mission > SAR Instrument
         url: https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument
+      - section: Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=23
 
   - id: etad-corrections
     written: from-text
@@ -164,6 +192,8 @@ questions:
         url: https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description
       - section: S1 Mission > Precise Orbit Determination Service
         url: https://sentiwiki.copernicus.eu/web/s1-mission#Precise-Orbit-Determination-Service
+      - section: Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.3 Orbital State Vectors > 4.3.1 State Vector Input
+        url: https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=18
 
   - id: level2-ocean
     written: from-text
@@ -175,6 +205,8 @@ questions:
         url: https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products
       - section: S1 Processing > L2 Algorithms
         url: https://sentiwiki.copernicus.eu/web/s1-processing#L2-Algorithms
+      - section: Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.1 Products Summary
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=46
 
   - id: oil-spills
     written: from-text
@@ -211,6 +243,69 @@ questions:
     relevant:
       - section: S1 Processing > Product Slicing Handling
         url: https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling
+      - section: Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.4 Slicing Impact on L1 Products
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=40
+
+  # Written for the PDFs, after reading the section that answers each (one per document).
+
+  - id: sigma0-calibration
+    written: from-text
+    lang: es
+    question: ¿Cómo se calcula sigma cero a partir de los valores de los píxeles de un producto Sentinel-1 de nivel 1?
+    # The equations themselves are lost in extraction (their fonts map no characters); the
+    # text around them, the variables and the numerical example remain.
+    relevant:
+      - section: Radiometric Calibration of S-1 Level-1 Products > 3 CALIBRATION LOOK UP TABLES > 3.2 Calibration LUT Definition
+        url: https://sentiwiki.copernicus.eu/__attachments/a_362015d79d4b31d2ec7bfc41d6edf57727461ab4812ae4fbc7d634df98d3db58/ESA-EOPG-CSCOP-TN-0002%20-%20Sentienl-1%20Radiometric%20Calibration%20of%20Products%202015%20-%201.0.pdf#page=5
+      - section: Radiometric Calibration of S-1 Level-1 Products > 4 RADIOMETRIC CALIBRATION OF DISTRIBUTED TARGETS
+        url: https://sentiwiki.copernicus.eu/__attachments/a_362015d79d4b31d2ec7bfc41d6edf57727461ab4812ae4fbc7d634df98d3db58/ESA-EOPG-CSCOP-TN-0002%20-%20Sentienl-1%20Radiometric%20Calibration%20of%20Products%202015%20-%201.0.pdf#page=7
+      - section: Radiometric Calibration of S-1 Level-1 Products > 4 RADIOMETRIC CALIBRATION OF DISTRIBUTED TARGETS > 4.1 Numerical Example
+        url: https://sentiwiki.copernicus.eu/__attachments/a_362015d79d4b31d2ec7bfc41d6edf57727461ab4812ae4fbc7d634df98d3db58/ESA-EOPG-CSCOP-TN-0002%20-%20Sentienl-1%20Radiometric%20Calibration%20of%20Products%202015%20-%201.0.pdf#page=8
+
+  - id: thermal-denoising
+    written: from-text
+    lang: en
+    question: How is thermal noise removed from a Sentinel-1 Level-1 product, and why is it not removed by default?
+    # "Product Definition > 5.5.2 Thermal Noise Removal" says that the processor can remove it,
+    # but neither how nor why it is not done by default.
+    relevant:
+      - section: Thermal Denoising of S-1 Products > 6 Denoising and clipping procedures > 6.1 Denoising procedure
+        url: https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=20
+
+  - id: grd-border-noise
+    written: from-text
+    lang: es
+    question: ¿Por qué aparecen píxeles sin valor en los bordes de las imágenes GRD y cómo se enmascaran?
+    relevant:
+      - section: Masking No-value Pixels on S-1 GRD Products > 1 Introduction
+        url: https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=6
+      - section: Masking No-value Pixels on S-1 GRD Products > 2 Problem description
+        url: https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=6
+
+  - id: tops-deramping
+    written: from-text
+    lang: en
+    question: Why do Sentinel-1 TOPS SLC bursts have to be deramped before they are resampled?
+    # Section 3 defines the deramping function but does not say why it is needed.
+    relevant:
+      - section: S-1 TOPS SLC Deramping > 1 INTRODUCTION
+        url: https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=4
+
+  - id: dem-height-errors
+    written: from-text
+    lang: es
+    question: ¿Cómo afectan los errores de altura del DEM a la geolocalización de una imagen Sentinel-1 geocodificada?
+    relevant:
+      - section: Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.9 Impact of Local Height Variations and Ellipsoid- vs. Terrain-Geocoding
+        url: https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=34
+
+  - id: grd-resolution-classes
+    written: from-text
+    lang: en
+    question: Which resolution classes exist for Sentinel-1 GRD products, and how do they differ?
+    relevant:
+      - section: Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary
+        url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35
 
 # Written blind but not scored:
 # - "¿Cómo se exportan los resultados a GeoTIFF?": no page explains exporting; they only say

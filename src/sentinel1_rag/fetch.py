@@ -1,7 +1,7 @@
-"""Polite, cached download of the source pages.
+"""Polite, cached download of the source pages and PDFs.
 
 The client identifies the project in its User-Agent, honours robots.txt and sends
-at most one request per second. Pages already in data/raw/ are not downloaded again;
+at most one request per second. Files already in data/raw/ are not downloaded again;
 delete the file (or run `make clean`) to refresh one.
 """
 
@@ -12,7 +12,7 @@ import urllib.robotparser
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import httpx
 
@@ -24,15 +24,24 @@ MIN_INTERVAL_S = 1.0
 @dataclass
 class RawPage:
     url: str
-    html: str
+    content: bytes  # the file as served: HTML or PDF
     fetched_at: str  # ISO 8601, UTC
     from_cache: bool
 
+    @property
+    def html(self) -> str:
+        return self.content.decode("utf-8")  # the SentiWiki serves UTF-8
+
 
 def slug(url: str) -> str:
-    """File name for a page URL: .../web/s1-mission -> s1-mission."""
-    last = urlsplit(url).path.rstrip("/").rsplit("/", 1)[-1] or "index"
-    return re.sub(r"[^a-z0-9-]+", "-", last.lower())
+    """File name for a URL: .../web/s1-mission -> s1-mission,
+    .../Thermal%20Denoising%20-%202.3.pdf -> thermal-denoising-2-3."""
+    last = unquote(urlsplit(url).path).rstrip("/").rsplit("/", 1)[-1] or "index"
+    return re.sub(r"[^a-z0-9]+", "-", last.lower().removesuffix(".pdf")).strip("-")
+
+
+def is_pdf(url: str) -> bool:
+    return urlsplit(url).path.lower().endswith(".pdf")
 
 
 class PoliteClient:
@@ -82,18 +91,18 @@ class PoliteClient:
 
 
 def fetch(url: str, client: PoliteClient, raw_dir: Path = RAW_DIR) -> RawPage:
-    """Return the page HTML, from data/raw/ if cached, otherwise downloading it."""
-    html_path = raw_dir / f"{slug(url)}.html"
-    meta_path = html_path.with_suffix(".json")
-    if html_path.exists() and meta_path.exists():
+    """Return the page or PDF, from data/raw/ if cached, otherwise downloading it."""
+    path = raw_dir / f"{slug(url)}{'.pdf' if is_pdf(url) else '.html'}"
+    meta_path = path.with_suffix(".json")
+    if path.exists() and meta_path.exists():
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        return RawPage(url, html_path.read_text(encoding="utf-8"), meta["fetched_at"], True)
+        return RawPage(url, path.read_bytes(), meta["fetched_at"], True)
 
     response = client.get(url)
     fetched_at = datetime.now(UTC).isoformat(timespec="seconds")
     raw_dir.mkdir(parents=True, exist_ok=True)
-    html_path.write_text(response.text, encoding="utf-8")
-    # Written last: a page only counts as cached once its metadata exists.
+    path.write_bytes(response.content)
+    # Written last: a file only counts as cached once its metadata exists.
     meta = {"url": url, "final_url": str(response.url), "fetched_at": fetched_at}
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
-    return RawPage(url, response.text, fetched_at, False)
+    return RawPage(url, response.content, fetched_at, False)

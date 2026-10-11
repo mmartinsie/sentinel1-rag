@@ -24,6 +24,7 @@ import yaml
 
 from sentinel1_rag.config import EMBED_MODEL, QUESTIONS_FILE, RESULTS_DIR, ROOT
 from sentinel1_rag.db import connect
+from sentinel1_rag.fetch import is_pdf
 from sentinel1_rag.ollama import Ollama
 from sentinel1_rag.retrieval import DEFAULT_METHOD, DEFAULT_RANKING, METHODS, RANKINGS, TOP_K, Hit, retrieve, score_label
 from sentinel1_rag.translate import to_english, use_translation
@@ -39,21 +40,29 @@ def load_questions() -> list[dict]:
         return yaml.safe_load(f)["questions"]
 
 
-def check_labels(questions: list[dict], known: dict[str, str]) -> None:
+def check_labels(questions: list[dict], known: set[tuple[str, str]]) -> None:
     """Every expected section must exist in the index; otherwise a typo would count as a miss."""
     errors = [
         f"  {q['id']}: {r['section']}\n    {r['url']}"
         for q in questions
         for r in q["relevant"]
-        if known.get(r["url"]) != r["section"]
+        if (r["url"], r["section"]) not in known
     ]
     if errors:
         raise SystemExit(f"Sections in {QUESTIONS_FILE.name} that are not in the index:\n" + "\n".join(errors))
 
 
-def first_rank(hits: list[Hit], relevant: set[str]) -> int | None:
-    """Rank (from 1) of the first chunk from a relevant section, or None if none was retrieved."""
-    return next((rank for rank, hit in enumerate(hits, start=1) if hit.url in relevant), None)
+def answer_in(relevant: list[dict]) -> str:
+    """Where a question's labelled sections are: only in SentiWiki pages, only in PDFs, or both."""
+    kinds = {is_pdf(r["url"]) for r in relevant}
+    return "wiki+pdf" if len(kinds) == 2 else "pdf-only" if True in kinds else "wiki-only"
+
+
+def first_rank(hits: list[Hit], relevant: set[tuple[str, str]]) -> int | None:
+    """Rank (from 1) of the first chunk from a relevant section, or None if none was retrieved.
+    A section is its citation URL and its heading path: in a PDF, sections that start on the
+    same page share the URL (url#page=N)."""
+    return next((rank for rank, hit in enumerate(hits, start=1) if (hit.url, hit.section) in relevant), None)
 
 
 def metrics(ranks: list[int | None], top_k: int) -> dict[str, float]:
@@ -64,9 +73,10 @@ def metrics(ranks: list[int | None], top_k: int) -> dict[str, float]:
 
 
 def scores_by_group(results: list[dict], top_k: int) -> dict[str, dict[str, float]]:
-    """Metrics for all questions, then by how they were written (blind vs from-text) and by language."""
+    """Metrics for all questions, then by how they were written (blind vs from-text), by language
+    and by where the answer is (wiki-only, pdf-only, wiki+pdf)."""
     groups = {"all": results}
-    for field in ("written", "lang"):
+    for field in ("written", "lang", "answer_in"):
         for value in sorted({r[field] for r in results}):
             groups[value] = [r for r in results if r[field] == value]
     return {
@@ -89,7 +99,7 @@ def print_report(
     print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {method}{lexical}{model} | top {top_k}")
     for name, group in scores.items():
         values = " | ".join(f"{metric} {value:.3f}" for metric, value in group.items() if metric != "questions")
-        print(f"  {name + ' (' + str(group['questions']) + ')':<16} {values}")
+        print(f"  {name + ' (' + str(group['questions']) + ')':<17} {values}")
 
     print(f"\n  {'rank':>4}  {'id':<20} question")
     for r in results:
@@ -134,8 +144,8 @@ def main() -> None:
     ollama = Ollama()
     started = time.perf_counter()
     with connect() as conn:
-        # Citation URL -> section path, built the same way as in retrieval.py.
-        known = dict(
+        # (citation URL, section path) of every section, built the same way as in retrieval.py.
+        known = set(
             conn.execute(
                 "SELECT DISTINCT d.url || coalesce('#' || c.anchor, ''), c.section"
                 " FROM chunks c JOIN documents d ON d.id = c.document_id"
@@ -153,12 +163,13 @@ def main() -> None:
             hits = retrieve(
                 conn, ollama, q["question"], k=DEPTH, method=args.method, english=english, ranking=args.lexical_ranking
             )
-            relevant = {r["url"] for r in q["relevant"]}
+            relevant = {(r["url"], r["section"]) for r in q["relevant"]}
             results.append(
                 {
                     "id": q["id"],
                     "written": q["written"],
                     "lang": q["lang"],
+                    "answer_in": answer_in(q["relevant"]),
                     "question": q["question"],
                     **({"english": english} if args.translate else {}),
                     "expected": [r["section"] for r in q["relevant"]],

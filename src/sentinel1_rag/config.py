@@ -31,3 +31,9 @@ def load_sources(path: Path = SOURCES_FILE) -> list[str]:
     """Return the page URLs listed in sources.yaml."""
     with path.open(encoding="utf-8") as f:
         return yaml.safe_load(f)["pages"]
+
+
+def load_pdfs(path: Path = SOURCES_FILE) -> list[dict[str, str]]:
+    """Return the PDFs listed in sources.yaml, each with its `url` and `title`."""
+    with path.open(encoding="utf-8") as f:
+        return yaml.safe_load(f).get("pdfs", [])

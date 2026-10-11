@@ -9,7 +9,7 @@ up:
 down:
 	docker compose down
 
-# Download the pages in sources.yaml (cached in data/raw/) and split them into data/chunks/.
+# Download the pages and PDFs in sources.yaml (cached in data/raw/) and split them into data/chunks/.
 ingest:
 	uv run python -m sentinel1_rag.ingest
 

@@ -125,7 +125,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-007: Python 3.12 + uv, src layout, minimal dependencies, raw HTTP to Ollama
 
-- **Status:** Accepted (step 0, 2026-10-08)
+- **Status:** Accepted (step 0, 2026-10-08). Step 12 added `pdfplumber` to read the PDFs (D-025).
 - **Decision:**
   - Python ≥ 3.12 managed with uv: `uv_build` backend, package in `src/sentinel1_rag/`, `uv.lock` committed.
   - Dependencies: `httpx`, `beautifulsoup4`, `psycopg[binary]`, `pgvector`, `pyyaml`.
@@ -190,7 +190,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-010: The corpus is the Sentinel-1 subtree of the SentiWiki (5 pages)
 
-- **Status:** Accepted (step 3, 2026-10-09)
+- **Status:** Accepted (step 3, 2026-10-09). Since D-024 the corpus also holds six technical PDFs from the Sentinel-1 document library.
 - **Decision:** `sources.yaml` lists the landing page and the 4 chapters (`s1-mission`, `s1-products`, `s1-processing`, `s1-applications`). Those are exactly the pages under "Sentinel-1" in the site's page tree.
 - **Alternatives considered:**
   - *"POD in details"* (`/web/precise-orbit-determination`): about 7.3k words, but shared across missions (60 mentions of Sentinel-1 against 47 of S2/S3/S5P), and `s1-mission` already has a section on POD.
@@ -221,7 +221,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-012: Text extraction rules
 
-- **Status:** Accepted (step 3, 2026-10-09)
+- **Status:** Accepted (step 3, 2026-10-09). These rules are for the SentiWiki pages; the PDFs have their own extractor (D-025).
 - **Decision:**
   - **Content and title:** the content comes from `article#content section.article-body`, and the page title from its `h1`. The "On this Page" table of contents lives in a separate `nav.toc`, so it is left out.
   - **Noise:** copy-link buttons, icons, images and scripts are removed.
@@ -350,7 +350,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-016: Prompt and answer: instructions in the system turn, numbered passages, citations resolved in code
 
-- **Status:** Accepted (step 5, 2026-10-09). Since D-018 the prompt carried 10 passages instead of 5, and since D-022 it carries 5 again, from hybrid search.
+- **Status:** Accepted (step 5, 2026-10-09). Since D-018 the prompt carried 10 passages instead of 5, and since D-022 it carries 5 again, from hybrid search. Since D-024 the system turn says the passages come from "the Sentinel-1 documentation: SentiWiki pages and technical documents" instead of "the SentiWiki documentation".
 - **Decision:**
   - **Messages:** the system turn holds the instructions. The user turn holds `Passages:`, then each chunk as `[n] <section path>` followed by its text (closest first), then `Question: <question>`. URLs are not in the prompt.
   - **Instructions:** use only facts from the passages; cite the supporting passages after each sentence, as `[2]` or `[1][3]`; if the answer is not there, say only that it could not be found, and if it is partly there, answer that part and say what is missing; write in the language of the question, keeping acronyms such as GRD or SLC; be concise.
@@ -392,7 +392,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-017: Retrieval eval: section-level labels, the real retrieval, MRR cut at the top k
 
-- **Status:** Accepted (step 6, 2026-10-10). Since D-022 the default retrieval translates each question with Gemma, so the eval loads it.
+- **Status:** Accepted (step 6, 2026-10-10). Since D-022 the default retrieval translates each question with Gemma, so the eval loads it. Since D-026 there are 25 questions, labels may name PDF sections, and a label matches on its URL and its section path together.
 - **Decision:**
   - **Labels:** each question in `eval/questions.yaml` lists the sections that answer it, by citation URL (`page#anchor`) plus its heading path. `make eval` stops if a listed section is not in the index, so a typo cannot pass as a miss.
   - **Labelling rule (strict, chosen by the user):** a section is listed only if, read on its own, it answers the main part of the question; sections that only name the topic are left out. For a question that compares two things (GRD vs SLC), each section that explains one of them counts, because no single section explains both.
@@ -564,7 +564,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
 
 ## D-022: Default retrieval: hybrid search with a translated question and the top 5
 
-- **Status:** Accepted (step 10, 2026-10-11). Since D-023 the full-text half ranks with BM25 (MRR@5 0.908 instead of 0.860).
+- **Status:** Accepted (step 10, 2026-10-11). Since D-023 the full-text half ranks with BM25 (MRR@5 0.908 instead of 0.860). Measured again with the PDFs in D-026: it is still the best of the methods at the top 5, and stays the default.
 - **Decision:**
   - **Default:** `make ask` and `make eval` use hybrid search (D-020) with the question translated into English for the full-text half (D-021), and the model gets the top 5 chunks (`DEFAULT_METHOD = "hybrid"`, `TOP_K = 5`).
   - **Options:** translation is on wherever there is a full-text search; `--no-translate` turns it off, and `--method vector` never translates. `make ask` also takes `--top-k`, so the previous default is `--method vector --top-k 10`.
@@ -626,3 +626,126 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - **With 10 passages** (hit@10 / MRR@10): lexical 0.684 / 0.559, lexical translated 0.947 / 0.796, hybrid 0.789 / 0.670, hybrid translated 0.947 / 0.908 (`…013217-lexical-bm25.json`, `…013225-lexical-en-bm25.json`, `…013227-hybrid-bm25.json`, `…013236-hybrid-en-bm25.json`).
   - **Answers** (throwaway script, 84: the 19 eval questions and 2 unanswerable ones, 2 runs, top 5 with `ts_rank` and with BM25): both cite a correct section in 36 of 38, both say "not found" for the mission cost and neither does for GeoTIFF, with median prompts of 1,615 and 1,583 tokens and a median generation of 3.7 s each. BM25 cites 1.6 sections per answer against 1.8. Read side by side: oil spills better with BM25 (it names the Level-2 wind products), product metadata worse (it presents ETAD documents as the way to consult any product's metadata), the product name the same.
   - **Earlier runs:** with `--lexical-ranking ts_rank` where they used it, the six cited runs of steps 6 and 8 to 10 are reproduced exactly.
+
+## D-024: Six technical PDFs from the Sentinel-1 document library join the corpus
+
+- **Status:** Accepted (step 12, 2026-10-11)
+- **Decision:**
+  - **Documents**, the latest version of each, 51.7k words in all:
+
+    | Short title (in citations) | Document | Pages | Chunks |
+    |---|---|---|---|
+    | Radiometric Calibration of S-1 Level-1 Products | ESA-EOPG-CSCOP-TN-0002, issue 1.0 | 13 | 17 |
+    | Thermal Denoising of S-1 Products | MPC-0392, issue 2.3 | 31 | 34 |
+    | Masking No-value Pixels on S-1 GRD Products | MPC-0243, issue 2.2 | 15 | 16 |
+    | S-1 TOPS SLC Deramping | COPE-GSEG-EOPG-TN-14-0025, issue 1.3 | 15 | 17 |
+    | Guide to Sentinel-1 Geocoding | UZH-S1-GC-AD, issue 1.12 | 42 | 80 |
+    | Sentinel-1 Product Definition | S1-RS-MDA-52-7440, issue 2.11 | 130 | 209 |
+
+  - **Sources:** `sources.yaml` gets a `pdfs:` list. Each entry has the file's URL, which belongs to that version of the file, and a short title written by hand, because the file names are document codes. The URLs leave out the `?cb=` cache-buster that the library page adds.
+  - **Download:** the same polite client as the pages (D-011). A PDF is cached as `data/raw/<slug>.pdf`, its name taken from the URL, and is never committed.
+  - **Prompt:** the system turn now says that the passages come from "the Sentinel-1 documentation: SentiWiki pages and technical documents" (D-016).
+- **Alternatives considered:**
+  - *Only the five short notes* (about 150 chunks): a smaller corpus, but the Product Definition is the reference for the product types, where the eval's hardest question (`grd-vs-slc`) sits.
+  - *The Product Specification* (issue 3.16.3, 220 pages) *and the Level 1 Detailed Algorithm Definition* (issue 2.5, 166 pages): mostly format tables and equations, and together they would triple the corpus.
+  - *The journal article "GMES Sentinel-1 mission"* (16 pages, the only one with bookmarks): its two-column layout came out with the words glued together ("Inaddition,twounits"), and it repeats the wiki's mission overview.
+  - *Every version in the library:* several issues of the same document would compete with each other for the top 5.
+  - *Finding the latest version on the library page at every ingest:* the corpus would change by itself whenever ESA uploads a document. Pinned URLs keep ingest reproducible, and the library keeps listing older versions.
+- **Why:** the notes explain how to do what the wiki only names (calibrating to σ0, removing thermal noise, masking the GRD borders, deramping TOPS SLC bursts, geocoding), and the Product Definition describes every product type and its characteristics.
+- **Trade-offs:**
+  - **The PDFs dominate the corpus:** 373 of 568 chunks, 209 from the Product Definition alone. They fill 36 of the 95 top-5 places of the 19 earlier eval questions (D-026).
+  - **Slower ingest:** `make ingest` takes about 80 s instead of 10, almost all of it reading the PDFs (D-025). `make index` embeds the 373 new chunks once (about a minute).
+  - **Documents of different dates disagree:** for orbit files, the geocoding guide (2022) says restituted orbits arrive about 3 hours after acquisition, and the wiki's POD table says 45 minutes. One answer mixed the two (D-026).
+  - **Pinned versions age:** a newer issue of a document is only picked up by editing `sources.yaml`. If ESA removed a file, `make ingest` would stop with a 404.
+  - **Terms of use:** the SentiWiki's terms allow downloading and copying for non-commercial use but not redistribution, so the PDFs stay in `data/raw/`, which is not committed, like the pages.
+- **Verified [2026-10-11]:**
+  - **The library:** `robots.txt` is "Allow: /". The S1 Documents page lists about 130 files: PDFs in several issues (three of the thermal denoising note), zips, orbit-related text files and monthly performance reports. Attachment URLs answer 200 without `?cb=`.
+  - **Terms and conditions page:** "ESA grants permission to users to visit the site, and to download and copy information, images, documents and materials"; "ESA does not grant the right to resell or redistribute".
+  - **Bookmarks:** 9 of the 10 candidate PDFs inspected have none; only the journal article does.
+  - **First ingest:** 7 requests (`robots.txt` and the 6 PDFs). The five pages' chunk files are byte-identical before and after this step, so `make index` skipped them.
+
+## D-025: PDF extraction with pdfplumber: numbered headings in a larger font, page anchors
+
+- **Status:** Accepted (step 12, 2026-10-11)
+- **Decision:** `extract_pdf.py` turns a PDF into the same `Page` and `Section` structure as a SentiWiki page, so chunking (D-013), indexing (D-014) and the schema do not change.
+  - **Library:** `pdfplumber` 0.11.10 (MIT; it brings `pdfminer.six`, `pypdfium2` and Pillow).
+  - **Headers and footers:** a line in the top or bottom 15 % of the page that repeats on at least half the pages, once digits are ignored ("Page 4/13"), is removed. So is rotated text: chart axes and margin notes.
+  - **Sections:** a heading is a line that starts with a section number ("3.1", "5.2.1.4", or "A1.4" and "B" in appendices), is set at least 0.5 pt larger than the body text (the size most characters use), and continues the numbering: the first subsection, or the next section at the same or a higher level. A heading that wraps onto a second line in the same font is joined. Everything before section 1 is dropped (title page, change log, table of contents), and the section path starts with the short title from `sources.yaml`.
+  - **Citations:** a section's anchor is `page=N`, the physical page of its heading, so the citation URL `url#page=N` opens the PDF at that page.
+  - **Text:** lines are joined into paragraphs, which end at a vertical gap larger than half a line. Bulleted lines become list items, nested by indentation. A word broken by a hyphen at the end of a line loses the hyphen only if the joined word appears elsewhere in the document ("Correc-" + "tions"); otherwise the hyphen stays ("cross-section").
+  - **Tables:** the tables pdfplumber finds become one line per row, cells joined with `" | "`. A cell merged down several rows is repeated in each row, and an empty cell is kept as an empty field in a column that the first row names, so every row lines up with the header.
+  - **Noise:** a line with no word of three letters or more, or made mostly of single characters, is dropped: chart labels, stray subscripts and the remains of equations. Glyphs that a font does not map to any character (`(cid:1830)`) are removed.
+- **Alternatives considered:**
+  - *pypdf* (BSD, no dependencies): it split words in two ("Faci lity", "dedicate d", "ea sily"), which breaks full-text matching.
+  - *pdfminer.six alone:* fewer dependencies and paragraphs for free, but it groups table cells column by column, so rows fall apart.
+  - *PyMuPDF:* AGPL-licensed.
+  - *Headings from the bookmarks:* only 1 of the 10 PDFs inspected has any.
+  - *Headings from the table of contents:* not every note has one, and the Product Definition's leaves out the appendices.
+  - *The numbering alone, without the font size:* in the Product Definition a table line "4 Wave Mode (WV)" passed for chapter 4 and threw off the sections after it.
+  - *One section per page:* simpler and as precise for citations, but chunks would ignore the topic boundaries and the "Page > Section" prefix (D-014) would say nothing.
+  - *An anchor per section:* a PDF link can open a page, not a heading, unless the file has named destinations, and none of these has any. Sections that start on the same page therefore share their URL, so the eval matches on the URL and the section path together (D-026).
+  - *Filling every merged cell from the cell above:* wrong for cells merged across columns ("Ground Range Coverage [km] | 251.8" spans three beams), which would get values from the row above.
+- **Why:** each rule fixes something seen in these six documents, and every section can be traced back to a page and a heading that a reader can check.
+- **Trade-offs:**
+  - **Equations are lost.** Their fonts do not say which character each glyph is, so formulas such as σ0 = |DN|² / A²σ disappear from the calibration note, and only the text around them remains. Equations typed as text survive: the denoising one in the thermal noise note did.
+  - **Charts leave fragments.** Captions remain, as for the wiki's figures, plus a few stray labels. One vertical table header (Table 5-4 of the Product Definition) comes out as single letters.
+  - **The hyphen rule is a guess.** In the geocoding guide, which hyphenates words to justify its lines, 34 of the 112 line-end hyphens stay, some of them breaks ("criti-cal") and some real ("mid-range").
+  - **Tuned on six documents.** A PDF with headings in the body font, two columns or unnumbered headings would need new rules. With no numbered heading, the extractor stops with "no numbered sections found".
+  - **The token estimate is a little low for PDFs.** The words × 1.68 estimate of D-013 was measured on the wiki. PDF chunks have 1.77 bge-m3 tokens per word: 14 of them exceed 500 real tokens, the largest 801. That is harmless, because Ollama runs bge-m3 with a 4096-token context.
+  - **Speed:** reading the six PDFs takes about 65 s on every `make ingest`.
+- **Verified [2026-10-11]:**
+  - **Fonts** (most common size by characters, against the headings): Product Definition 12 pt body, headings 13–16 pt bold; geocoding guide 11 against 12 and 13.9; calibration note 11.3 against 13.2; thermal noise note 10 against 12.
+  - **Sections:** 13, 27, 12, 6, 34 and 145 per document (237 with text), with appendices (A1.4, B2, D1) in the Product Definition. The first heading of every document is its section 1.
+  - **Page anchors:** for all 237 sections, the heading's text is on the page that its citation URL points to (checked with a throwaway script). RFC 8118 defines `page=` as the physical page, the first being 1, and pdf.js lists it among its viewer options ("page: page number. Example: page=2").
+  - **Hyphens at line ends:** 112 in the geocoding guide (78 joined, because the whole word appears elsewhere in it), 15 in the Product Definition (1 joined), 8 in the thermal noise note (2), 1 each in the masking and deramping notes, and none in the calibration note.
+  - **Merged cells:** before the fix, an answer about GRD resolution classes gave the pixel spacing and the number of looks as resolutions, because the rows of Table 5-1 had lost their first two columns. After it, the rows read "SM | GRD | HR | 23 x 23 | 10 x10 | 6 x 6 | 29.7", and both answers gave the right values.
+  - **Chunks:** 373 from the PDFs. Real bge-m3 tokens: mean 238, median 236, minimum 12, maximum 801; the estimate is 12 tokens low on average.
+
+## D-026: The eval with the PDFs: labels on PDF sections, matched with the section path; the default retrieval stays
+
+- **Status:** Accepted (step 12, 2026-10-11)
+- **Decision:**
+  - **Earlier questions:** the 19 questions were checked against the PDFs with the same strict rule (D-017), and 11 gained sections:
+    - `grd-vs-slc`: Product Definition 5.2 (the two types side by side), 5.2.1 (SLC) and 5.2.2 (GRD);
+    - `grd-content` 5.2.2, `slc-content` 5.2.1, `sar-principle` and `centre-frequency` 3.2 (payload and system parameters), `iw-swath-resolution` and `topsar-vs-scansar` 3.3.2, `wave-vignettes` 3.3.4, `level2-ocean` 6.1, `product-slicing` 5.4;
+    - `orbit-files`: geocoding guide 4.3.1 (the three orbit products, their latency and relative quality).
+  - **New questions:** 6 drafted from the text, one per document (3 in Spanish, 3 in English): `sigma0-calibration`, `thermal-denoising`, `grd-border-noise`, `tops-deramping`, `dem-height-errors`, `grd-resolution-classes`.
+  - **Matching:** a retrieved chunk counts for a label when both its citation URL and its section path match. In the wiki every section has its own anchor, so nothing changes there; in a PDF, sections on the same page share the URL.
+  - **Groups:** the eval also reports the questions by where their answer is, `wiki-only` (8), `wiki+pdf` (11) and `pdf-only` (6), worked out from the labels' URLs.
+  - **Default:** the retrieval of D-022 and D-023 stays.
+  - **No new blind questions:** the user chose to keep the 25 questions. Four of the 5 blind questions of D-017 now have PDF sections among their labels.
+- **Alternatives considered:**
+  - *Keeping the old labels:* on the new index, the 19 questions would score hit@5 0.895 and MRR@5 0.816. That apparent drop comes from correct PDF sections now ranking first, as the SLC definition does for `slc-content`.
+  - *Matching on the URL alone:* a chunk from "2 DOCUMENTATION" of the deramping note would count for "1 INTRODUCTION", which starts on the same page. The label check caught this: five labels did not match the index.
+  - *A field for where the answer is:* derived from the labels instead, so there is nothing to keep in step.
+  - *Vector search with the top 10:* it reaches hit@10 0.920 and finds `grd-vs-slc` (rank 10) and all the blind questions, with twice the passages. The default reaches the same hit@10, and hit@5 0.880 against 0.800.
+- **Why:** labels have to name every section that answers, or the eval punishes finding the right document. Matching the section path keeps a label exact when sections share a page.
+- **Trade-offs:**
+  - **The new questions were drafted from the text,** so they share its wording. No blind question is about a topic that only the PDFs cover, so how a reader without the documents fares there is not measured.
+  - **Judgement calls,** as in D-017: Product Definition 5.1 lists both product types with their resolutions but does not explain the difference, so it is not a label for `grd-vs-slc`, and the per-mode product tables of chapter 7 are not labels for questions about a product type in general.
+  - **25 questions:** one question moves hit@k by 0.04 overall, and by 0.167 among the 6 PDF questions.
+- **Verified [2026-10-11]:**
+  - **Eval** (`eval/results/2026-10-11T113743-pdfs.json`, and `…113745-pdfs-vector`, `…113757-pdfs-lexical-en`, `…113800-pdfs-hybrid`, `…113801-pdfs-vector-k10` for the other methods), hit@5 / MRR@5:
+
+    | Method | all (25) | wiki-only (8) | wiki+pdf (11) | pdf-only (6) | blind (5) | hit@1 |
+    |---|---|---|---|---|---|---|
+    | hybrid, translated, BM25 (default) | 0.880 / 0.810 | 1.000 / 0.938 | 0.909 / 0.864 | 0.667 / 0.542 | 0.800 / 0.700 | 0.760 |
+    | vector | 0.800 / 0.673 | 1.000 / 0.760 | 0.727 / 0.682 | 0.667 / 0.542 | 0.600 / 0.367 | 0.600 |
+    | lexical, translated, BM25 | 0.800 / 0.663 | 1.000 / 0.906 | 0.818 / 0.576 | 0.500 / 0.500 | 0.600 / 0.200 | 0.600 |
+    | hybrid, not translated | 0.720 / 0.590 | 0.625 / 0.625 | 0.818 / 0.652 | 0.667 / 0.431 | 0.600 / 0.367 | 0.520 |
+
+  - **The 19 earlier questions:** hit@5 0.947 as in step 11 (the same 18 reach the model), MRR@5 0.895 against 0.908, hit@1 0.842 against 0.895. `slc-content` moves from 4th to 1st; `product-metadata` and `orbit-files` from 1st to 2nd, behind Product Definition sections (1.2 Scope, 9.5 Orbit and Attitude Information); `grd-vs-slc` from 16th to 13th.
+  - **The 6 PDF questions:** ranks 1, 1, 1, 4, 10 and not in the top 20.
+    - `sigma0-calibration` is a vocabulary miss: "sigma cero", translated as "sigma zero", pulls in the sections on the Noise Equivalent **Sigma Zero**, while the calibration note says σ0, DN and calibration LUT. Asked as "How do I convert Sentinel-1 digital numbers into radar backscatter (sigma0) using the calibration LUTs?", the note ranks 1st in vector search and 2nd in BM25.
+    - `tops-deramping`: the right document fills the top 7, but with the four chunks of its long section 3, which defines the function; the introduction, which says why it is needed, ranks 10th.
+  - **Answers** (throwaway script, 108: the 25 questions and the 2 unanswerable ones, 2 runs each; before = the index without the PDFs, kept in a copy of the database, with the old prompt):
+
+    | | Earlier questions citing a correct section | PDF questions citing a correct section | Median prompt | Median answer | Median time | Sections cited per answer |
+    |---|---|---|---|---|---|---|
+    | before | 36 / 38 | 0 / 12 | 1,534 tokens | 88 tokens | 3.4 s | 1.6 |
+    | after | 36 / 38 | 8 / 12 | 1,570 tokens | 112 tokens | 4.2 s | 2.1 |
+
+    - Every answer cited a correct section whenever one was among its passages. 22 of the 38 answers to earlier questions now cite a PDF.
+    - Before, the PDF questions got answers from nearby wiki sections, or "not found" (GRD borders). After, the four found ones are answered from the notes: the denoising equation and why it is not applied by default, the SWST cause of the no-value pixels, the shift caused by DEM height errors, and the resolution classes with the right values.
+    - Worse: `orbit-files` takes the three orbit products and their latencies (about 3 hours, 3 weeks) from the geocoding guide and the accuracies from the wiki, whose table gives other latencies (45 minutes for the restituted orbit). Both runs cite "[9]", taken from "Table 9" in the passage, although there were only 5 passages (`make ask` warns about such numbers). `sigma0-calibration` says the calculation is not in the documentation, and `tops-deramping` explains what deramping does but not why.
+    - Mission cost: "not found" in every run, before and after. Exporting to GeoTIFF: never said to be missing, as before (D-018).

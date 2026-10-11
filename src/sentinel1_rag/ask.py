@@ -23,7 +23,7 @@ CHAT_OPTIONS = {"num_ctx": CHAT_NUM_CTX, "temperature": 0.2, "num_predict": 1024
 # the passages are in English" got English questions answered in Spanish 8 times out of 10.
 SYSTEM_PROMPT = """\
 You answer questions about the Sentinel-1 radar satellite mission. Each question comes with \
-numbered passages from the SentiWiki documentation.
+numbered passages from the Sentinel-1 documentation: SentiWiki pages and technical documents.
 
 Rules:
 - Use only facts stated in the passages. Do not add facts from your own knowledge, even if you know them.

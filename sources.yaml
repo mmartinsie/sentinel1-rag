@@ -1,5 +1,5 @@
-# Pages that make up the RAG corpus.
-# This is the whole Sentinel-1 subtree of the SentiWiki, as listed in its page tree
+# Pages and documents that make up the RAG corpus.
+# The pages are the whole Sentinel-1 subtree of the SentiWiki, as listed in its page tree
 # (https://sentiwiki.copernicus.eu/web/__pagetree.json): a landing page and 4 chapters.
 pages:
   - https://sentiwiki.copernicus.eu/web/sentinel-1
@@ -7,3 +7,22 @@ pages:
   - https://sentiwiki.copernicus.eu/web/s1-products
   - https://sentiwiki.copernicus.eu/web/s1-processing
   - https://sentiwiki.copernicus.eu/web/s1-applications
+
+# Technical documents from the Sentinel-1 document library
+# (https://sentiwiki.copernicus.eu/web/s1-documents), the latest version of each (D-024).
+# Each URL points to one version of the file: a new version gets a new URL, and the library
+# keeps listing the old ones. `title` is the short name used in citations and in front of
+# every chunk; the file names are document codes.
+pdfs:
+  - title: Radiometric Calibration of S-1 Level-1 Products
+    url: https://sentiwiki.copernicus.eu/__attachments/a_362015d79d4b31d2ec7bfc41d6edf57727461ab4812ae4fbc7d634df98d3db58/ESA-EOPG-CSCOP-TN-0002%20-%20Sentienl-1%20Radiometric%20Calibration%20of%20Products%202015%20-%201.0.pdf
+  - title: Thermal Denoising of S-1 Products
+    url: https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf
+  - title: Masking No-value Pixels on S-1 GRD Products
+    url: https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf
+  - title: S-1 TOPS SLC Deramping
+    url: https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf
+  - title: Guide to Sentinel-1 Geocoding
+    url: https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf
+  - title: Sentinel-1 Product Definition
+    url: https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf

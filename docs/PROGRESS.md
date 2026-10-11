@@ -1,10 +1,10 @@
 # Progress
 
-_Last updated: 2026-10-10_
+_Last updated: 2026-10-11_
 
 ## Current step
 
-**Step 12: Technical PDFs (the next extension in the README).** Not started. Step 11 (BM25) was approved on 2026-10-11, together with the recommendation to continue with the PDFs. All steps of the brief (0–7) are done, and so are the extension steps 8 to 11.
+**Step 13: to be chosen by the user.** Step 12 (technical PDFs) was approved on 2026-10-11, without new blind questions (the user's choice). All steps of the brief (0–7) are done, and so are the extension steps 8 to 12.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -20,7 +20,8 @@ _Last updated: 2026-10-10_
 | 9 | Translate the question before the lexical search | Done |
 | 10 | Hybrid search with translation and a smaller top-k, judged on the answers | Done |
 | 11 | BM25 instead of `ts_rank` for the full-text search | Done |
-| 12 | Extension: technical PDFs from the Sentinel-1 document library | Next |
+| 12 | Extension: technical PDFs from the Sentinel-1 document library | Done |
+| 13 | To be chosen by the user (see Next) | Next |
 
 ## Done
 
@@ -165,6 +166,21 @@ _Last updated: 2026-10-10_
 - **Answers** (84, top 5, `ts_rank` vs BM25): the same 36 of 38 cite a correct section, the same "not found" behaviour, the same prompt size and time. Mixed differences when read: oil spills better, product metadata worse. Proposed anyway for the ranking, the IDF fix and the standard recipe.
 - README: new example output (BM25), BM25 in "How it works", results and comparison tables, the BM25 limitation (statistics on every query).
 
+### Step 12
+
+- **Plan approved by the user** (all items as recommended): six PDFs, pdfplumber, sections from numbered headings with page anchors, `pdfs:` in `sources.yaml`, the eval re-labelled plus new questions, the prompt wording. The plan also had the user write 3–5 blind questions about the PDFs; at the review the user chose to keep the 25 questions without them.
+- **Corpus** (D-024): Radiometric Calibration (TN-0002 1.0), Thermal Denoising (MPC-0392 2.3), Masking No-value Pixels on GRD (MPC-0243 2.2), TOPS SLC Deramping (TN-14-0025 1.3), Guide to Sentinel-1 Geocoding (UZH 1.12) and the Sentinel-1 Product Definition (2.11). 373 new chunks from 237 sections; 568 in all.
+- **Code:**
+  - `extract_pdf.py` (D-025): headers and footers by repetition in the margins, headings by numbering plus a larger font, `page=N` anchors, paragraphs by line gaps, lists, tables with row-merged cells repeated, hyphen joining checked against the document's own words, chart and equation debris dropped.
+  - `fetch.py` stores bytes and names PDFs by URL; `ingest.py` reads `pdfs:` from `sources.yaml`; `index.py` names documents by slug.
+  - `evaluate.py` matches labels on URL and section path (sections on one PDF page share the URL) and reports `wiki-only`, `wiki+pdf` and `pdf-only` groups.
+  - `ask.py`: the system turn says "SentiWiki pages and technical documents".
+- **Eval** (D-026): 11 of the 19 questions gained PDF labels, and 6 questions were drafted from the PDFs. Default: hit@5 0.880, MRR@5 0.810 over 25 (`eval/results/2026-10-11T113743-pdfs.json`). The 19 earlier questions: hit@5 0.947 as before, MRR@5 0.895 (was 0.908). PDF-only questions: hit@5 0.667. The default is still the best method at 5 passages.
+- **Answers** (throwaway script, 108): earlier questions 36/38 citing a correct section before and after; PDF questions 0/12 → 8/12. Two misses: `sigma0-calibration` (vocabulary) and `tops-deramping` (a long section crowds out the introduction).
+- **Fixed during the step:** words split by pypdf (switched to pdfplumber), running footers outside the first margin guess (12 % → 15 %), private-use bullet glyphs, chart text, unmapped equation glyphs, hyphenated line breaks in the geocoding guide, and merged table cells, which had made an answer give pixel spacing as resolution.
+- **Checks:** every PDF section heading is on the page its URL cites (237 of 237); a fresh database built from `schema.sql` reproduces the cited eval run exactly; the five SentiWiki pages' chunks are byte-identical to before.
+- A copy of the index without the PDFs, `rag_wiki`, was made in the same Postgres for the "before" answers, and dropped after the review.
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -188,20 +204,21 @@ _Last updated: 2026-10-10_
   - In a long session (step 5, before a WSL restart), Ollama saw little free RAM and evicted one model to load the other on every question, so each `make ask` paid a full reload. After the restart both models stayed loaded together. If it happens again, check `ollama ps` and the `evicting` lines in `journalctl -u ollama`.
   - In step 7, loading Gemma while bge-m3 was loaded unloaded bge-m3 twice (D-003). Loading bge-m3 next to Gemma did not evict Gemma.
 - **GPU detection after a WSL restart:** right after a restart, Ollama's GPU discovery timed out while reading its CUDA libraries from the cold HDD, and Ollama fell back to the CPU (`inference compute ... library=cpu` in the log). `sudo systemctl restart ollama` fixed it once the libraries were in the disk cache. Check after every restart (see "How to resume").
+- **Stale schema in a running container:** `docker-compose.yml` bind-mounts the single file `db/schema.sql`. A bind mount of a file keeps pointing at the old file when an editor replaces it, so the container started before step 8 still saw the schema without the `tsv` column (found in step 12, building a fresh database inside it). It only matters for databases created inside an old container; `make clean && make up` creates a new one.
 - **Memory budget:** with both models loaded, the GPU uses 5.4 of 8 GiB and WSL uses 5.5 of 9.7 GiB of RAM. Postgres fits, but running other heavy workloads at the same time (such as a local Kubernetes cluster) could make RAM tight.
 
 ## Next
 
-**Step 12: technical PDFs** from the Sentinel-1 document library, the first of the remaining extensions in the [README](../README.md#extensions-not-implemented). As in every step: first the concept in Spanish, then a plan to review with the user before building (which PDFs, how to turn them into sections with citable locations, and new eval questions labelled on PDF sections), then build, measure, record the decisions as Proposed and stop for approval.
+**Step 13:** the user chooses. The remaining extensions in the [README](../README.md#extensions-not-implemented) are an agent with a STAC `search_scenes` tool, an MCP server and OpenSearch. A smaller experiment that step 12 motivates: at most two chunks per section in the top 5 (`tops-deramping` lost its introduction to four chunks of one section).
 
-The current pipeline, for reference: translate the question (Gemma, temperature 0), vector search (bge-m3, original question) and BM25 full-text search (English question), reciprocal rank fusion, top 5 passages to Gemma. Eval: hit@5 0.947, MRR@5 0.908 over 19 questions (`eval/results/2026-10-11T013216-hybrid-en-bm25-k5.json`).
+The current pipeline, for reference: translate the question (Gemma, temperature 0), vector search (bge-m3, original question) and BM25 full-text search (English question), reciprocal rank fusion, top 5 passages to Gemma. Corpus: 5 SentiWiki pages and 6 PDFs, 568 chunks. Eval: hit@5 0.880, MRR@5 0.810 over 25 questions (`eval/results/2026-10-11T113743-pdfs.json`).
 
 ## How to resume
 
 1. `cd ~/sentinel1-rag && uv sync`
 2. Check that Ollama is running and has both models: `systemctl is-active ollama && ollama list`.
 3. After a WSL restart, check that Ollama found the GPU: `journalctl -u ollama -b | grep "inference compute"` must show `library=CUDA`. If it shows `library=cpu`, run `sudo systemctl restart ollama` and check again.
-4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index`; otherwise `make index` alone confirms there is nothing to do.
-5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in about 10 s once Gemma is loaded (it translates the questions); `ARGS="--method vector"` skips Gemma.
+4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index` (about 80 s and a minute); otherwise `make index` alone confirms there is nothing to do.
+5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in about 15 s once Gemma is loaded (it translates the questions); `ARGS="--method vector"` skips Gemma.
 6. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.
-7. The comparisons of generated answers (steps 10 and 11) and the BM25 cross-check ran as throwaway scripts in a session scratchpad, so they are not in the repo. What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 and D-023.
+7. The comparisons of generated answers (steps 10 to 12), the BM25 cross-check and the PDF checks (page anchors, token counts, heading fonts) ran as throwaway scripts in a session scratchpad, so they are not in the repo. What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 to D-026.
