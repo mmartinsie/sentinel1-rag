@@ -4,7 +4,7 @@ _Last updated: 2026-10-11_
 
 ## Current step
 
-**Step 13: to be chosen by the user.** Step 12 (technical PDFs) was approved on 2026-10-11, without new blind questions (the user's choice). All steps of the brief (0–7) are done, and so are the extension steps 8 to 12.
+**Step 14: MCP server exposing `search_docs` and `search_scenes` (chosen by the user on 2026-10-11; not started).** Step 13 (the agent) was approved on 2026-10-11 with every item as recommended. All steps of the brief (0–7) are done, and so are the extension steps 8 to 13.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -21,7 +21,8 @@ _Last updated: 2026-10-11_
 | 10 | Hybrid search with translation and a smaller top-k, judged on the answers | Done |
 | 11 | BM25 instead of `ts_rank` for the full-text search | Done |
 | 12 | Extension: technical PDFs from the Sentinel-1 document library | Done |
-| 13 | To be chosen by the user (see Next) | Next |
+| 13 | Extension: agent with a STAC `search_scenes` tool | Done |
+| 14 | Extension: MCP server exposing `search_docs` and `search_scenes` | Next |
 
 ## Done
 
@@ -181,12 +182,26 @@ _Last updated: 2026-10-11_
 - **Checks:** every PDF section heading is on the page its URL cites (237 of 237); a fresh database built from `schema.sql` reproduces the cited eval run exactly; the five SentiWiki pages' chunks are byte-identical to before.
 - A copy of the index without the PDFs, `rag_wiki`, was made in the same Postgres for the "before" answers, and dropped after the review.
 
+### Step 13
+
+- **Approved by the user** on 2026-10-11, every item as recommended (D-027 to D-030 accepted; next: the MCP server).
+- **Plan approved by the user** (all items as recommended): `make agent`, two tools, Nominatim inside `search_scenes`, a hand-written loop, `make eval-agent`, one run with thinking. No blind questions; all 18 eval questions were drafted by Claude.
+- **Code** (D-027, D-028):
+  - `agent.py`: the loop (at most 5 turns, temperature 0, thinking off), a trace of every call, and the output: the answer, the cited sources and a table of the scenes, printed by the code.
+  - `tools.py`: `search_docs` (the default retrieval) and `search_scenes` with their JSON Schemas. The loop forces a documentation search when the model answers before calling a tool; `days` counts back from today in code; `mode` and `orbit` take `any`; errors name what is wrong; a place under 1 km across is sent back once; scene results are a summary that says it has no number to cite.
+  - `scenes.py` (CDSE STAC search, raw httpx), `geocode.py` (Nominatim with a cache in `data/geocode.json`, 1 request per second, attribution), `evaluate_agent.py` and `eval/agent_questions.yaml`.
+  - `ollama.py` sends `use_mmap: true` with every request (D-030).
+- **Eval** (D-029), questions passing every check out of 18: first design 10 (held-out 4 of 6); final 13 (held-out 5 of 6), median 5.9 s per question (`eval/results/2026-10-11T152216-agent-final.json`); with thinking also 13, in 15.1 s, so thinking stays off. Seven tuning iterations are listed in D-029. The fixes first traded failures: the stricter prompt made the model cite scene results as "[1]", which only reading the answers revealed.
+- **Still failing:** one scene answer citing "[1]", two mixed questions with an ambiguous place (the model reports the error instead of retrying), and two retrieval misses (thermal noise, GRD vs SLC).
+- **Memory incident** (D-030): WSL froze for 28 minutes during an eval, because Ollama had turned mmap off and Gemma's runner held 6 GB. Since then every request asks for mmap, and WSL has 12 GB instead of 10 (raised by the user). The step's runs were made with a guard that stopped them if available RAM fell below 2 GiB.
+- `make eval` reproduces the cited retrieval run exactly with the new Ollama option.
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
 |---|---|
 | OS | Ubuntu 24.04.5 LTS on WSL2 (kernel 6.18), Windows 10 host (build 19045). WSL networking mode: NAT |
-| CPU / RAM | 12 logical CPUs. WSL capped at 10 GB: 9.7 GiB visible, 8.6 GiB available, 3 GiB swap |
+| CPU / RAM | 12 logical CPUs. WSL capped at 10 GB: 9.7 GiB visible, 8.6 GiB available, 3 GiB swap. Raised to 12 GB (11.7 GiB visible) in step 13 |
 | GPU | GTX 1070, 8 GiB VRAM (about 7.5 GiB free; the desktop uses about 420 MiB), compute capability 6.1. Windows driver 582.28, CUDA 13.0 |
 | Disk | 893 GB free on the WSL root filesystem. The WSL virtual disk lives on a hard drive (HDD), so the first load of a model is slow (about 70 s for Gemma) |
 | Docker | Engine 29.8.1 running natively in WSL (not Docker Desktop), Compose v5.5.1 |
@@ -205,20 +220,22 @@ _Last updated: 2026-10-11_
   - In step 7, loading Gemma while bge-m3 was loaded unloaded bge-m3 twice (D-003). Loading bge-m3 next to Gemma did not evict Gemma.
 - **GPU detection after a WSL restart:** right after a restart, Ollama's GPU discovery timed out while reading its CUDA libraries from the cold HDD, and Ollama fell back to the CPU (`inference compute ... library=cpu` in the log). `sudo systemctl restart ollama` fixed it once the libraries were in the disk cache. Check after every restart (see "How to resume").
 - **Stale schema in a running container:** `docker-compose.yml` bind-mounts the single file `db/schema.sql`. A bind mount of a file keeps pointing at the old file when an editor replaces it, so the container started before step 8 still saw the schema without the `tsv` column (found in step 12, building a fresh database inside it). It only matters for databases created inside an old container; `make clean && make up` creates a new one.
+- **Long runs with Ollama:** watch `MemAvailable` while they run, and stop them below 2 GiB. If WSL freezes, look for "disabling mmap" and "discovery" lines in `journalctl -u ollama` before anything else, and avoid `nvidia-smi` while the system is unresponsive. Step 13 has the details.
 - **Memory budget:** with both models loaded, the GPU uses 5.4 of 8 GiB and WSL uses 5.5 of 9.7 GiB of RAM. Postgres fits, but running other heavy workloads at the same time (such as a local Kubernetes cluster) could make RAM tight.
 
 ## Next
 
-**Step 13:** the user chooses. The remaining extensions in the [README](../README.md#extensions-not-implemented) are an agent with a STAC `search_scenes` tool, an MCP server and OpenSearch. A smaller experiment that step 12 motivates: at most two chunks per section in the top 5 (`tops-deramping` lost its introduction to four chunks of one section).
+**Step 14:** an MCP server exposing `search_docs` and `search_scenes`, the next extension in the [README](../README.md#extensions-not-implemented). The agent's tools are already plain methods with JSON Schemas in `tools.py`. Smaller follow-ups from step 13, not chosen yet: retrying a rejected place in mixed questions, the remaining "[1]" after scene facts, and new held-out agent questions. After that, OpenSearch is the last extension.
 
-The current pipeline, for reference: translate the question (Gemma, temperature 0), vector search (bge-m3, original question) and BM25 full-text search (English question), reciprocal rank fusion, top 5 passages to Gemma. Corpus: 5 SentiWiki pages and 6 PDFs, 568 chunks. Eval: hit@5 0.880, MRR@5 0.810 over 25 questions (`eval/results/2026-10-11T113743-pdfs.json`).
+The current `make ask` pipeline, for reference: translate the question (Gemma, temperature 0), vector search (bge-m3, original question) and BM25 full-text search (English question), reciprocal rank fusion, top 5 passages to Gemma. Corpus: 5 SentiWiki pages and 6 PDFs, 568 chunks. Eval: hit@5 0.880, MRR@5 0.810 over 25 questions (`eval/results/2026-10-11T113743-pdfs.json`).
 
 ## How to resume
 
 1. `cd ~/sentinel1-rag && uv sync`
 2. Check that Ollama is running and has both models: `systemctl is-active ollama && ollama list`.
-3. After a WSL restart, check that Ollama found the GPU: `journalctl -u ollama -b | grep "inference compute"` must show `library=CUDA`. If it shows `library=cpu`, run `sudo systemctl restart ollama` and check again.
+3. After a WSL restart, check that Ollama found the GPU: `journalctl -u ollama -b | grep "inference compute"` must show `library=CUDA`. If it shows `library=cpu`, read the CUDA libraries into the disk cache first (`cat /usr/local/lib/ollama/cuda_v12/* > /dev/null`, about 10 s cold), then run `sudo systemctl restart ollama` and check again. Without that read, three restarts in a row fell back to the CPU in step 13.
 4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index` (about 80 s and a minute); otherwise `make index` alone confirms there is nothing to do.
 5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in about 15 s once Gemma is loaded (it translates the questions); `ARGS="--method vector"` skips Gemma.
 6. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.
 7. The comparisons of generated answers (steps 10 to 12), the BM25 cross-check and the PDF checks (page anchors, token counts, heading fonts) ran as throwaway scripts in a session scratchpad, so they are not in the repo. What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 to D-026.
+8. `make agent` and `make eval-agent` need the network (the Copernicus STAC API and Nominatim). Geocoded places are cached in `data/geocode.json`.

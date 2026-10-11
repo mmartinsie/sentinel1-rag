@@ -7,6 +7,14 @@ import httpx
 from sentinel1_rag.config import OLLAMA_URL
 
 
+# Sent with every request. When Ollama sees little free RAM in WSL it turns mmap off, and llama.cpp
+# then copies the whole model file into RAM: Gemma's runner grew from 3.3 to 6.0 GB, and with
+# bge-m3 loaded next to it WSL ran out of memory and froze (D-030). With mmap, only the weights
+# that run on the CPU stay in RAM. Every request must send it: a request whose load options differ
+# from the loaded model's makes Ollama load the model again.
+LOAD_OPTIONS = {"use_mmap": True}
+
+
 class OllamaError(RuntimeError):
     pass
 
@@ -18,18 +26,36 @@ class Ollama:
 
     def embed(self, model: str, texts: list[str]) -> list[list[float]]:
         """One vector per text. A text longer than the model's context fails instead of being cut."""
-        data = self._call("POST", "/api/embed", {"model": model, "input": texts, "truncate": False})
+        payload = {"model": model, "input": texts, "truncate": False, "options": LOAD_OPTIONS}
+        data = self._call("POST", "/api/embed", payload)
         vectors = data["embeddings"]
         if len(vectors) != len(texts):
             raise OllamaError(f"asked for {len(texts)} embeddings, got {len(vectors)}")
         return vectors
 
-    def chat(self, model: str, messages: list[dict[str, str]], options: dict[str, Any]) -> dict[str, Any]:
-        """One complete answer, not streamed, with thinking off.
+    def chat(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        options: dict[str, Any],
+        tools: list[dict[str, Any]] | None = None,
+        think: bool = False,
+    ) -> dict[str, Any]:
+        """One complete answer, not streamed, with thinking off unless asked for.
 
-        Returns Ollama's whole response: the message plus token counts and timings.
+        Returns Ollama's whole response: the message plus token counts and timings. With
+        `tools`, the message may hold tool calls instead of an answer (`message.tool_calls`).
+        Ollama does not run them: the caller does and sends back the results (agent.py).
         """
-        payload = {"model": model, "messages": messages, "options": options, "stream": False, "think": False}
+        payload = {
+            "model": model,
+            "messages": messages,
+            "options": LOAD_OPTIONS | options,
+            "stream": False,
+            "think": think,
+        }
+        if tools:
+            payload["tools"] = tools
         return self._call("POST", "/api/chat", payload)
 
     def digest(self, model: str) -> str:

@@ -749,3 +749,137 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
     - Before, the PDF questions got answers from nearby wiki sections, or "not found" (GRD borders). After, the four found ones are answered from the notes: the denoising equation and why it is not applied by default, the SWST cause of the no-value pixels, the shift caused by DEM height errors, and the resolution classes with the right values.
     - Worse: `orbit-files` takes the three orbit products and their latencies (about 3 hours, 3 weeks) from the geocoding guide and the accuracies from the wiki, whose table gives other latencies (45 minutes for the restituted orbit). Both runs cite "[9]", taken from "Table 9" in the passage, although there were only 5 passages (`make ask` warns about such numbers). `sigma0-calibration` says the calculation is not in the documentation, and `tops-deramping` explains what deramping does but not why.
     - Mission cost: "not found" in every run, before and after. Exporting to GeoTIFF: never said to be missing, as before (D-018).
+
+## D-027: An agent with two tools, `search_docs` and `search_scenes`, in a hand-written loop
+
+- **Status:** Accepted (step 13, 2026-10-11)
+- **Decision:**
+  - **Command:** `make agent Q="..."` (`agent.py`). `make ask` does not change and stays the RAG baseline.
+  - **Loop:** the question goes to Gemma with the two tools' JSON Schemas (`tools.py`). On each turn the model either asks for tool calls or answers. Ollama only returns the calls (`message.tool_calls`); the loop runs them, appends each result as a `tool` message and asks again. At most 5 turns, temperature 0, `think: false`, the same `num_ctx` as `make ask` (D-002). A trace prints every turn and call.
+  - **`search_docs(query)`:** the default retrieval of `make ask` (D-022, D-023), run on the model's query, top 5. Passages are numbered across calls, and a chunk found again keeps its number.
+  - **`search_scenes(place, start, end, days, product_type, mode, orbit)`:** geocodes the place (D-028) and searches the Copernicus Data Space Ecosystem STAC catalogue (`scenes.py`): collections `sentinel-1-grd` and `sentinel-1-slc`, newest first, up to 10 scenes, with CQL2 filters on mode and orbit direction. Raw HTTP with httpx, as for Ollama (D-007).
+  - **What the model reads about scenes:** a summary computed by the code (the place found with its type and size, how many scenes from how many passes, the days, satellites, orbit directions and tracks, modes and polarisations), never the scene names, and a line saying that these results have no passage number to cite. The code prints the full table, with names, under the answer, as it prints the cited sources (D-016).
+  - **Guards in the code:**
+    - If the model answers before calling any tool, the loop discards that answer, runs `search_docs` with the question itself and asks again. The trace and the eval mark that call as forced.
+    - `days` counts back from today in code; `start` and `end` stay required, and `days` replaces them when given.
+    - `mode` and `orbit` take `any` as an explicit value and default.
+    - A tool error is returned to the model as text, naming what is wrong ("end is missing…"), so it can correct the call.
+  - **System prompt:** answer only from the tools; call `search_docs` for every question or part of a question that is not only about finding scenes, even when the documentation may not have the answer; cite passages as `[n]`; how to read relative dates; summarise scenes instead of listing them; answer in the question's language.
+- **Alternatives considered:**
+  - *An agent framework* (LangChain, LlamaIndex, smolagents): the loop is the thing to learn here, and the brief asks for it written by hand. It is about 50 lines.
+  - *A router in code* (keywords decide which search runs): simpler and predictable, but it is not an agent and cannot split a mixed question into two calls.
+  - *Prompt rules only, no forced search:* measured. The model skipped `search_docs` for the two questions the documentation cannot answer, and once for "¿Qué es el modo IW?", whatever the prompt said (D-029).
+  - *The model lists the scenes:* copying ten 67-character names took about 20 s, risked typos, and kept happening even when the result said not to list them.
+  - *The model computes dates:* it turned "the last 10 days" into 20 days.
+  - *Optional `start` and `end` once `days` existed:* the model left out `end` for "September 2026" and repeated that same call three times.
+  - *`mode` and `orbit` without `any`:* the model filled them in unasked, with IW and once with SM, which found nothing.
+  - *Thinking on:* the same score and about 2.6 times the time (D-029).
+  - *`pystac-client`:* one more dependency for one POST request.
+- **Why:** the documentation answers how Sentinel-1 works, and the catalogue answers what it acquired. An agent lets one question use both, and shows the parts of an agent that matter: tool schemas, a loop that runs the calls, results fed back, and limits. With a 4.5B model, every rule that only lived in the prompt was followed some of the time, so the behaviours that matter (grounding, dates, not inventing filters) are enforced by the code or by the shape of the tools.
+- **Trade-offs:**
+  - **The loop overrides the model** when it answers without a tool: an off-topic greeting also triggers a documentation search.
+  - **At least two Gemma calls per question,** plus one for the translation in `search_docs`. Median 5.9 s per question with the models loaded, about 2,400 prompt tokens in the last turn for a mixed question.
+  - **Mixed questions do not retry.** When `search_scenes` fails while `search_docs` succeeds in the same turn, the model answers and reports the error instead of correcting the call (D-028, D-029).
+  - **Brittle to wording.** Small prompt changes moved single questions both ways (D-029).
+  - **The model sees counts, not scenes,** so it cannot discuss one scene in particular; the table under the answer has them.
+  - **Citations can still point at a scene search:** 1 of the 8 answers about scenes only still cites "[1]" (`make agent` warns when the answer cites a number and no passage was read).
+  - **Network services:** a question about scenes needs the STAC API and Nominatim (D-028). Results change as the catalogue grows. Downloading a product needs a Copernicus account and is not implemented.
+- **Verified [2026-10-11]:**
+  - `ollama show` lists the capabilities of `gemma4:e4b-it-qat` as completion, vision, audio, **tools** and thinking (Ollama 0.40.1). Tool calls come back in `message.tool_calls` with the arguments already parsed; a mixed question got two calls in one turn; results are sent back as `{"role": "tool", "tool_name": ..., "content": ...}`.
+  - **STAC API** (`https://stac.dataspace.copernicus.eu/v1`): STAC 1.0.0 with item search, CQL2 filters, `sortby` and `fields`. No account is needed to search. It answered in 0.3–2.4 s. It does not return the number of matches, so the code asks for 11 scenes to know whether there are more than 10. An item is about 17 KB of JSON; with `fields`, a search for 4 scenes was 2 KB. Recent GRD products are Cloud Optimized GeoTIFF products (`_COG` in their names).
+  - **Probe before coding** (a throwaway loop, 5 questions): Gemma would not invent coordinates and asked the user for a bounding box; it answered "¿Qué es el modo IW?" from memory and wrongly ("IW (Strip Map)"), citing [1] with no passages; it asked to confirm what "last month" meant although it had today's date.
+  - **Example** (`make agent`, "Are there Sentinel-1 scenes of Rotterdam from the last week, and what does the IW mode acquire?"): both calls in the first turn, with `days: 7` and a `start` as well (`days` wins); 5 scenes; the answer cites the IW sections of the wiki and of the Product Definition; 2 turns, 9.6 s in the model and 1.1 s in the tools.
+
+## D-028: Places are geocoded with Nominatim inside `search_scenes`
+
+- **Status:** Accepted (step 13, 2026-10-11)
+- **Decision:**
+  - `search_scenes` takes a place name. `geocode.py` asks OpenStreetMap's Nominatim for it and uses the bounding box of the first result to search the catalogue.
+  - **Usage policy kept:** at most 1 request per second, the project's User-Agent, every answer cached in `data/geocode.json` (also "not found"), the attribution "© OpenStreetMap contributors, ODbL" printed whenever a place was used, and the server switchable with `NOMINATIM_URL`. The user chose to use the public server after reading the policy's conditions, including its clause on LLM-generated code (plan of step 13).
+  - **The result names the place found,** with its OpenStreetMap type and size, and the scene table under the answer repeats it.
+  - **A place under 1 km across is an error, once:** the tool asks the model for a more precise name. A second call that finds the same place goes through, for a real peak or building.
+- **Alternatives considered:**
+  - *A separate `geocode` tool for the model to chain:* one more step that can fail, for no gain in this project.
+  - *The model gives coordinates:* it refused in the probe.
+  - *The user gives a bounding box:* accurate, but nobody asks for scenes that way.
+  - *The best of Nominatim's top 5 by `importance`:* the right place is not among the five for the names that failed.
+  - *An offline gazetteer* (Natural Earth): only large places. *Another service* (GeoNames, which needs an account, or Photon): other terms to follow, and the same ambiguity.
+  - *A warning instead of an error for small places:* measured; the model ignored it.
+- **Why:** the model cannot place names on a map, and a geocoder can. Nominatim is free, has no account, covers small places, and its policy allows use triggered by a person when it is cached and limited.
+- **Trade-offs:**
+  - **Only the first result is used.** Short names are ambiguous: "Doñana, Spain" is a peak in Almería and "Delta del Ebro, Spain" a street. The 1 km check catches these two; a wrong place of town size would go through, visible only in the place name printed with the scenes.
+  - **In mixed questions the model reports the error instead of retrying,** so the answer says that the place was not found (D-027).
+  - **An external service:** it can be slow, change its policy or block heavy use. The cache keeps repeated questions offline.
+  - **ODbL data:** the attribution must be shown.
+- **Verified [2026-10-11]:**
+  - **Usage policy** (operations.osmfoundation.org/policies/nominatim): the requirements above; "Use of the public API is only permitted where the application developer has made a deliberate, informed decision to use it"; forbidden uses include autocomplete and systematic queries. Its `robots.txt` disallows `/search` for crawlers; use as an API is governed by the policy.
+  - **Candidates:** "Doñana" alone: a peak in Almería, then hamlets in Gran Canaria and Mexico; the national park only with "National Park" in the name. "Delta del Ebro, Spain": two streets, a sports centre, a restaurant and a hotel. "Madrid", "Villanueva de la Serena", "Svalbard" and "Venice, Italy" found the right place first.
+  - **With the error** (D-029): single-tool questions searched again with a better name or the same one; the two mixed questions reported the error.
+
+## D-029: The agent eval checks tool calls, with tuning and held-out questions
+
+- **Status:** Accepted (step 13, 2026-10-11)
+- **Decision:**
+  - **`make eval-agent`** (`evaluate_agent.py`) runs every question in `eval/agent_questions.yaml` through the agent with the real tools and checks what it did:
+    - *tools:* exactly the expected tools were called;
+    - *arguments:* a scene search used the expected product type, dates and filters, where a list gives the accepted values and null means "not set";
+    - *place:* the place found contains an expected point;
+    - *passages:* a passage the model read comes from a section labelled in `eval/questions.yaml` (the labels are reused by id);
+    - *citations:* an answerable question gets a cited answer, an unanswerable one no citations, and an answer that read no passages cites none.
+  - A question passes when every check that applies passes. "Today" is fixed in the file (2026-10-11), so relative dates have one right answer. Scenes are not checked, because the catalogue grows.
+  - **18 questions,** all drafted by Claude: 5 about documentation, 8 about scenes, 5 mixed; 10 in Spanish, 8 in English.
+    - `tuning` (12): the 5 probe questions, plus 7 that were held out in the first run and then used for the fixes.
+    - `held-out` (6): written after the first run and before any fix, and never used to change the prompt or the tools.
+  - **Thinking stays off;** `--think` is an option. The rule agreed before the last two runs: off if it scores within one question of thinking on, which it does (13 and 13).
+- **Alternatives considered:**
+  - *A throwaway script,* as for the answer comparisons of steps 10–12: tool choice is what an agent adds, so its eval belongs in the repo.
+  - *Judging the answers with a model:* not reliable with the only local model, which is the one being judged.
+  - *Checking the scenes returned:* they change every day.
+  - *Exact arguments:* "the last week" can fairly start on the 4th or the 5th, so a list of accepted values is given.
+- **Why:** the new failure modes of an agent are choosing the wrong tool, giving it the wrong arguments and answering without a tool; all three are visible in its calls. A held-out set shows whether the fixes generalise: the first run passed 4 of the 5 questions that shaped the first prompt but only 2 of the 7 it had not seen.
+- **Trade-offs:**
+  - **Small:** one question moves the held-out score by 0.167.
+  - **The tuning set measures the fixes as much as the agent.** Only the 6 held-out questions are unbiased, and they were written by the same author as the fixes.
+  - **It checks behaviour, not answer quality:** an answer can pass with a weak explanation.
+  - **It needs the network,** and Nominatim answers are cached in `data/`.
+- **Verified [2026-10-11]:**
+  - **Runs** (questions passing every check; the first design rescored from its saved answers with the citation check as it is now):
+
+    | Run | All (18) | Probe questions (5) | Other tuning (7) | Held-out (6) | tools | arguments | place | passages | citations | Median time |
+    |---|---|---|---|---|---|---|---|---|---|---|
+    | First design (`…130859-agent-first-design`, `…131205-agent-first-design-held-out`) | 10 | 4 | 2 | 4 | 15/18 | 11/12 | 10/12 | 5/8 | 17/18 | 7.3 s |
+    | **Final** (`…152216-agent-final`) | **13** | 3 | 5 | **5** | 18/18 | 10/12 | 10/12 | 6/8 | 17/18 | 5.9 s |
+    | Final, thinking (`…152720-agent-think`) | 13 | 3 | 5 | 5 | 18/18 | 10/12 | 10/12 | 6/8 | 17/18 | 15.1 s |
+
+  - **First design, what failed:** the place (Doñana and the Ebro delta searched as a peak and a street, and their scenes reported as if right), the dates (20 days for "the last 10 days"), the tools (no `search_docs` for the Lisbon revisit, the mission cost and the operations staff, the last two answered "not in the documentation" without searching), and the passages (thermal noise; GRD vs SLC for Venice).
+  - **Tuning iterations** (the 12 tuning questions passing, with the citation check of the time):
+    1. A stricter prompt, `days`, the scene summary, and the place's type and size: 6 (Svalbard and Lisbon fixed; "¿Qué es el modo IW?" answered from memory again; `mode: IW` added unasked; the place ignored).
+    2. The forced search and a warning for small places: 8 (the cost question fixed; the warning ignored; an unasked `mode: SM` found nothing).
+    3. The small place as an error, and `any`: 9 (no more invented filters; single-tool questions retry the place).
+    4. A general "correct the call after an error" rule: 9, with the same failures, so it was removed.
+    5. Removing an ineffective prompt sentence: 8 (Doñana in English left out `end` three times). A more precise error alone did not help.
+    6. `start` and `end` required again: 9 of 12, 14 of 18.
+    7. **A citation problem found by reading the answers:** the stricter prompt had made the model cite "[1]" after scene facts, with no passage read, in 3 and then 4 of the 8 answers about scenes only (0 of 7 in the first design). The citation check was extended to those answers, which dropped that run to 10 of 18, and a line was added to every `search_scenes` result saying that it has no number to cite: 13 of 18, with 1 of 8 still citing. The held-out `scenes-garda-fortnight` failed this check before the fix, so it is no longer unbiased for citations.
+  - **Final run, what still fails:** `scenes-madrid-week` (cites "[1]"), the two mixed questions with an ambiguous place (reported, not retried), and two retrieval misses (thermal noise 6.1 for the model's query, and GRD vs SLC, the known weak spot of D-022). The two unanswerable questions pass only through the forced search.
+  - **Thinking:** the same 13 questions pass. The model called `search_docs` by itself for both unanswerable questions (no forced search), and the median time per question is 15.1 s instead of 5.9.
+  - **Repeatability:** a second run of an earlier configuration gave the same checks for all 18 questions and the same passages, but different tool calls for one question (Doñana in English gave `end` at once instead of on its second try) and a differently worded answer for 9. Temperature 0 does not make Ollama's GPU output exactly repeatable here.
+  - Lowest available RAM during the final runs: 4.3 GiB (3.4 with thinking), out of 11.7.
+
+## D-030: Every Ollama request asks for mmap
+
+- **Status:** Accepted (step 13, 2026-10-11)
+- **Decision:** `ollama.py` sends `use_mmap: true` in the options of every chat and embed request (`LOAD_OPTIONS`). WSL's memory was also raised from 10 to 12 GB in `.wslconfig` (on the Windows side, done by the user).
+- **Alternatives considered:**
+  - *Only more memory for WSL:* more margin, but Ollama would still turn mmap off whenever free RAM is below its threshold.
+  - *One model at a time* (`OLLAMA_MAX_LOADED_MODELS=1`): every switch between Gemma and bge-m3 reloads a model from the hard disk, which happens several times per question.
+  - *Leaving Ollama's choice:* WSL froze (below).
+- **Why:** when Ollama sees little free RAM it turns mmap off, and llama.cpp then copies the whole model file into memory, which uses more RAM, not less. With mmap, the weights that run on the CPU are file pages that the kernel can drop and read again.
+- **Trade-offs:**
+  - **It overrides Ollama's heuristic.** If RAM really runs out, mapped pages are dropped and read again from the hard disk, which is slow, instead of the process growing.
+  - **Every request must send it:** a request whose load options differ from the loaded model's makes Ollama load it again (as with `num_ctx`, D-002).
+- **Verified [2026-10-11]:**
+  - **The freeze:** during an agent eval, the Ollama log shows "disabling mmap for llama-server load due to host memory pressure" for Gemma (system_free 5.7 GiB, below a 7.5 GiB headroom), then the same for bge-m3 with 442 MiB free. Gemma's runner held 6.0 GB of RAM, against 3.3 GiB with mmap in step 1. The log has no line for 28 minutes (13:36:46 to 14:04:36) while WSL was unresponsive.
+  - **After it,** Ollama's GPU discovery timed out on every load and it kept stale figures (4.2 GiB of free VRAM instead of 7.0) until the service was restarted. A Task Manager check showed no Windows process holding more than 140 MB of GPU memory.
+  - **With `use_mmap: true`** and both models loaded at 100% GPU: Gemma's runner 3.1 GB, "used" RAM 2.0 GiB instead of 7.8, available 7.7 GiB instead of 1.9, and no "memory pressure" line in the log.
+  - `make eval` reproduces `eval/results/2026-10-11T113743-pdfs.json` exactly with the new option: metrics, ranks, the 20 chunks of every question and the translations.
+  - **After raising WSL to 12 GB** (11.7 GiB visible), Ollama fell back to the CPU three times: its GPU discovery has 30 s, and reading its 1.3 GB of CUDA libraries from the cold hard disk took 10.4 s (1.2 s once cached). Restarting Ollama after reading them found the GPU.

@@ -1,0 +1,230 @@
+# Agent eval questions (D-029).
+#
+# `make eval-agent` asks the agent each question and checks what it did, not the scenes it
+# found: the catalogue grows every day, but the right tool calls for a question stay the same.
+# `today` fixes the date the model takes as today, so "last week" has a single right answer.
+#
+# For each question:
+# - `tools`: the tools the agent should call, no more and no fewer.
+# - `scenes`: what a search_scenes call should have searched. `point` is a [latitude, longitude]
+#   that the place found must contain. The other keys are compared with the arguments after
+#   the tool fills in its defaults (product_type GRD); a list gives the values accepted, and
+#   null means the filter must be left out, because the question does not ask for it.
+# - `labels_from`: an id in questions.yaml. Its labelled sections are the right answer, and one
+#   of them should be among the passages the agent read.
+# - `answerable: false`: the documentation does not answer the question, so the answer must not
+#   cite any passage.
+#
+# `set` records how each question was used:
+# - `tuning`: questions whose failures shaped the prompt and the tools, so they measure the fixes
+#   as much as the agent. The first five come from the probe run before any code was written.
+#   The next seven were held out in the first run (eval/results/2026-10-11T130859-agent-first-design.json),
+#   where they passed 2 of 7, and their failures were then used for the fixes.
+# - `held-out`: the last six, written after that first run and before any fix, and never used to
+#   change the prompt or the tools.
+# All the questions were drafted by Claude; none was written blind.
+
+today: 2026-10-11  # a Sunday
+
+questions:
+  - id: scenes-madrid-week
+    set: tuning
+    lang: es
+    question: ¿Hay imágenes Sentinel-1 GRD de Madrid de la última semana?
+    tools: [search_scenes]
+    scenes:
+      point: [40.4168, -3.7038]
+      product_type: GRD
+      start: [2026-10-04, 2026-10-05]
+      end: [2026-10-10, 2026-10-11]
+      mode: null
+      orbit: null
+
+  - id: scenes-donana-slc
+    set: tuning
+    lang: en
+    question: Find SLC scenes over Doñana National Park in September 2026, descending orbit.
+    tools: [search_scenes]
+    scenes:
+      point: [36.98, -6.44]
+      product_type: SLC
+      start: 2026-09-01
+      end: 2026-09-30
+      mode: null
+      orbit: descending
+
+  - id: docs-iw-mode
+    set: tuning
+    lang: es
+    question: ¿Qué es el modo IW?
+    tools: [search_docs]
+    labels_from: iw-swath-resolution
+
+  - id: scenes-villanueva-month
+    set: tuning
+    lang: es
+    question: ¿Hay imágenes de Villanueva de la Serena del mes pasado?
+    tools: [search_scenes]
+    scenes:
+      point: [38.9766, -5.7979]
+      product_type: GRD
+      start: 2026-09-01
+      end: 2026-09-30
+      mode: null
+      orbit: null
+
+  - id: mixed-donana-slc
+    set: tuning
+    lang: es
+    question: ¿Qué imágenes SLC hay de Doñana en septiembre de 2026 y qué contiene un producto SLC?
+    tools: [search_scenes, search_docs]
+    scenes:
+      point: [36.98, -6.44]
+      product_type: SLC
+      start: 2026-09-01
+      end: 2026-09-30
+      mode: null
+      orbit: null
+    labels_from: slc-content
+
+  - id: scenes-valencia-floods
+    set: tuning
+    lang: en
+    question: List the ascending-orbit Sentinel-1 scenes of Valencia, Spain, between 29 October and 5 November 2024.
+    tools: [search_scenes]
+    scenes:
+      point: [39.4699, -0.3763]
+      product_type: GRD
+      start: 2024-10-29
+      end: 2024-11-05
+      mode: null
+      orbit: ascending
+
+  - id: scenes-svalbard-ew
+    set: tuning
+    lang: es
+    question: ¿Qué adquisiciones en modo EW hay sobre Svalbard en los últimos 10 días?
+    tools: [search_scenes]
+    scenes:
+      point: [78.2232, 15.6469]  # Longyearbyen
+      product_type: GRD
+      start: [2026-10-01, 2026-10-02]
+      end: [2026-10-10, 2026-10-11]
+      mode: EW
+      orbit: null
+
+  - id: mixed-lisbon-revisit
+    set: tuning
+    lang: en
+    question: Are there Sentinel-1 scenes of Lisbon from the last three days, and how often does Sentinel-1 pass over the same place?
+    tools: [search_scenes, search_docs]
+    scenes:
+      point: [38.7223, -9.1393]
+      product_type: GRD
+      start: [2026-10-08, 2026-10-09]
+      end: [2026-10-10, 2026-10-11]
+      mode: null
+      orbit: null
+    labels_from: repeat-cycle
+
+  - id: mixed-ebro-floods
+    set: tuning
+    lang: es
+    question: Busca imágenes GRD del delta del Ebro de agosto de 2026 en órbita descendente y explica por qué Sentinel-1 sirve para cartografiar inundaciones.
+    tools: [search_scenes, search_docs]
+    scenes:
+      point: [40.70, 0.80]
+      product_type: GRD
+      start: 2026-08-01
+      end: 2026-08-31
+      mode: null
+      orbit: descending
+    labels_from: flood-mapping
+
+  - id: docs-thermal-noise
+    set: tuning
+    lang: en
+    question: How is thermal noise removed from Sentinel-1 data?
+    tools: [search_docs]
+    labels_from: thermal-denoising
+
+  - id: docs-etad
+    set: tuning
+    lang: en
+    question: Which geolocation errors does the ETAD product correct?
+    tools: [search_docs]
+    labels_from: etad-corrections
+
+  - id: docs-mission-cost
+    set: tuning
+    lang: es
+    question: ¿Cuánto costó construir y lanzar la misión Sentinel-1?
+    tools: [search_docs]
+    answerable: false
+
+  - id: scenes-bilbao-july
+    set: held-out
+    lang: es
+    question: ¿Cuántas escenas SLC en órbita ascendente hay sobre Bilbao entre el 1 y el 15 de julio de 2026?
+    tools: [search_scenes]
+    scenes:
+      point: [43.2630, -2.9350]
+      product_type: SLC
+      start: 2026-07-01
+      end: 2026-07-15
+      mode: null
+      orbit: ascending
+
+  - id: scenes-garda-fortnight
+    set: held-out
+    lang: en
+    question: Show me Sentinel-1 acquisitions over Lake Garda from the past two weeks.
+    tools: [search_scenes]
+    scenes:
+      point: [45.65, 10.65]
+      product_type: GRD
+      start: [2026-09-27, 2026-09-28]
+      end: [2026-10-10, 2026-10-11]
+      mode: null
+      orbit: null
+
+  - id: scenes-la-palma-eruption
+    set: held-out
+    lang: es
+    question: ¿Hubo imágenes de Sentinel-1 sobre La Palma (Canarias) durante la erupción, del 19 al 30 de septiembre de 2021?
+    tools: [search_scenes]
+    scenes:
+      point: [28.68, -17.86]
+      product_type: GRD
+      start: 2021-09-19
+      end: 2021-09-30
+      mode: null
+      orbit: null
+
+  - id: mixed-venice-grd-slc
+    set: held-out
+    lang: en
+    question: Which Sentinel-1 scenes cover Venice in the first week of October 2026, and what is the difference between GRD and SLC products?
+    tools: [search_scenes, search_docs]
+    scenes:
+      point: [45.4375, 12.3358]
+      product_type: GRD
+      start: 2026-10-01
+      end: 2026-10-07
+      mode: null
+      orbit: null
+    labels_from: grd-vs-slc
+
+  - id: docs-level2-ocean
+    set: held-out
+    lang: es
+    question: ¿Qué medidas geofísicas proporciona el producto oceánico de nivel 2?
+    tools: [search_docs]
+    labels_from: level2-ocean
+
+  - id: docs-operations-staff
+    set: held-out
+    lang: en
+    question: How many people work in the Sentinel-1 operations team?
+    tools: [search_docs]
+    answerable: false

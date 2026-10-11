@@ -1,0 +1,300 @@
+{
+  "run_at": "2026-10-11T13:12:05+02:00",
+  "label": "first-design-held-out",
+  "kind": "agent",
+  "model": "gemma4:e4b-it-qat",
+  "think": false,
+  "today": "2026-10-11",
+  "metrics": {
+    "all": {
+      "questions": {
+        "passed": 4,
+        "of": 6,
+        "rate": 0.667
+      },
+      "tools": {
+        "passed": 5,
+        "of": 6,
+        "rate": 0.833
+      },
+      "arguments": {
+        "passed": 4,
+        "of": 4,
+        "rate": 1.0
+      },
+      "place": {
+        "passed": 4,
+        "of": 4,
+        "rate": 1.0
+      },
+      "passages": {
+        "passed": 1,
+        "of": 2,
+        "rate": 0.5
+      },
+      "citations": {
+        "passed": 3,
+        "of": 3,
+        "rate": 1.0
+      }
+    },
+    "held-out": {
+      "questions": {
+        "passed": 4,
+        "of": 6,
+        "rate": 0.667
+      },
+      "tools": {
+        "passed": 5,
+        "of": 6,
+        "rate": 0.833
+      },
+      "arguments": {
+        "passed": 4,
+        "of": 4,
+        "rate": 1.0
+      },
+      "place": {
+        "passed": 4,
+        "of": 4,
+        "rate": 1.0
+      },
+      "passages": {
+        "passed": 1,
+        "of": 2,
+        "rate": 0.5
+      },
+      "citations": {
+        "passed": 3,
+        "of": 3,
+        "rate": 1.0
+      }
+    }
+  },
+  "questions": [
+    {
+      "id": "scenes-bilbao-july",
+      "set": "held-out",
+      "lang": "es",
+      "question": "¿Cuántas escenas SLC en órbita ascendente hay sobre Bilbao entre el 1 y el 15 de julio de 2026?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "arguments": {
+            "end": "2026-07-15",
+            "orbit": "ascending",
+            "place": "Bilbao, Spain",
+            "product_type": "SLC",
+            "start": "2026-07-01"
+          },
+          "summary": "4 scenes, newest first"
+        }
+      ],
+      "places": [
+        {
+          "name": "Bilbao, Bizkaia, Euskadi, España",
+          "bbox": [
+            -2.9859808,
+            43.2137176,
+            -2.8802639,
+            43.2901315
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "Hay 4 escenas SLC en órbita ascendente sobre Bilbao entre el 1 y el 15 de julio de 2026.\n\nLas escenas encontradas son:\n*   2026-07-12 18:02 UTC, Sentinel-1D, IW, VV+VH, ascending, relative orbit 103\n*   2026-07-11 18:10 UTC, Sentinel-1C, IW, VV+VH, ascending, relative orbit 1\n*   2026-07-06 18:02 UTC, Sentinel-1C, IW, VV+VH, ascending, relative orbit 103\n*   2026-07-05 18:11 UTC, Sentinel-1D, IW, VV+VH, ascending, relative orbit 1",
+      "turns": 2,
+      "prompt_tokens": 980,
+      "seconds": 7.6
+    },
+    {
+      "id": "scenes-garda-fortnight",
+      "set": "held-out",
+      "lang": "en",
+      "question": "Show me Sentinel-1 acquisitions over Lake Garda from the past two weeks.",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "arguments": {
+            "end": "2026-10-11",
+            "place": "Lake Garda, Italy",
+            "start": "2026-09-27"
+          },
+          "summary": "The 10 newest scenes; the catalogue has more"
+        }
+      ],
+      "places": [
+        {
+          "name": "Lago di Garda, Brescia, Lombardia, Italia",
+          "bbox": [
+            10.5109103,
+            45.4403205,
+            10.8768975,
+            45.8848213
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "The search for Sentinel-1 acquisitions over Lake Garda from September 27, 2026, to October 11, 2026, found 10 scenes. These acquisitions were made by Sentinel-1C and Sentinel-1D, using the IW mode, and cover both ascending and descending orbit directions.\n\nThe scenes are:\n- 2026-10-10 17:14 UTC, Sentinel-1D, IW, VV+VH, ascending, relative orbit 15\n- 2026-10-10 05:18 UTC, Sentinel-1C, IW, VV+VH, descending, relative orbit 95\n- 2026-10-09 05:26 UTC, Sentinel-1D, IW, VV+VH, descending, relative orbit 168\n- 2026-10-05 17:06 UTC, Sentinel-1D, IW, VV+VH, ascending, relative orbit 117\n- 2026-10-04 17:14 UTC, Sentinel-1C, IW, VV+VH, ascending, relative orbit 15\n- 2026-10-04 05:18 UTC, Sentinel-1D, IW, VV+VH, descending, relative orbit 95\n- 2026-10-03 05:26 UTC, Sentinel-1C, IW, VV+VH, descending, relative orbit 168\n- 2026-09-29 17:05 UTC, Sentinel-1C, IW, VV+VH, ascending, relative orbit 117\n- 2026-09-28 17:14 UTC, Sentinel-1D, IW, VV+VH, ascending, relative orbit 15\n- 2026-09-28 05:18 UTC, Sentinel-1C, IW, VV+VH, descending, relative orbit 95",
+      "turns": 2,
+      "prompt_tokens": 1194,
+      "seconds": 14.2
+    },
+    {
+      "id": "scenes-la-palma-eruption",
+      "set": "held-out",
+      "lang": "es",
+      "question": "¿Hubo imágenes de Sentinel-1 sobre La Palma (Canarias) durante la erupción, del 19 al 30 de septiembre de 2021?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "arguments": {
+            "end": "2021-09-30",
+            "place": "La Palma, Canary Islands, Spain",
+            "start": "2021-09-19"
+          },
+          "summary": "6 scenes, newest first"
+        }
+      ],
+      "places": [
+        {
+          "name": "La Palma, Santa Cruz de Tenerife, Canarias, España",
+          "bbox": [
+            -18.0072521,
+            28.4527066,
+            -17.7242195,
+            28.8575767
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "Sí, hubo imágenes de Sentinel-1 sobre La Palma (Canarias) durante el período del 19 al 30 de septiembre de 2021. Se encontraron 6 escenas.\n\nLas imágenes cubren los días 20, 21, 22, 26, 27 y 28 de septiembre de 2021, utilizando los satélites Sentinel-1A y Sentinel-1B, en modos IW y EW, y en órbitas ascendentes y descendentes.",
+      "turns": 2,
+      "prompt_tokens": 1057,
+      "seconds": 6.1
+    },
+    {
+      "id": "mixed-venice-grd-slc",
+      "set": "held-out",
+      "lang": "en",
+      "question": "Which Sentinel-1 scenes cover Venice in the first week of October 2026, and what is the difference between GRD and SLC products?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "passages": false,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "arguments": {
+            "end": "2026-10-07",
+            "place": "Venice, Italy",
+            "start": "2026-10-01"
+          },
+          "summary": "5 scenes, newest first"
+        },
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "arguments": {
+            "query": "difference between GRD and SLC products in Sentinel-1"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [
+        {
+          "name": "Venezia, Veneto, 30121-30176, Italia",
+          "bbox": [
+            12.1668349,
+            45.2312466,
+            12.5965709,
+            45.5779981
+          ]
+        }
+      ],
+      "passages": [
+        "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE",
+        "Sentinel-1 Product Definition > 4 SENTINEL-1 PRODUCT FAMILY TREE",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+        "S1 Products > SAR Products Overview"
+      ],
+      "answer": "The Sentinel-1 scenes covering Venice in the first week of October 2026 are:\n\n*   **2026-10-06 16:57 UTC, Sentinel-1C, IW, VV+VH, ascending, relative orbit 44**\n*   **2026-10-06 16:57 UTC, Sentinel-1C, IW, VV+VH, ascending, relative orbit 44**\n*   **2026-10-05 17:06 UTC, Sentinel-1D, IW, VV+VH, ascending, relative orbit 117**\n*   **2026-10-05 17:05 UTC, Sentinel-1D, IW, VV+VH, ascending, relative orbit 117**\n*   **2026-10-04 05:18 UTC, Sentinel-1D, IW, VV+VH, descending, relative orbit 95**\n\nRegarding the difference between GRD and SLC products:\n\n*   **SLC (Single-Look Complex)** products are single-look products whose resolution is largely determined by the acquisition mode, and they are characterized by having their range coordinate in **slant range** [3][4].\n*   **GRD (Ground Range Detected)** products are detected products that can be further classified by their resolution into Full Resolution (FR), High Resolution (HR), or Medium Resolution (MR) products [4]. For GRD products, the range coordinate is in **ground range** [3].\n\nIn summary, the key difference is that SLC products are single-look and use slant range for their range coordinate, while GRD products are multi-look (detected) and use ground range for their range coordinate, with GRD products being classified by their resolution level [3][4].",
+      "turns": 2,
+      "prompt_tokens": 2173,
+      "seconds": 16.0
+    },
+    {
+      "id": "docs-level2-ocean",
+      "set": "held-out",
+      "lang": "es",
+      "question": "¿Qué medidas geofísicas proporciona el producto oceánico de nivel 2?",
+      "checks": {
+        "tools": true,
+        "passages": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "arguments": {
+            "query": "medidas geofísicas producto oceánico nivel 2 Sentinel-1"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [],
+      "passages": [
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+        "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW",
+        "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.1 Stripmap L2 Products Definition > 8.1.1 Stripmap OCN Product Definition",
+        "S1 Products > Level-2 Products",
+        "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.1 OSW Component > 6.4.1.1 Applications"
+      ],
+      "answer": "El producto oceánico de nivel 2 (OCN) de Sentinel-1 puede contener los siguientes componentes geofísicos derivados de los datos SAR:\n\n*   **Campo de Viento Oceánico (OWI)**: Es una estimación en cuadrícula de rango (ground range) de la velocidad y dirección del viento en la superficie, a 10 m sobre la superficie, y se deriva de los modos SM, IW o EW [4].\n*   **Espectro de Oleaje Oceánico (OSW)**: Es un espectro de superficie de oleaje bidimensional que incluye una estimación de la velocidad y dirección del viento por espectro de oleaje. Este componente proporciona una medición de continuidad del espectro de oleaje SAR en banda C [4].\n*   **Velocidad Radial de Superficie (RVL)**: Este componente está disponible en los productos SLC procesados internamente [4].\n\nLa disponibilidad de estos componentes depende del modo de adquisición [4].",
+      "turns": 2,
+      "prompt_tokens": 1785,
+      "seconds": 8.5
+    },
+    {
+      "id": "docs-operations-staff",
+      "set": "held-out",
+      "lang": "en",
+      "question": "How many people work in the Sentinel-1 operations team?",
+      "checks": {
+        "tools": false,
+        "citations": true
+      },
+      "calls": [],
+      "places": [],
+      "passages": [],
+      "answer": "I am sorry, but I could not find information about the number of people working in the Sentinel-1 operations team in the documentation.",
+      "turns": 1,
+      "prompt_tokens": 654,
+      "seconds": 1.3
+    }
+  ]
+}

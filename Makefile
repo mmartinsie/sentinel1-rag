@@ -1,5 +1,5 @@
 # Project entry points.
-.PHONY: up down ingest index ask eval clean
+.PHONY: up down ingest index ask agent eval eval-agent clean
 
 # Start Postgres + pgvector and wait until it accepts connections.
 up:
@@ -24,11 +24,21 @@ index:
 ask:
 	uv run python -m sentinel1_rag.ask $(ARGS) "$$Q"
 
+# Answer with the agent, which can search the documentation and the Copernicus catalogue of
+# scenes: make agent Q="..." [ARGS="--show-results --today 2026-10-11 --think"]
+agent:
+	uv run python -m sentinel1_rag.agent $(ARGS) "$$Q"
+
 # Measure retrieval on eval/questions.yaml (hit@k, MRR) and save the run in eval/results/.
 # Same defaults and options as ask (--method, --no-translate, --top-k, --lexical-ranking); name a run with
 # ARGS="--label <name>". The default translates the questions, so Gemma is loaded.
 eval:
 	uv run python -m sentinel1_rag.evaluate $(ARGS)
+
+# Measure the agent's tool calls on eval/agent_questions.yaml and save the run in eval/results/.
+# It calls the real tools, so it needs the network: [ARGS="--label <name> --think"]
+eval-agent:
+	uv run python -m sentinel1_rag.evaluate_agent $(ARGS)
 
 # Stop the containers, delete the database volume and the downloaded data.
 clean:

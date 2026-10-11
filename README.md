@@ -4,6 +4,8 @@ A small, local and free RAG (retrieval-augmented generation) system that answers
 
 Everything runs on one machine: Ollama serves the embedding model (`bge-m3`) and the language model (`gemma4:e4b-it-qat`), and PostgreSQL stores the chunks with their vectors (pgvector) and a full-text index. Questions can be asked in Spanish or English about the English documentation.
 
+An [agent](#agent-documentation-and-scene-search) (`make agent`) can also search the Copernicus catalogue for the scenes Sentinel-1 acquired over a place and dates, and combine both in one answer.
+
 ```
 $ make ask Q="¿Cómo se elimina el ruido térmico de un producto GRD de Sentinel-1 y por qué no viene eliminado por defecto?"
 Lexical search in English: How is thermal noise removed from a Sentinel-1 GRD product and why is it not removed by default?
@@ -177,9 +179,97 @@ What the comparison showed:
 
 The details are in [D-024](docs/DECISIONS.md#d-024-six-technical-pdfs-from-the-sentinel-1-document-library-join-the-corpus) to [D-026](docs/DECISIONS.md#d-026-the-eval-with-the-pdfs-labels-on-pdf-sections-matched-with-the-section-path-the-default-retrieval-stays).
 
+## Agent: documentation and scene search
+
+`make agent` answers with a small agent instead of a fixed pipeline. Gemma gets the question and two tools, and decides which to call:
+
+- **`search_docs(query)`** runs the retrieval of `make ask` and returns numbered passages to cite.
+- **`search_scenes(place, start, end, ...)`** finds the place with OpenStreetMap's geocoder (Nominatim) and searches the [Copernicus Data Space Ecosystem STAC catalogue](https://stac.dataspace.copernicus.eu/v1) for Sentinel-1 GRD or SLC scenes over it, optionally filtered by acquisition mode and orbit direction.
+
+```
+$ make agent Q="Are there Sentinel-1 scenes of Rotterdam from the last week, and what does the IW mode acquire?"
+Asking gemma4:e4b-it-qat, with tools...
+Turn 1: 2 tool calls (2.0s)
+  search_scenes({"days": 7, "place": "Rotterdam, Netherlands", "start": "2026-10-04"})  0.5s
+    -> Found: 5 scenes, from 5 passes of a satellite over the place.
+  search_docs({"query": "Sentinel-1 IW mode acquisition"})  0.7s
+    -> passages [1] [2] [3] [4] [5]
+Turn 2: answer (7.6s)
+
+The search for Sentinel-1 scenes of Rotterdam from the last week found 5 scenes, covering the period
+from 2026-10-05 to 2026-10-11, with acquisitions from Sentinel-1C and Sentinel-1D in both ascending
+and descending orbits, all in the IW VV+VH mode.
+
+The Sentinel-1 IW mode acquires data using the Interferometric Wide Swath (IW) mode, which is the
+primary mode over land and satisfies most service requirements [2][5]. It uses the TOPSAR imaging
+technique, which consists of three sub-swaths [3][5]. With TOPSAR, the radar beam is electronically
+steered from backward to forward in the azimuth direction for each burst, which results in a higher
+quality image with uniform NESZ and ambiguity levels within the scan bursts [3][5]. [...]
+
+Sources:
+[2] S1 Mission > Acquisition Modes
+    https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes
+[3] Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)
+    https://sentiwiki.copernicus.eu/__attachments/.../S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=30
+[5] S1 Mission > Acquisition Modes > Interferometric Wide Swath
+    https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath
+
+Scenes: GRD scenes over Rotterdam, Zuid-Holland, Nederland, 2026-10-04 to 2026-10-11 (any mode, both orbit directions)
+  2026-10-11 05:57  S1C IW  VV+VH  descending track 110  S1C_IW_GRDH_1SDV_20261011T055745_20261011T055810_009833_01397D_ADF1_COG
+  2026-10-09 17:24  S1C IW  VV+VH  ascending  track 88   S1C_IW_GRDH_1SDV_20261009T172409_20261009T172434_009811_0138B0_B740_COG
+  [3 more]
+  Metadata of a scene: https://stac.dataspace.copernicus.eu/v1/collections/sentinel-1-grd/items/<name>
+
+Places geocoded with Nominatim. Data © OpenStreetMap contributors, ODbL.
+
+gemma4:e4b-it-qat: 2 turns, 2492 prompt tokens in the last one; 9.6s in the model, 1.1s in the tools
+```
+
+This is real output, shortened where marked. The model asked for both searches in its first turn and answered in its second. For "the last week" it sent `days: 7` and also a `start`; `days` wins, and the code counts the dates. As in `make ask`, the sources and the scene table are printed by the code from what the tools returned; the model only sees a summary of the scenes, never their names.
+
+### How the loop works
+
+```mermaid
+flowchart LR
+    Q["Question"] --> M[["Gemma<br/>+ 2 tool schemas"]]
+    M -- "tool calls" --> L["agent.py runs them<br/>(tools.py)"]
+    L --> D["search_docs<br/>retrieval of make ask"]
+    L --> S["search_scenes<br/>Nominatim + STAC"]
+    D -- "passages [n]" --> M
+    S -- "summary of the scenes" --> M
+    M -- "answer" --> O["Answer + sources<br/>+ scene table, printed by the code"]
+```
+
+Ollama never runs anything: it returns the calls the model wants (`message.tool_calls`), and `agent.py` runs them, appends each result to the conversation as a `tool` message and asks again, for at most 5 turns. The loop is written by hand, in about 50 lines, without an agent framework.
+
+A model with about 4.5B effective parameters followed the prompt's rules only some of the time, so the behaviours that matter are enforced by the code or by the shape of the tools ([D-027](docs/DECISIONS.md#d-027-an-agent-with-two-tools-search_docs-and-search_scenes-in-a-hand-written-loop)):
+
+- **No answers from memory:** if the model answers before calling any tool, the loop discards the answer and searches the documentation with the question. Without this, it answered "What is the IW mode?" wrongly from memory, and said "not in the documentation" without having looked.
+- **No date arithmetic:** for "the last 10 days" the model passes `days: 10` and the code counts back. Asked for dates, it had searched 20 days.
+- **No invented filters:** `mode` and `orbit` take `any` as an explicit value. Without it, the model added IW, and once SM, which found nothing.
+- **Wrong places are questioned:** "Doñana, Spain" is a peak in Almería for the geocoder and "Delta del Ebro, Spain" a street. A place under 1 km across makes the tool return an error asking for a more precise name, and errors name what is wrong, so the model can correct its call ([D-028](docs/DECISIONS.md#d-028-places-are-geocoded-with-nominatim-inside-search_scenes)).
+- **Scene results are not passages:** every scene search result says it has no number to cite. Before that line, the model cited "[1]" after scene facts in half of the answers about scenes only.
+
+### Agent results
+
+`make eval-agent` asks the agent 18 questions (5 about the documentation, 8 about scenes, 5 mixed) with the real tools, and checks its calls rather than the scenes, which change every day: the right tools, the right arguments (product type, dates, filters), a place that contains the expected point, a labelled section among the passages read, and citations only when the documentation answers. "Today" is fixed in the question file, so "last month" has one right answer. The 6 `held-out` questions were written after the first run and never used to change the prompt or the tools; the 12 `tuning` questions were.
+
+| Run | All (18) | Tuning (12) | Held-out (6) | Median time per question |
+|---|---|---|---|---|
+| First design | 10 | 6 | 4 | 7.3 s |
+| **Final** | **13** | 8 | **5** | 5.9 s |
+| Final, with thinking (`--think`) | 13 | 8 | 5 | 15.1 s |
+
+From [eval/results/2026-10-11T152216-agent-final.json](eval/results/2026-10-11T152216-agent-final.json); the details, including each tuning iteration, are in [D-029](docs/DECISIONS.md#d-029-the-agent-eval-checks-tool-calls-with-tuning-and-held-out-questions).
+
+- **The fixes traded failures before they reduced them.** The stricter prompt stopped the answers from memory and the wrong dates, but made the model cite "[1]" after scene facts. That only showed up when reading the answers, so the eval gained a check for it, and the tool's result a line against it.
+- **What still fails:** one answer about scenes that still cites "[1]", two mixed questions with an ambiguous place ("Doñana", "delta del Ebro"), where the model reports the geocoder's error instead of searching again, and two retrieval misses inherited from `make ask` (thermal noise, and GRD versus SLC). The first design had reported the scenes of the wrong Doñana as if they were right; now the answer says the place was not found.
+- **Thinking** passes the same questions in about 2.6 times the time, so it stays off. It needed no forced search: thinking first, the model searched the documentation by itself for the two questions it cannot answer.
+- **18 questions are few,** all drafted by the same author as the fixes, and one held-out question moves that score by 0.167. Runs are not exactly repeatable: a second run gave the same checks but differently worded answers.
+
 ## Running it on WSL
 
-It was built and tested on Windows 10 with WSL2 (Ubuntu 24.04), an NVIDIA GTX 1070 with 8 GB of VRAM and 10 GB of RAM for WSL. It has not been tested on other machines, or with Ollama running on the CPU only.
+It was built and tested on Windows 10 with WSL2 (Ubuntu 24.04), an NVIDIA GTX 1070 with 8 GB of VRAM and 12 GB of RAM for WSL (10 GB until step 13). It has not been tested on other machines, or with Ollama running on the CPU only.
 
 ### Requirements
 
@@ -204,11 +294,15 @@ make ingest   # downloads the 5 pages and 6 PDFs into data/raw/ and chunks them 
 make index    # embeds the 568 chunks and stores them in Postgres
 make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"
 make eval     # retrieval metrics (translates the questions with Gemma), saved in eval/results/
+make agent Q="¿Hay imágenes Sentinel-1 de Madrid de la última semana?"
+make eval-agent   # the agent's tool calls on 18 questions; needs the network
 ```
 
 Measured on a clean clone before the PDFs were added: `make up` 13 s and the first `make ask` about 70 s, almost all of it loading Gemma from a hard disk. With the PDFs, `make ingest` takes about 80 s, most of it reading the PDFs, and `make index` about a minute for the 568 chunks into an empty database. With the models loaded, an answer takes about 4–7 s, and up to about 16 s when it is long. Ollama unloads a model after 5 idle minutes, so the next question pays the load time again.
 
-To check that the models run on the GPU, run `ollama ps` while asking a question: both models should show `100% GPU`. After a WSL restart, Ollama sometimes falls back to the CPU because its GPU discovery times out while the disk is cold. If `journalctl -u ollama -b | grep "inference compute"` shows `library=cpu`, run `sudo systemctl restart ollama`.
+To check that the models run on the GPU, run `ollama ps` while asking a question: both models should show `100% GPU`. After a WSL restart, Ollama sometimes falls back to the CPU because its GPU discovery times out while the disk is cold. If `journalctl -u ollama -b | grep "inference compute"` shows `library=cpu`, read its CUDA libraries into the disk cache with `cat /usr/local/lib/ollama/cuda_v12/* > /dev/null` and run `sudo systemctl restart ollama`.
+
+Every request asks Ollama to map the model files (`use_mmap`) instead of copying them into RAM. Ollama turns mapping off on its own when it sees little free memory, which made Gemma's process grow from about 3 to 6 GB and froze WSL once ([D-030](docs/DECISIONS.md#d-030-every-ollama-request-asks-for-mmap)).
 
 ### Commands
 
@@ -220,9 +314,11 @@ To check that the models run on the GPU, run `ollama ps` while asking a question
 | `make index` | Embeds the chunks and stores them. Pages that have not changed are skipped. |
 | `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores. `--method vector`, `lexical` or `hybrid`, `--no-translate`, `--top-k N` and `--lexical-ranking ts_rank` change the retrieval; the default is hybrid, translated, BM25, top 5. |
 | `make eval` | Measures retrieval, with the same defaults and options as `make ask`. `ARGS="--label name"` names the run. |
+| `make agent Q="..."` | Answers with the agent, which can search the documentation and the scene catalogue. `ARGS` takes `--show-results` (print what each tool returned), `--today YYYY-MM-DD` and `--think`. |
+| `make eval-agent` | Checks the agent's tool calls on `eval/agent_questions.yaml`. `ARGS` takes `--label name`, `--think`, `--set tuning` or `held-out`, and `--only id ...`. |
 | `make clean` | Stops the database and deletes its volume and `data/`. |
 
-The defaults work without configuration. `OLLAMA_URL` and `DATABASE_URL` override where the code finds Ollama and Postgres, and `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `POSTGRES_PORT` in a `.env` file override the database settings.
+The defaults work without configuration. `OLLAMA_URL` and `DATABASE_URL` override where the code finds Ollama and Postgres, `STAC_URL` and `NOMINATIM_URL` the catalogue and the geocoder, and `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `POSTGRES_PORT` in a `.env` file override the database settings.
 
 ## Project layout
 
@@ -242,7 +338,13 @@ src/sentinel1_rag/
   translate.py            translates a question into English for the lexical search
   ask.py                  make ask: prompt, answer and citations
   evaluate.py             make eval
+  agent.py                make agent: the agent loop and its output
+  tools.py                the agent's tools and their JSON Schemas
+  scenes.py               search of the Copernicus STAC catalogue
+  geocode.py              place names to bounding boxes with Nominatim, cached
+  evaluate_agent.py       make eval-agent
 eval/questions.yaml       25 questions labelled with the sections that answer them
+eval/agent_questions.yaml 18 questions with the tool calls expected from the agent
 eval/results/             the eval runs cited in the docs
 docs/DECISIONS.md         every decision, its alternatives and what was verified
 docs/steps/               a plain-English write-up of each build step
@@ -267,18 +369,20 @@ docs/PROGRESS.md          build log and notes for resuming work
 - **Documents of different dates can disagree,** as the geocoding guide (2022) and the wiki do on orbit file latency, and the model may mix them in one answer.
 - **HNSW is not needed at this size.** With 568 chunks the Postgres planner prefers an exact scan (about 4 ms). The index is there to learn how it works.
 - **BM25 is computed the slow way.** Postgres has no BM25, so the SQL works out the corpus statistics (how many chunks contain each word, the average chunk length) on every query, reading every chunk. It took about 16 ms with the 195 SentiWiki chunks and takes about 41 ms with 568, so it would not scale to a large corpus, which would need those statistics kept in a table or an index built for BM25.
+- **The agent's guards come from 18 questions.** A small model followed its prompt only some of the time, so the code enforces grounding, dates and filters (see [Agent](#agent-documentation-and-scene-search)). Small prompt changes moved single questions both ways, and only 6 questions were held out.
+- **Ambiguous place names.** The geocoder's first match is used. A wrong match under 1 km across is caught, but a wrong town would not be, except by reading the place printed with the scenes. In a question that also asks about the documentation, the model reports a rejected place instead of searching again.
+- **Scene searches need the network** (the Copernicus catalogue and Nominatim) and stop at the 10 newest scenes. Products cannot be downloaded: that needs a Copernicus account.
 - **No automated tests.** The checks run while building it are recorded under "Verified" in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Extensions (not implemented)
 
-The first two planned extensions are done: a lexical baseline and hybrid search, which with a translated question is now the default (see [Lexical and hybrid search](#lexical-and-hybrid-search)), and technical PDFs from the Sentinel-1 document library (see [Technical PDFs](#technical-pdfs)). The others, ordered by expected value:
+The first three planned extensions are done: a lexical baseline and hybrid search, which with a translated question is now the default (see [Lexical and hybrid search](#lexical-and-hybrid-search)), technical PDFs from the Sentinel-1 document library (see [Technical PDFs](#technical-pdfs)), and an agent with a `search_scenes` tool over the Copernicus STAC API (see [Agent](#agent-documentation-and-scene-search)). The others, ordered by expected value:
 
-1. **Agent** with a `search_scenes` tool over the Copernicus Data Space Ecosystem STAC API, with a hand-written agent loop.
-2. **MCP server** exposing `search_docs` and `search_scenes`.
-3. **OpenSearch k-NN** instead of pgvector, comparing results.
+1. **MCP server** exposing `search_docs` and `search_scenes`. The agent's tools are already plain methods with JSON Schemas (`tools.py`).
+2. **OpenSearch k-NN** instead of pgvector, comparing results.
 
 Smaller experiments that `make eval` can measure in minutes, not run yet: merging the chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, at most two chunks per section in the top 5, adding the SentiWiki's POD or Glossary pages, more PDFs from the library, and a reranker over the top 20.
 
 ## License
 
-The code is under the [MIT License](LICENSE). The SentiWiki documentation, including the PDFs of its document library, is not part of this repository: `make ingest` downloads it from the site, and it belongs to its publishers.
+The code is under the [MIT License](LICENSE). The SentiWiki documentation, including the PDFs of its document library, is not part of this repository: `make ingest` downloads it from the site, and it belongs to its publishers. The agent's scene metadata comes from the Copernicus Data Space Ecosystem, and its place names from [OpenStreetMap](https://www.openstreetmap.org/copyright) through Nominatim (© OpenStreetMap contributors, ODbL), used under the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).

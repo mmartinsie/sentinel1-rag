@@ -1,0 +1,854 @@
+{
+  "run_at": "2026-10-11T15:27:20+02:00",
+  "label": "think",
+  "kind": "agent",
+  "model": "gemma4:e4b-it-qat",
+  "think": true,
+  "today": "2026-10-11",
+  "metrics": {
+    "all": {
+      "questions": {
+        "passed": 13,
+        "of": 18,
+        "rate": 0.722
+      },
+      "tools": {
+        "passed": 18,
+        "of": 18,
+        "rate": 1.0
+      },
+      "arguments": {
+        "passed": 10,
+        "of": 12,
+        "rate": 0.833
+      },
+      "place": {
+        "passed": 10,
+        "of": 12,
+        "rate": 0.833
+      },
+      "passages": {
+        "passed": 6,
+        "of": 8,
+        "rate": 0.75
+      },
+      "citations": {
+        "passed": 17,
+        "of": 18,
+        "rate": 0.944
+      }
+    },
+    "held-out": {
+      "questions": {
+        "passed": 5,
+        "of": 6,
+        "rate": 0.833
+      },
+      "tools": {
+        "passed": 6,
+        "of": 6,
+        "rate": 1.0
+      },
+      "arguments": {
+        "passed": 4,
+        "of": 4,
+        "rate": 1.0
+      },
+      "place": {
+        "passed": 4,
+        "of": 4,
+        "rate": 1.0
+      },
+      "passages": {
+        "passed": 1,
+        "of": 2,
+        "rate": 0.5
+      },
+      "citations": {
+        "passed": 6,
+        "of": 6,
+        "rate": 1.0
+      }
+    },
+    "tuning": {
+      "questions": {
+        "passed": 8,
+        "of": 12,
+        "rate": 0.667
+      },
+      "tools": {
+        "passed": 12,
+        "of": 12,
+        "rate": 1.0
+      },
+      "arguments": {
+        "passed": 6,
+        "of": 8,
+        "rate": 0.75
+      },
+      "place": {
+        "passed": 6,
+        "of": 8,
+        "rate": 0.75
+      },
+      "passages": {
+        "passed": 5,
+        "of": 6,
+        "rate": 0.833
+      },
+      "citations": {
+        "passed": 11,
+        "of": 12,
+        "rate": 0.917
+      }
+    }
+  },
+  "questions": [
+    {
+      "id": "scenes-madrid-week",
+      "set": "tuning",
+      "lang": "es",
+      "question": "¿Hay imágenes Sentinel-1 GRD de Madrid de la última semana?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "citations": false
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "days": 7,
+            "place": "Madrid",
+            "product_type": "GRD"
+          },
+          "summary": "Found: 3 scenes, from 3 passes of a satellite over the place."
+        }
+      ],
+      "places": [
+        {
+          "name": "Madrid, Comunidad de Madrid, España",
+          "bbox": [
+            -3.8889539,
+            40.3119774,
+            -3.5183264,
+            40.6437293
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "Sí, se encontraron 3 escenas de Sentinel-1 GRD sobre Madrid, Comunidad de Madrid, España, entre el 4 de octubre de 2026 y el 11 de octubre de 2026 [1]. Estas escenas provienen de 3 pasadas de un satélite sobre el lugar [1].\n\nLos detalles son:\n*   **Fechas:** 2026-10-08 y 2026-10-09 [1].\n*   **Satélites:** Sentinel-1C (1 escena) y Sentinel-1D (2 escenas) [1].\n*   **Órbitas:** Ascendente, pista 1; descendente, pistas 81 y 154 [1].\n*   **Modos y polarizaciones:** IW VV+VH (3 escenas) [1].",
+      "turns": 2,
+      "prompt_tokens": 1117,
+      "seconds": 13.0
+    },
+    {
+      "id": "scenes-donana-slc",
+      "set": "tuning",
+      "lang": "en",
+      "question": "Find SLC scenes over Doñana National Park in September 2026, descending orbit.",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "end": "2026-09-30",
+            "mode": "any",
+            "orbit": "descending",
+            "place": "Doñana National Park",
+            "product_type": "SLC",
+            "start": "2026-09-01"
+          },
+          "summary": "Found: 10 scenes, from 5 passes of a satellite over the place."
+        }
+      ],
+      "places": [
+        {
+          "name": "Parque Nacional de Doñana, El Condado, Huelva, Andalucía, 21750, España",
+          "bbox": [
+            -6.561872,
+            36.7948254,
+            -6.2518836,
+            37.1422213
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "I found 10 SLC scenes over Parque Nacional de Doñana, El Condado, Huelva, Andalucía, 21750, España, for September 2026 (2026-09-01 to 2026-09-30) with a descending orbit.\n\nThe scenes were acquired on the following dates: 2026-09-02, 2026-09-08, 2026-09-14, 2026-09-20, and 2026-09-26.\n\nThe acquisitions were made by Sentinel-1C (4 scenes) and Sentinel-1D (6 scenes), all in the IW VV+VH mode and descending orbit, track 154.",
+      "turns": 2,
+      "prompt_tokens": 1246,
+      "seconds": 18.6
+    },
+    {
+      "id": "docs-iw-mode",
+      "set": "tuning",
+      "lang": "es",
+      "question": "¿Qué es el modo IW?",
+      "checks": {
+        "tools": true,
+        "passages": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "¿Qué es el modo IW en Sentinel-1?"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [],
+      "passages": [
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)",
+        "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+        "S1 Mission > Acquisition Modes",
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.1 Sentinel-1 Acquisition Modes Overview",
+        "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE > B2 IW Mode"
+      ],
+      "answer": "El modo IW (Interferometric Wide Swath Mode) es uno de los modos de adquisición de Sentinel-1 [3].\n\nSus características principales son:\n*   **Adquisición de datos:** Adquiere datos de franjas anchas (compuestas por 3 sub-franjas) utilizando la técnica de imagen TOPSAR [1].\n*   **Mecanismo:** TOPSAR es una forma de imagen ScanSAR donde el haz de la antena se cambia cíclicamente entre las tres sub-franjas [1].\n*   **Calidad de imagen:** Esto resulta en niveles uniformes de NESZ y ambigüedad dentro de los pulsos de escaneo, lo que produce una imagen de mayor calidad [1].\n*   **Sincronización:** Los pulsos se sincronizan de pasada en pasada para asegurar la alineación de los pares interferométricos [1].\n*   **Uso:** Es el modo principal sobre tierra, y se puede utilizar para generar productos GRD en Alta Resolución (HR) [2][3].",
+      "turns": 2,
+      "prompt_tokens": 2298,
+      "seconds": 17.7
+    },
+    {
+      "id": "scenes-villanueva-month",
+      "set": "tuning",
+      "lang": "es",
+      "question": "¿Hay imágenes de Villanueva de la Serena del mes pasado?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "end": "2026-09-30",
+            "place": "Villanueva de la Serena",
+            "start": "2026-09-01"
+          },
+          "summary": "Found: 10 scenes, from 10 passes of a satellite over the place."
+        }
+      ],
+      "places": [
+        {
+          "name": "Villanueva de la Serena, Badajoz, Extremadura, 06700, España",
+          "bbox": [
+            -5.8168268,
+            38.9230812,
+            -5.6311233,
+            39.0700862
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "Sí, se encontraron 10 escenas de Sentinel-1 para Villanueva de la Serena durante el mes pasado (septiembre de 2026). Estas escenas cubren el área desde el 2 de septiembre hasta el 26 de septiembre, utilizando los modos IW con polarizaciones VV+VH.",
+      "turns": 2,
+      "prompt_tokens": 1191,
+      "seconds": 9.7
+    },
+    {
+      "id": "mixed-donana-slc",
+      "set": "tuning",
+      "lang": "es",
+      "question": "¿Qué imágenes SLC hay de Doñana en septiembre de 2026 y qué contiene un producto SLC?",
+      "checks": {
+        "tools": true,
+        "arguments": false,
+        "place": false,
+        "passages": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "end": "2026-09-30",
+            "place": "Doñana",
+            "product_type": "SLC",
+            "start": "2026-09-01"
+          },
+          "summary": "Error: 'Doñana' was found as Doñana, Tíjola, Valle del Almanzora, Almería, Andalucía, 04890, España, a peak less than 1 km across, which is probably not the place the question means. Call search_scenes again with a more precise name, such as its full official name, or with the same name if this is the right place."
+        },
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "qué contiene un producto SLC de Sentinel-1"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [],
+      "passages": [
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC)",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC) > 5.2.1.4 WV SLC Product",
+        "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.1 Products Summary",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC) > 5.2.1.1 SM SLC Product",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC) > 5.2.1.2 IW SLC Product"
+      ],
+      "answer": "No se pudieron encontrar imágenes SLC para Doñana en septiembre de 2026, ya que el sistema identificó \"Doñana\" como un pico específico en Almería, España, y se recomienda usar un nombre más preciso.\n\nEn cuanto a lo que contiene un producto SLC (Slant Range, Single-Look, Complex Products) de Sentinel-1:\n\n*   **Definición general:** Son imágenes en el rango de inclinación (slant range) por el plano de imagen de la adquisición de datos del satélite [1]. Cada píxel está representado por un valor de magnitud compleja (I y Q), lo que significa que contiene información tanto de amplitud como de fase [1].\n*   **SM SLC Product:** Contiene una imagen por canal de polarización (es decir, una o dos imágenes) [4].\n*   **IW SLC Product:** Contiene una imagen por sub-swath y por canal de polarización, lo que resulta en un total de tres o seis imágenes [5].",
+      "turns": 2,
+      "prompt_tokens": 2402,
+      "seconds": 20.9
+    },
+    {
+      "id": "scenes-valencia-floods",
+      "set": "tuning",
+      "lang": "en",
+      "question": "List the ascending-orbit Sentinel-1 scenes of Valencia, Spain, between 29 October and 5 November 2024.",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "end": "2024-11-05",
+            "orbit": "ascending",
+            "place": "Valencia, Spain",
+            "start": "2024-10-29"
+          },
+          "summary": "Found: 1 scenes, from 1 passes of a satellite over the place."
+        }
+      ],
+      "places": [
+        {
+          "name": "València, Comarca de València, València / Valencia, Comunitat Valenciana, España",
+          "bbox": [
+            -0.4325512,
+            39.2784496,
+            -0.2725205,
+            39.566609
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "One ascending-orbit Sentinel-1 scene was found for Valencia, Spain, between 29 October and 5 November 2024. The scene is from Sentinel-1A, acquired on 2024-10-31, in IW VV+VH mode.",
+      "turns": 2,
+      "prompt_tokens": 1189,
+      "seconds": 11.1
+    },
+    {
+      "id": "scenes-svalbard-ew",
+      "set": "tuning",
+      "lang": "es",
+      "question": "¿Qué adquisiciones en modo EW hay sobre Svalbard en los últimos 10 días?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "days": 10,
+            "mode": "EW",
+            "place": "Svalbard"
+          },
+          "summary": "Found: 10 newest scenes; the catalogue has more, from 7 passes of a satellite over the place."
+        }
+      ],
+      "places": [
+        {
+          "name": "Svalbard, 9170, Norge",
+          "bbox": [
+            9.4208924,
+            74.1354451,
+            34.6889114,
+            81.0280176
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "Se encontraron 10 adquisiciones más recientes en modo EW sobre Svalbard, Noruega, cubriendo los días 2026-10-09, 2026-10-10 y 2026-10-11. Estas adquisiciones provienen de los satélites Sentinel-1C (3 escenas) y Sentinel-1D (7 escenas), y están disponibles en polarización EW HH+HV.",
+      "turns": 2,
+      "prompt_tokens": 1115,
+      "seconds": 13.0
+    },
+    {
+      "id": "mixed-lisbon-revisit",
+      "set": "tuning",
+      "lang": "en",
+      "question": "Are there Sentinel-1 scenes of Lisbon from the last three days, and how often does Sentinel-1 pass over the same place?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "passages": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "days": 3,
+            "place": "Lisbon, Portugal"
+          },
+          "summary": "No scenes found."
+        },
+        {
+          "turn": 2,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "how often does Sentinel-1 pass over the same place"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [
+        {
+          "name": "Lisboa, Portugal",
+          "bbox": [
+            -9.2298356,
+            38.6913994,
+            -9.0863328,
+            38.7967584
+          ]
+        }
+      ],
+      "passages": [
+        "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.3 Attitude Steering Capabilities > 3.2.3.2 Roll Steering",
+        "S1 Products > Related Production > Burst ID Maps",
+        "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.1 Sentinel-1 Acquisition Modes Overview"
+      ],
+      "answer": "No Sentinel-1 scenes were found for Lisbon from the last three days.\n\nRegarding the frequency of passes, Sentinel-1 performs systematic acquisition of bursts in both IW and EW modes, and these bursts overlap almost perfectly between different passes and are always located at the same place [1][3]. The constellation has a 12-day repeat cycle [4]. When Sentinel-1A and Sentinel-1B shared the same orbital plane with an 180° phasing difference, they provided a six-day repeat cycle [4].",
+      "turns": 3,
+      "prompt_tokens": 2471,
+      "seconds": 19.2
+    },
+    {
+      "id": "mixed-ebro-floods",
+      "set": "tuning",
+      "lang": "es",
+      "question": "Busca imágenes GRD del delta del Ebro de agosto de 2026 en órbita descendente y explica por qué Sentinel-1 sirve para cartografiar inundaciones.",
+      "checks": {
+        "tools": true,
+        "arguments": false,
+        "place": false,
+        "passages": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "end": "2026-08-31",
+            "orbit": "descending",
+            "place": "Delta del Ebro",
+            "product_type": "GRD",
+            "start": "2026-08-01"
+          },
+          "summary": "Error: 'Delta del Ebro' was found as Avinguda del Delta, Lligallo del Roig, Camarles, Baix Ebre, Tarragona, Catalunya, 43894, España, a road less than 1 km across, which is probably not the place the question means. Call search_scenes again with a more precise name, such as its full official name, or with the same name if this is the right place."
+        },
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "por qué Sentinel-1 sirve para cartografiar inundaciones"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [],
+      "passages": [
+        "S1 Applications > Emergency Management > Flood Monitoring",
+        "S1 Applications > Overview of S1 Applications",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+        "S1 Applications > Overview of S1 Applications",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products"
+      ],
+      "answer": "No se encontraron imágenes GRD para el \"Delta del Ebro\" en agosto de 2026 con órbita descendente, ya que el sistema interpretó el nombre como una carretera. Se recomienda utilizar un nombre más preciso para la zona.\n\nEn cuanto a por qué Sentinel-1 es útil para cartografiar inundaciones, la documentación indica lo siguiente:\n\n*   **Capacidad de Observación:** Sentinel-1, al ser un satélite de radar (SAR), tiene la capacidad inherente de observar durante la cobertura de nubes y realiza revisitas frecuentes, lo que lo hace ideal para el monitoreo de inundaciones [1].\n*   **Detección de Agua:** Las superficies de agua abiertas y tranquilas aparecen planas al ser golpeadas por la radiación SAR, lo que provoca que la energía recibida (backscatter) sea baja y contraste con las superficies terrestres [1].\n*   **Aplicaciones Específicas:** La misión está diseñada específicamente para proporcionar imágenes de respuesta rápida a desastres como inundaciones [2, 4]. Se puede utilizar para identificar áreas inundadas y realizar análisis de riesgo de inundación [3].\n*   **Análisis Adicional:** Además, los modos interferométricos de Sentinel-1 pueden generar modelos digitales de elevación (DEM) que permiten realizar análisis de escorrentía e inundación en zonas que carecen de datos de elevación [1].",
+      "turns": 2,
+      "prompt_tokens": 2514,
+      "seconds": 27.8
+    },
+    {
+      "id": "docs-thermal-noise",
+      "set": "tuning",
+      "lang": "en",
+      "question": "How is thermal noise removed from Sentinel-1 data?",
+      "checks": {
+        "tools": true,
+        "passages": false,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "how is thermal noise removed from Sentinel-1 data"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [],
+      "passages": [
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.5 Radiometric Corrections > 5.5.2 Thermal Noise Removal",
+        "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+        "Thermal Denoising of S-1 Products > 1 Introduction",
+        "Thermal Denoising of S-1 Products > 6 Denoising and clipping procedures > 6.2 Clipping procedure",
+        "Thermal Denoising of S-1 Products > 3 S-1 Noise Equivalent Sigma Zero > 3.2 Estimation of NESZ in the SAR processor"
+      ],
+      "answer": "Thermal noise is removed from Sentinel-1 data through a process where the SAR processor estimates and optionally removes the noise contribution to improve image quality, especially in areas with low backscatter [1], [2].\n\nThe process varies depending on the product type:\n\n*   **GRD Products:** The thermal noise vectors are converted to ground range coordinates and then subtracted from the power-detected image [2]. The thermal noise is also provided in the product annotations, allowing the user to re-apply it if it was removed [1].\n*   **SLC Products:** The noise estimation vectors are saved in the annotation for subsequent use in removal or Level-2 processing [2].\n\nThe thermal noise is reshaped by the range and azimuth varying radiometric corrections applied by the SAR processor [1], [3].\n\nRegarding the denoising procedure:\n*   The noise annotation data set provides a low spatial and temporal frequency estimation of the thermal noise [4].\n*   When subtracting the noise, a common procedure is to clip negative values to 0 if the data is not post-processed with spatial or temporal averaging [4].\n*   If the data is post-processed with averaging, negative values should be kept during the averaging, and clipping can be applied after the averaging is complete [4].",
+      "turns": 2,
+      "prompt_tokens": 2497,
+      "seconds": 18.4
+    },
+    {
+      "id": "docs-etad",
+      "set": "tuning",
+      "lang": "en",
+      "question": "Which geolocation errors does the ETAD product correct?",
+      "checks": {
+        "tools": true,
+        "passages": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "ETAD product geolocation errors corrected"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [],
+      "passages": [
+        "S1 Products > Level-1 Products > ETAD Products",
+        "S1 Products > Level-1 Products > ETAD Products",
+        "S1 Processing > L1 Algorithms > ETAD processing",
+        "S1 Processing > L1 Algorithms > ETAD processing",
+        "S1 Products > Level-1 Products > ETAD Products"
+      ],
+      "answer": "The ETAD product corrects geolocation errors stemming from several sources, including:\n\n*   **Atmospheric delays:** Delays caused by the Earth's atmosphere [3].\n*   **Geodynamic effects:** Direct tidal deformation of Earth's crust caused by the Sun and Moon [3].\n*   **System corrections:** Corrections associated with the Sentinel-1 system's SAR-IPF methods when annotating Level 1 products [3].\n*   **SAR processing approximations:** Errors induced by SAR processing approximations can be estimated by analyzing the SAR timeline and Doppler and FM-rate parameters based on an accurate Digital Elevation Model (DEM) [1].\n\nThese corrections are calculated by evaluating tropospheric numerical weather prediction (NWP) models, ionospheric Total Electron Content (TEC) data, and geodynamic models [1]. The ETAD product provides grids that specify the azimuth and range timing corrections for these effects [2].",
+      "turns": 2,
+      "prompt_tokens": 1950,
+      "seconds": 13.8
+    },
+    {
+      "id": "docs-mission-cost",
+      "set": "tuning",
+      "lang": "es",
+      "question": "¿Cuánto costó construir y lanzar la misión Sentinel-1?",
+      "checks": {
+        "tools": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "cost of Sentinel-1 mission"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [],
+      "passages": [
+        "S1 Mission > Overview of Sentinel-1 Mission",
+        "S1 Mission > Overview of Sentinel-1 Mission > Satellite Description",
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.1 Mission Overview",
+        "S1 Mission > Overview of Sentinel-1 Mission",
+        "S1 Mission > Overview of Sentinel-1 Mission"
+      ],
+      "answer": "No se encontró información sobre el costo de construir y lanzar la misión Sentinel-1 en la documentación.",
+      "turns": 2,
+      "prompt_tokens": 1730,
+      "seconds": 6.8
+    },
+    {
+      "id": "scenes-bilbao-july",
+      "set": "held-out",
+      "lang": "es",
+      "question": "¿Cuántas escenas SLC en órbita ascendente hay sobre Bilbao entre el 1 y el 15 de julio de 2026?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "end": "2026-07-15",
+            "mode": "any",
+            "orbit": "ascending",
+            "place": "Bilbao",
+            "product_type": "SLC",
+            "start": "2026-07-01"
+          },
+          "summary": "Found: 4 scenes, from 4 passes of a satellite over the place."
+        }
+      ],
+      "places": [
+        {
+          "name": "Bilbao, Bizkaia, Euskadi, España",
+          "bbox": [
+            -2.9859808,
+            43.2137176,
+            -2.8802639,
+            43.2901315
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "Hay 4 escenas SLC en órbita ascendente sobre Bilbao entre el 1 y el 15 de julio de 2026.",
+      "turns": 2,
+      "prompt_tokens": 1199,
+      "seconds": 9.4
+    },
+    {
+      "id": "scenes-garda-fortnight",
+      "set": "held-out",
+      "lang": "en",
+      "question": "Show me Sentinel-1 acquisitions over Lake Garda from the past two weeks.",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "days": 14,
+            "place": "Lake Garda"
+          },
+          "summary": "Found: 10 newest scenes; the catalogue has more, from 10 passes of a satellite over the place."
+        }
+      ],
+      "places": [
+        {
+          "name": "Lago di Garda, Brescia, Lombardia, Italia",
+          "bbox": [
+            10.5109103,
+            45.4403205,
+            10.8768975,
+            45.8848213
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "Sentinel-1 acquisitions were found over Lago di Garda, Brescia, Lombardia, Italia, for the period of 2026-09-27 to 2026-10-11.\n\nThe search found 10 newest scenes, with the catalogue containing more. The acquisitions were made by Sentinel-1C (5 scenes) and Sentinel-1D (5 scenes) in the IW VV+VH mode.\n\nThe scenes were acquired on the following dates:\n*   2026-09-28\n*   2026-09-29\n*   2026-10-03\n*   2026-10-04\n*   2026-10-05\n*   2026-10-09\n*   2026-10-10\n\nThe acquisitions covered both ascending (track 15, 117) and descending (track 95, 168) orbits.",
+      "turns": 2,
+      "prompt_tokens": 1371,
+      "seconds": 22.6
+    },
+    {
+      "id": "scenes-la-palma-eruption",
+      "set": "held-out",
+      "lang": "es",
+      "question": "¿Hubo imágenes de Sentinel-1 sobre La Palma (Canarias) durante la erupción, del 19 al 30 de septiembre de 2021?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "end": "2021-09-30",
+            "place": "La Palma, Canary Islands",
+            "start": "2021-09-19"
+          },
+          "summary": "Found: 6 scenes, from 6 passes of a satellite over the place."
+        }
+      ],
+      "places": [
+        {
+          "name": "La Palma, Santa Cruz de Tenerife, Canarias, España",
+          "bbox": [
+            -18.0072521,
+            28.4527066,
+            -17.7242195,
+            28.8575767
+          ]
+        }
+      ],
+      "passages": [],
+      "answer": "Sí, se encontraron 6 escenas de Sentinel-1 sobre La Palma, Santa Cruz de Tenerife, Canarias, España, entre el 19 y el 30 de septiembre de 2021. Estas escenas fueron capturadas en las siguientes fechas: 2021-09-20, 2021-09-21, 2021-09-22, 2021-09-26, 2021-09-27 y 2021-09-28. Las imágenes provienen de Sentinel-1A (3 escenas) y Sentinel-1B (3 escenas), en modos EW VV+VH (2 escenas) e IW VV+VH (4 escenas).",
+      "turns": 2,
+      "prompt_tokens": 1257,
+      "seconds": 15.6
+    },
+    {
+      "id": "mixed-venice-grd-slc",
+      "set": "held-out",
+      "lang": "en",
+      "question": "Which Sentinel-1 scenes cover Venice in the first week of October 2026, and what is the difference between GRD and SLC products?",
+      "checks": {
+        "tools": true,
+        "arguments": true,
+        "place": true,
+        "passages": false,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_scenes",
+          "forced": false,
+          "arguments": {
+            "end": "2026-10-07",
+            "place": "Venice",
+            "start": "2026-10-01"
+          },
+          "summary": "Found: 5 scenes, from 3 passes of a satellite over the place."
+        },
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "difference between GRD and SLC products"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [
+        {
+          "name": "Venezia, Veneto, 30121-30176, Italia",
+          "bbox": [
+            12.1668349,
+            45.2312466,
+            12.5965709,
+            45.5779981
+          ]
+        }
+      ],
+      "passages": [
+        "S1 Products > SAR Products Overview",
+        "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE",
+        "S1 Products > Level-1 Products",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+        "S1 Products > Level-1 Products"
+      ],
+      "answer": "The Sentinel-1 scenes covering Venice (Venezia, Veneto, Italia) during the first week of October 2026 (2026-10-01 to 2026-10-07) include 5 scenes from 3 passes of a satellite over the area [search_scenes]. These scenes were acquired on 2026-10-04, 2026-10-05, and 2026-10-06, utilizing the IW VV+VH mode [search_scenes].\n\nRegarding the difference between GRD and SLC products:\n\n*   **Product Type:** SLC (Single Look Complex) products are single-look products, while GRD (Ground Range Detected) products are detected products [4].\n*   **Coordinate System:** For SLC products, the range coordinate is in slant range, whereas for GRD products, the coordinate system is Ground range [5].\n*   **Resolution Classification:** SLC products have a resolution largely determined by the acquisition mode, and further classification by resolution class does not apply to them [3]. GRD products, however, are classified by resolution into Full, High, or Medium resolution [3].\n*   **Performance:** Both product types have range DTAR and NESZ performance provided, though minor differences exist for GRD products due to processing window coefficients and GRD look overlap [2].",
+      "turns": 2,
+      "prompt_tokens": 2786,
+      "seconds": 31.2
+    },
+    {
+      "id": "docs-level2-ocean",
+      "set": "held-out",
+      "lang": "es",
+      "question": "¿Qué medidas geofísicas proporciona el producto oceánico de nivel 2?",
+      "checks": {
+        "tools": true,
+        "passages": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "medidas geofísicas producto oceánico nivel 2 Sentinel-1"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [],
+      "passages": [
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+        "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW",
+        "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.1 Stripmap L2 Products Definition > 8.1.1 Stripmap OCN Product Definition",
+        "S1 Products > Level-2 Products",
+        "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.1 OSW Component > 6.4.1.1 Applications"
+      ],
+      "answer": "El producto oceánico de nivel 2 (OCN) de Sentinel-1 puede contener los siguientes componentes geofísicos derivados de los datos SAR:\n\n*   **Campo de Viento Oceánico (OWI - Ocean Wind field):** Es una estimación en cuadrícula de rango terrestre de la velocidad y dirección del viento en la superficie a 10 m de altura, obtenida a partir de los modos SM, IW o EW [4].\n*   **Espectros de Oleaje Oceánico (OSW - Ocean Swell spectra):** Es un espectro de oleaje de superficie oceánica bidimensional que incluye una estimación de la velocidad y dirección del viento por cada espectro de oleaje. Proporciona una medición de continuidad de los espectros de oleaje SAR en la banda C [4].\n*   **Velocidad Radial de Superficie (RVL - Surface Radial Velocity):** Es otro componente que puede estar presente en el producto [4].\n\nLa disponibilidad de estos componentes depende del modo de adquisición [4].",
+      "turns": 2,
+      "prompt_tokens": 1902,
+      "seconds": 14.7
+    },
+    {
+      "id": "docs-operations-staff",
+      "set": "held-out",
+      "lang": "en",
+      "question": "How many people work in the Sentinel-1 operations team?",
+      "checks": {
+        "tools": true,
+        "citations": true
+      },
+      "calls": [
+        {
+          "turn": 1,
+          "tool": "search_docs",
+          "forced": false,
+          "arguments": {
+            "query": "How many people work in the Sentinel-1 operations team?"
+          },
+          "summary": "passages [1] [2] [3] [4] [5]"
+        }
+      ],
+      "places": [],
+      "passages": [
+        "S1 Mission > Overview of Sentinel-1 Mission",
+        "S1 Mission > Overview of Sentinel-1 Mission",
+        "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+        "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.2 OWI Component > 6.4.2.2 GMES Services",
+        "S1 Mission > Acquisition Modes"
+      ],
+      "answer": "I could not find information regarding the number of people who work in the Sentinel-1 operations team in the documentation.",
+      "turns": 2,
+      "prompt_tokens": 2312,
+      "seconds": 8.1
+    }
+  ]
+}
