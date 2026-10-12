@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sentinel1-rag": {
+      "command": "uv",
+      "args": ["run", "--directory", "${CLAUDE_PROJECT_DIR:-.}", "python", "-m", "sentinel1_rag.mcp_server"]
+    }
+  }
+}

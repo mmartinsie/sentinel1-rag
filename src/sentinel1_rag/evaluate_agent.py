@@ -8,7 +8,9 @@ the real tools, and the run is checked against what the file expects:
 - place: the place it searched for contains the expected point;
 - passages: one of the passages it read comes from a section labelled in questions.yaml;
 - citations: an answerable question gets a cited answer, an unanswerable one no citations, and an
-  answer that read no passages (a question about scenes only) cites none.
+  answer that read no passages (a question about scenes only) cites none;
+- answered: the agent wrote an answer. An empty one cites nothing, so it passed the citation
+  check for scenes-only questions until this check was added (D-032).
 
 A question passes when every check that applies to it passes. Each run is saved in eval/results/.
 """
@@ -30,7 +32,7 @@ from sentinel1_rag.geocode import Geocoder
 from sentinel1_rag.ollama import Ollama
 from sentinel1_rag.tools import SceneSearch, Toolbox
 
-CHECKS = ("tools", "arguments", "place", "passages", "citations")
+CHECKS = ("tools", "arguments", "place", "passages", "citations", "answered")
 SCENE_ARGUMENTS = ("product_type", "start", "end", "mode", "orbit")
 
 
@@ -73,6 +75,7 @@ def check(q: dict, run: Run, toolbox: Toolbox, labels: dict[str, set[tuple[str, 
     elif not toolbox.passages:
         # Nothing was read that could be cited: an [n] here points at a scene search result.
         result["citations"] = not numbers
+    result["answered"] = bool(run.answer)
     return result
 
 
@@ -116,7 +119,7 @@ def print_report(results: list[dict], scores: dict[str, dict], today: date, thin
             print(f"    -> {c['summary']}")
         for p in r["places"]:
             print(f"  place found: {p['name']} {p['bbox']}")
-        answer = (r["answer"] or "(no answer)").replace("\n", " ")
+        answer = ("(no answer)" if r["answer"] is None else r["answer"] or "(empty answer)").replace("\n", " ")
         print(f"  answer: {answer[:300]}{'...' if len(answer) > 300 else ''}")
 
 

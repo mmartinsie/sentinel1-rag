@@ -4,7 +4,7 @@ A small, local and free RAG (retrieval-augmented generation) system that answers
 
 Everything runs on one machine: Ollama serves the embedding model (`bge-m3`) and the language model (`gemma4:e4b-it-qat`), and PostgreSQL stores the chunks with their vectors (pgvector) and a full-text index. Questions can be asked in Spanish or English about the English documentation.
 
-An [agent](#agent-documentation-and-scene-search) (`make agent`) can also search the Copernicus catalogue for the scenes Sentinel-1 acquired over a place and dates, and combine both in one answer.
+An [agent](#agent-documentation-and-scene-search) (`make agent`) can also search the Copernicus catalogue for the scenes Sentinel-1 acquired over a place and dates, and combine both in one answer. The same two tools are offered to other applications through an [MCP server](#mcp-server) (`make mcp`), so that a host such as Claude Code can search the documentation and the catalogue with its own model.
 
 ```
 $ make ask Q="¿Cómo se elimina el ruido térmico de un producto GRD de Sentinel-1 y por qué no viene eliminado por defecto?"
@@ -102,6 +102,8 @@ Every design choice, with the alternatives weighed and what was measured, is rec
 | Drafted from the text (20) | 0.800 | 0.850 | 0.900 | 0.950 | 0.838 |
 
 **hit@5 is 0.880 and MRR@5 0.810 over 25 questions**, from [eval/results/2026-10-11T113743-pdfs.json](eval/results/2026-10-11T113743-pdfs.json). The eval is deterministic: the translations are made at temperature 0, and repeated runs give the same chunks in the same order.
+
+These numbers are the same for [v0.1 and v0.2](#versions): v0.2 adds the agent and the MCP server but does not change the retrieval, and `make eval` on v0.2 returns the same 20 chunks in the same order for all 25 questions, with the same translations ([eval/results/2026-10-11T180312-v0.2.json](eval/results/2026-10-11T180312-v0.2.json)).
 
 How to read these numbers:
 
@@ -252,13 +254,14 @@ A model with about 4.5B effective parameters followed the prompt's rules only so
 
 ### Agent results
 
-`make eval-agent` asks the agent 18 questions (5 about the documentation, 8 about scenes, 5 mixed) with the real tools, and checks its calls rather than the scenes, which change every day: the right tools, the right arguments (product type, dates, filters), a place that contains the expected point, a labelled section among the passages read, and citations only when the documentation answers. "Today" is fixed in the question file, so "last month" has one right answer. The 6 `held-out` questions were written after the first run and never used to change the prompt or the tools; the 12 `tuning` questions were.
+`make eval-agent` asks the agent 18 questions (5 about the documentation, 8 about scenes, 5 mixed) with the real tools, and checks its calls rather than the scenes, which change every day: the right tools, the right arguments (product type, dates, filters), a place that contains the expected point, a labelled section among the passages read, citations only when the documentation answers, and an answer that is not empty. "Today" is fixed in the question file, so "last month" has one right answer. The 6 `held-out` questions were written after the first run and never used to change the prompt or the tools; the 12 `tuning` questions were.
 
 | Run | All (18) | Tuning (12) | Held-out (6) | Median time per question |
 |---|---|---|---|---|
 | First design | 10 | 6 | 4 | 7.3 s |
 | **Final** | **13** | 8 | **5** | 5.9 s |
 | Final, with thinking (`--think`) | 13 | 8 | 5 | 15.1 s |
+| v0.2, with the check for empty answers | 13 | 8 | 5 | 5.2 s |
 
 From [eval/results/2026-10-11T152216-agent-final.json](eval/results/2026-10-11T152216-agent-final.json); the details, including each tuning iteration, are in [D-029](docs/DECISIONS.md#d-029-the-agent-eval-checks-tool-calls-with-tuning-and-held-out-questions).
 
@@ -266,6 +269,70 @@ From [eval/results/2026-10-11T152216-agent-final.json](eval/results/2026-10-11T1
 - **What still fails:** one answer about scenes that still cites "[1]", two mixed questions with an ambiguous place ("Doñana", "delta del Ebro"), where the model reports the geocoder's error instead of searching again, and two retrieval misses inherited from `make ask` (thermal noise, and GRD versus SLC). The first design had reported the scenes of the wrong Doñana as if they were right; now the answer says the place was not found.
 - **Thinking** passes the same questions in about 2.6 times the time, so it stays off. It needed no forced search: thinking first, the model searched the documentation by itself for the two questions it cannot answer.
 - **18 questions are few,** all drafted by the same author as the fixes, and one held-out question moves that score by 0.167. Runs are not exactly repeatable: a second run gave the same checks but differently worded answers.
+- **v0.2 found an empty answer.** The first run on v0.2 counted 14, but one of them was an empty answer: for "¿Hay imágenes Sentinel-1 GRD de Madrid de la última semana?" Gemma now ends its turn without writing anything, with the code of v0.1 too, and an empty answer passed the citation check because it cites nothing. The eval now also checks that there is an answer, which gives 13 again ([eval/results/2026-10-12T143532-agent-v0.2-answered.json](eval/results/2026-10-12T143532-agent-v0.2-answered.json)), and `make agent` says when the answer is empty. Asking the model again after an empty answer is left for later ([D-033](docs/DECISIONS.md#d-033-the-agent-eval-fails-empty-answers-and-make-agent-says-when-the-answer-is-empty)).
+
+## MCP server
+
+`make mcp` runs an [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server that offers the agent's two tools to any MCP host, such as Claude Code or Claude Desktop. The host starts the server as a subprocess and sends it JSON-RPC messages on its stdin, one per line: `tools/list` returns the tools with their JSON Schemas, and `tools/call` runs one. The host's own model decides when to call them, as Gemma does in `make agent`.
+
+```mermaid
+flowchart LR
+    H["MCP host<br/>(Claude Code, ...)<br/>and its model"] -- "tools/list, tools/call<br/>JSON-RPC on stdin" --> S["mcp_server.py"]
+    S --> D["search_docs<br/>hybrid search, top 5<br/>bge-m3 + Postgres"]
+    S --> C["search_scenes<br/>Nominatim + STAC"]
+    S -- "text for the model<br/>+ structured data, on stdout" --> H
+```
+
+It is built on the official [Python SDK](https://github.com/modelcontextprotocol/python-sdk) (`mcp` 2.3), which serves both kinds of client: those that open with the `initialize` handshake of protocol revisions up to 2025-11-25, and those that send their version and capabilities with every request, as revision 2026-07-28 does ([D-031](docs/DECISIONS.md#d-031-an-mcp-server-on-stdio-built-on-the-official-sdks-low-level-server)).
+
+### Connecting a host
+
+Claude Code finds the server in `.mcp.json`, in the repository root, and asks before using it:
+
+```json
+{
+  "mcpServers": {
+    "sentinel1-rag": {
+      "command": "uv",
+      "args": ["run", "--directory", "${CLAUDE_PROJECT_DIR:-.}", "python", "-m", "sentinel1_rag.mcp_server"]
+    }
+  }
+}
+```
+
+Another host needs the same command with the repository's path: `uv run --directory /path/to/sentinel1-rag python -m sentinel1_rag.mcp_server`. Postgres (`make up`) and Ollama with bge-m3 must be running; the server does not use Gemma.
+
+### What changes from the agent's tools
+
+The arguments are the agent's, built from the same JSON Schemas, and so are the checks and the error messages. What changes comes from talking to hosts and models that this project does not control ([D-032](docs/DECISIONS.md#d-032-the-servers-tools-stand-alone-on-every-call-and-the-hosts-model-writes-the-query-in-english)):
+
+- **Every call stands alone.** Protocol revision 2026-07-28 has no sessions, so the server keeps nothing from one call to the next. Passages are numbered within each result and carry their section and URL, for the host's model to cite. A place under 1 km across is sent back with an error unless the call says `confirm_place: true`, where the agent accepted the same place asked for twice.
+- **The host's model writes the query in English,** the language of the documents, and the server runs the default retrieval with it, without translating. Measured on the 25 eval questions, with Gemma's translations standing in for the host's, it finds the same 22 in the top 5, through the protocol too. A query in another language weakens the full-text half of the search.
+- **Each result has text for the model and structured data** (`structuredContent`) that matches the tool's declared `outputSchema`: the passages with section and URL, or the place found and the scenes with their product names. The scene names are in the text as well: they were hidden from Gemma only because it copied them slowly.
+- **Errors the model can fix are results** marked `isError` (a wrong argument, a bad date, a place not found); an unknown tool is a protocol error.
+- **The host decides.** The agent's forced documentation search and its system prompt do not exist here; the server sends a few lines of `instructions`, which the host may pass to its model or not.
+
+### Checking it
+
+`make mcp-check` starts the server as a host would and checks it through the SDK's client: 6 checks with the handshake and 13 with per-request metadata, all passing, in about 7 seconds. They cover the server's name and instructions, the tools and their arguments, 5 passages with their section and URL, 10 scenes over Rotterdam in September 2026 with their names, the errors for an unknown argument, a bad date and a small place (twice in a row, since nothing is remembered), the small place searched with `confirm_place`, and the protocol error for an unknown tool.
+
+```
+Per-request metadata: protocol 2026-07-28
+  ok   server: sentinel1-rag 0.2.0
+  ok   instructions sent
+  ok   tools: search_docs, search_scenes
+  ok   search_docs: the agent's arguments: query
+  ok   search_scenes: the agent's arguments: place, start, end, days, product_type, mode, orbit, confirm_place
+  ok   search_docs: passages with section and URL: [1] S1 Mission > Acquisition Modes > Interferometric Wide Swath
+  ok   search_scenes: place, summary and table: 10 scenes over Rotterdam, Zuid-Holland, Nederland
+  ok   unknown argument -> isError: Error: wrong arguments for search_scenes: got an unexpected keyword argument 'radius'.
+  [...]
+  ok   unknown tool -> protocol error: -32602 Unknown tool: search_everything
+```
+
+**With Claude Code as the host,** in a new session in the repository, four questions went through 7 calls, all answered ([D-031](docs/DECISIONS.md#d-031-an-mcp-server-on-stdio-built-on-the-official-sdks-low-level-server)). Claude Code passes the structured data to its model, not the text. For "¿Qué diferencia hay entre un producto GRD y uno SLC?" its model searched twice, in English, and the second, more specific query found the product definition's section on SLC products (complex values with amplitude and phase), which the single search of `make ask` misses for this question. For "Doñana" it got the small-place error and searched again with the national park's name. The first connection after a reboot took 4.7 s, because the server was slow to start from a cold disk and Claude Code's first probe timed out; it recovered by itself. The host's model knew how the server was designed, so this shows that the server works in a real host, not how any model would use it.
+
+The server writes nothing but protocol messages on stdout, where a stray line would break the host's reading of it. Its log goes to stderr: the protocol revision the client speaks, and one line per call.
 
 ## Running it on WSL
 
@@ -296,6 +363,7 @@ make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"
 make eval     # retrieval metrics (translates the questions with Gemma), saved in eval/results/
 make agent Q="¿Hay imágenes Sentinel-1 de Madrid de la última semana?"
 make eval-agent   # the agent's tool calls on 18 questions; needs the network
+make mcp-check    # starts the MCP server and checks its tools through the protocol; needs the network
 ```
 
 Measured on a clean clone before the PDFs were added: `make up` 13 s and the first `make ask` about 70 s, almost all of it loading Gemma from a hard disk. With the PDFs, `make ingest` takes about 80 s, most of it reading the PDFs, and `make index` about a minute for the 568 chunks into an empty database. With the models loaded, an answer takes about 4–7 s, and up to about 16 s when it is long. Ollama unloads a model after 5 idle minutes, so the next question pays the load time again.
@@ -316,6 +384,8 @@ Every request asks Ollama to map the model files (`use_mmap`) instead of copying
 | `make eval` | Measures retrieval, with the same defaults and options as `make ask`. `ARGS="--label name"` names the run. |
 | `make agent Q="..."` | Answers with the agent, which can search the documentation and the scene catalogue. `ARGS` takes `--show-results` (print what each tool returned), `--today YYYY-MM-DD` and `--think`. |
 | `make eval-agent` | Checks the agent's tool calls on `eval/agent_questions.yaml`. `ARGS` takes `--label name`, `--think`, `--set tuning` or `held-out`, and `--only id ...`. |
+| `make mcp` | Runs the MCP server on stdio. A host starts it (see [Connecting a host](#connecting-a-host)); run by hand, it waits for messages on stdin. |
+| `make mcp-check` | Starts the MCP server and checks its tools through the protocol, with both kinds of client. |
 | `make clean` | Stops the database and deletes its volume and `data/`. |
 
 The defaults work without configuration. `OLLAMA_URL` and `DATABASE_URL` override where the code finds Ollama and Postgres, `STAC_URL` and `NOMINATIM_URL` the catalogue and the geocoder, and `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `POSTGRES_PORT` in a `.env` file override the database settings.
@@ -343,12 +413,15 @@ src/sentinel1_rag/
   scenes.py               search of the Copernicus STAC catalogue
   geocode.py              place names to bounding boxes with Nominatim, cached
   evaluate_agent.py       make eval-agent
+  mcp_server.py           make mcp: the tools served over MCP
+  mcp_check.py            make mcp-check
 eval/questions.yaml       25 questions labelled with the sections that answer them
 eval/agent_questions.yaml 18 questions with the tool calls expected from the agent
 eval/results/             the eval runs cited in the docs
 docs/DECISIONS.md         every decision, its alternatives and what was verified
 docs/steps/               a plain-English write-up of each build step
 docs/PROGRESS.md          build log and notes for resuming work
+.mcp.json                 registers the MCP server for Claude Code
 ```
 
 ## Limitations
@@ -372,16 +445,24 @@ docs/PROGRESS.md          build log and notes for resuming work
 - **The agent's guards come from 18 questions.** A small model followed its prompt only some of the time, so the code enforces grounding, dates and filters (see [Agent](#agent-documentation-and-scene-search)). Small prompt changes moved single questions both ways, and only 6 questions were held out.
 - **Ambiguous place names.** The geocoder's first match is used. A wrong match under 1 km across is caught, but a wrong town would not be, except by reading the place printed with the scenes. In a question that also asks about the documentation, the model reports a rejected place instead of searching again.
 - **Scene searches need the network** (the Copernicus catalogue and Nominatim) and stop at the 10 newest scenes. Products cannot be downloaded: that needs a Copernicus account.
+- **The MCP server runs on stdio only,** so the host must run on the same machine, inside WSL, and calls are served one at a time. It has no Streamable HTTP transport and no authentication.
+- **The MCP host's model decides how the tools are used.** The server asks for English queries and explains its tools, but cannot enforce what the agent's loop enforces, such as searching the documentation before answering.
 - **No automated tests.** The checks run while building it are recorded under "Verified" in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Extensions (not implemented)
 
-The first three planned extensions are done: a lexical baseline and hybrid search, which with a translated question is now the default (see [Lexical and hybrid search](#lexical-and-hybrid-search)), technical PDFs from the Sentinel-1 document library (see [Technical PDFs](#technical-pdfs)), and an agent with a `search_scenes` tool over the Copernicus STAC API (see [Agent](#agent-documentation-and-scene-search)). The others, ordered by expected value:
+Four of the five planned extensions are done: a lexical baseline and hybrid search, which with a translated question is now the default (see [Lexical and hybrid search](#lexical-and-hybrid-search)), technical PDFs from the Sentinel-1 document library (see [Technical PDFs](#technical-pdfs)), an agent with a `search_scenes` tool over the Copernicus STAC API (see [Agent](#agent-documentation-and-scene-search)), and an MCP server that offers its tools to other applications (see [MCP server](#mcp-server)). The last one:
 
-1. **MCP server** exposing `search_docs` and `search_scenes`. The agent's tools are already plain methods with JSON Schemas (`tools.py`).
-2. **OpenSearch k-NN** instead of pgvector, comparing results.
+1. **OpenSearch k-NN** instead of pgvector, comparing results.
 
 Smaller experiments that `make eval` can measure in minutes, not run yet: merging the chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, at most two chunks per section in the top 5, adding the SentiWiki's POD or Glossary pages, more PDFs from the library, and a reranker over the top 20.
+
+## Versions
+
+| Version | What it contains |
+|---|---|
+| [v0.1](https://github.com/mmartinsie/sentinel1-rag/tree/v0.1) | The RAG over the SentiWiki and six technical PDFs: hybrid search with the question translated for BM25, top 5, page-cited answers, and the retrieval eval. |
+| [v0.2](https://github.com/mmartinsie/sentinel1-rag/tree/v0.2) | Adds the agent with scene search (`make agent`, `make eval-agent`) and the MCP server (`make mcp`, `make mcp-check`). The retrieval is unchanged: `make eval` gives the same results as in v0.1 (see [Retrieval results](#retrieval-results)). |
 
 ## License
 

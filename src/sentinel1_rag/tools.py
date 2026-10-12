@@ -5,6 +5,9 @@
 
 A tool's result is text for the model. What the user is shown afterwards (the cited sections and
 the scenes found) comes from the records kept here, never from the model's words.
+
+The MCP server (mcp_server.py) exposes the same tools to other programs: it builds its schemas
+from SCHEMAS and runs scene searches through SceneFinder, but writes its own results (D-032).
 """
 
 import inspect
@@ -99,6 +102,18 @@ class ToolError(Exception):
     """A problem the model can fix or report: a bad argument, an unknown place, a service down."""
 
 
+class SmallPlace(ToolError):
+    """The place found is less than 1 km across: usually the wrong match for a short name.
+    "Doñana, Spain" is a peak and "Delta del Ebro, Spain" a street (D-028). The caller adds how
+    to confirm the place, because the agent and the MCP server confirm it differently."""
+
+    def __init__(self, asked: str, found: Place) -> None:
+        super().__init__(
+            f"{asked!r} was found as {found.name}, a {found.kind} less than 1 km across, which is "
+            "probably not the place the question means."
+        )
+
+
 @dataclass
 class SceneSearch:
     """One search_scenes call, as it was run."""
@@ -123,20 +138,102 @@ class SceneSearch:
         return f"{self.product_type} scenes over {self.place.name}, {self.start} to {self.end} ({filters})"
 
 
+class SceneFinder:
+    """Runs scene searches: checks the arguments, finds the place and searches the catalogue.
+    Shared by the agent's Toolbox and the MCP server, which makes a new one for every call (D-032)."""
+
+    def __init__(self, http: httpx.Client, geocoder: Geocoder, today: date) -> None:
+        self._http = http
+        self._geocoder = geocoder
+        self._today = today  # what `days` counts back from
+        self._questioned: set[str] = set()  # small places already sent back once
+        self.searches: list[SceneSearch] = []
+
+    def find(
+        self,
+        place: str,
+        start: str | None = None,
+        end: str | None = None,
+        days: int | None = None,
+        product_type: str = "GRD",
+        mode: str | None = None,
+        orbit: str | None = None,
+        confirm_place: bool = False,
+    ) -> SceneSearch:
+        """Raises ToolError, or SmallPlace for a place under 1 km across unless it is confirmed:
+        by `confirm_place`, or by asking for the same place a second time."""
+        product_type = product_type.strip().upper()
+        mode = mode.strip().upper() if mode and mode.strip().lower() != ANY else None
+        orbit = orbit.strip().lower() if orbit and orbit.strip().lower() != ANY else None
+        if product_type not in COLLECTIONS:
+            raise ToolError(f"product_type must be one of {', '.join(COLLECTIONS)}, not {product_type!r}.")
+        if mode and mode not in MODES:
+            raise ToolError(f"mode must be one of {', '.join(MODES)}, not {mode!r}.")
+        if orbit and orbit not in ORBITS:
+            raise ToolError(f"orbit must be one of {', '.join(ORBITS)}, not {orbit!r}.")
+        first, last = self._dates(start, end, days)
+
+        try:
+            found = self._geocoder.lookup(place)
+        except httpx.HTTPError as exc:
+            raise ToolError(f"the geocoding service did not answer ({exc}).") from None
+        if found is None:
+            raise ToolError(f"no place called {place!r} was found. Try another name, with its region and country.")
+        width, height = found.size_km()
+        if max(width, height) < 1 and not confirm_place and found.name not in self._questioned:
+            # A second call that finds the same place means it is the one meant, such as a real
+            # peak, and goes through (D-028). The MCP server makes a new SceneFinder for every
+            # call, so there only confirm_place lets a small place through (D-032).
+            self._questioned.add(found.name)
+            raise SmallPlace(place, found)
+        try:
+            scenes, more = search(self._http, found.bbox, COLLECTIONS[product_type], first, last, mode, orbit)
+        except httpx.HTTPError as exc:
+            raise ToolError(f"the Copernicus catalogue did not answer ({exc}).") from None
+        record = SceneSearch(found, product_type, first, last, mode, orbit, scenes, more)
+        self.searches.append(record)
+        return record
+
+    def _dates(self, start: str | None, end: str | None, days: int | None) -> tuple[date, date]:
+        """The first and last day to search. `days` wins over start and end: counting back from
+        today is the code's job, because the model got "the last 10 days" wrong (D-027)."""
+        if isinstance(days, str) and days.strip().isdigit():
+            days = int(days)
+        if days is not None:
+            if not isinstance(days, int) or days < 1:
+                raise ToolError(f"days must be a whole number of at least 1, not {days!r}.")
+            return self._today - timedelta(days=days), self._today
+        # Errors name what is missing: told only "give start and end, or days", the model sent the
+        # same call without `end` three times.
+        if start and not end:
+            raise ToolError(f"end is missing. Give the last day as end (YYYY-MM-DD) along with start {start}.")
+        if end and not start:
+            raise ToolError(f"start is missing. Give the first day as start (YYYY-MM-DD) along with end {end}.")
+        if not start:
+            raise ToolError("the dates are missing. Give start and end (YYYY-MM-DD), or days.")
+        try:
+            first, last = date.fromisoformat(start), date.fromisoformat(end)
+        except ValueError:
+            raise ToolError(f"start and end must be dates written YYYY-MM-DD, not {start!r} and {end!r}.") from None
+        if first > last:
+            raise ToolError(f"start ({start}) is after end ({end}).")
+        return first, last
+
+
 class Toolbox:
-    """Runs the tools for one question and keeps what they returned."""
+    """Runs the agent's tools for one question and keeps what they returned."""
 
     def __init__(
         self, conn: psycopg.Connection, ollama: Ollama, http: httpx.Client, geocoder: Geocoder, today: date
     ) -> None:
         self._conn = conn
         self._ollama = ollama
-        self._http = http
-        self._geocoder = geocoder
-        self._today = today  # what `days` counts back from
-        self._questioned: set[str] = set()  # small places already sent back once (search_scenes)
+        self._scenes = SceneFinder(http, geocoder, today)
         self.passages: list[Hit] = []  # numbered from 1 across all search_docs calls
-        self.searches: list[SceneSearch] = []
+
+    @property
+    def searches(self) -> list[SceneSearch]:
+        return self._scenes.searches
 
     def call(self, name: str, arguments: dict[str, Any]) -> str:
         """Run one tool call. Errors become the result, so the model can correct the call or report it."""
@@ -179,81 +276,33 @@ class Toolbox:
         mode: str | None = None,
         orbit: str | None = None,
     ) -> str:
-        product_type = product_type.strip().upper()
-        mode = mode.strip().upper() if mode and mode.strip().lower() != ANY else None
-        orbit = orbit.strip().lower() if orbit and orbit.strip().lower() != ANY else None
-        if product_type not in COLLECTIONS:
-            raise ToolError(f"product_type must be one of {', '.join(COLLECTIONS)}, not {product_type!r}.")
-        if mode and mode not in MODES:
-            raise ToolError(f"mode must be one of {', '.join(MODES)}, not {mode!r}.")
-        if orbit and orbit not in ORBITS:
-            raise ToolError(f"orbit must be one of {', '.join(ORBITS)}, not {orbit!r}.")
-        first, last = self._dates(start, end, days)
-
         try:
-            found = self._geocoder.lookup(place)
-        except httpx.HTTPError as exc:
-            raise ToolError(f"the geocoding service did not answer ({exc}).") from None
-        if found is None:
-            raise ToolError(f"no place called {place!r} was found. Try another name, with its region and country.")
-        width, height = found.size_km()
-        if max(width, height) < 1 and found.name not in self._questioned:
-            # A tiny place is usually the wrong match for a short name: "Doñana, Spain" is a peak and
-            # "Delta del Ebro, Spain" a street. As a warning next to the scenes, the model ignored
-            # it; as an error, it searches again. A second call that finds the same place means
-            # it is the one meant, such as a real peak, and goes through (D-028).
-            self._questioned.add(found.name)
+            record = self._scenes.find(place, start, end, days, product_type, mode, orbit)
+        except SmallPlace as exc:
+            # As a warning next to the scenes, the model ignored a tiny place; as an error, it
+            # searches again. A second call that finds the same place goes through (SceneFinder).
             raise ToolError(
-                f"{place!r} was found as {found.name}, a {found.kind} less than 1 km across, which is "
-                "probably not the place the question means. Call search_scenes again with a more precise "
-                "name, such as its full official name, or with the same name if this is the right place."
-            )
-        try:
-            scenes, more = search(self._http, found.bbox, COLLECTIONS[product_type], first, last, mode, orbit)
-        except httpx.HTTPError as exc:
-            raise ToolError(f"the Copernicus catalogue did not answer ({exc}).") from None
-        record = SceneSearch(found, product_type, first, last, mode, orbit, scenes, more)
-        self.searches.append(record)
+                f"{exc} Call search_scenes again with a more precise name, such as its full official "
+                "name, or with the same name if this is the right place."
+            ) from None
+        width, height = record.place.size_km()
         lines = [
-            f"Place found: {found.name} (OpenStreetMap type: {found.kind}, about {width:.0f} x {height:.0f} km).",
+            f"Place found: {record.place.name} (OpenStreetMap type: {record.place.kind}, about {width:.0f} x {height:.0f} km).",
             f"Searched: {record.describe()}.",
-            *summarise(scenes, more),
-            # Without this line, the model cited "[1]" after scene facts in 4 of 8 answers about
-            # scenes only, although no passage had been read (D-027).
-            "These results are not documentation passages and have no number: do not cite them with [n].",
+            *summarise(record.scenes, record.more),
         ]
+        if record.scenes:
+            lines.append("The user sees the scenes in a table under your answer: summarise them, do not list them.")
+        # Without this line, the model cited "[1]" after scene facts in 4 of 8 answers about
+        # scenes only, although no passage had been read (D-027).
+        lines.append("These results are not documentation passages and have no number: do not cite them with [n].")
         return "\n".join(lines)
-
-    def _dates(self, start: str | None, end: str | None, days: int | None) -> tuple[date, date]:
-        """The first and last day to search. `days` wins over start and end: counting back from
-        today is the code's job, because the model got "the last 10 days" wrong (D-027)."""
-        if isinstance(days, str) and days.strip().isdigit():
-            days = int(days)
-        if days is not None:
-            if not isinstance(days, int) or days < 1:
-                raise ToolError(f"days must be a whole number of at least 1, not {days!r}.")
-            return self._today - timedelta(days=days), self._today
-        # Errors name what is missing: told only "give start and end, or days", the model sent the
-        # same call without `end` three times.
-        if start and not end:
-            raise ToolError(f"end is missing. Give the last day as end (YYYY-MM-DD) along with start {start}.")
-        if end and not start:
-            raise ToolError(f"start is missing. Give the first day as start (YYYY-MM-DD) along with end {end}.")
-        if not start:
-            raise ToolError("the dates are missing. Give start and end (YYYY-MM-DD), or days.")
-        try:
-            first, last = date.fromisoformat(start), date.fromisoformat(end)
-        except ValueError:
-            raise ToolError(f"start and end must be dates written YYYY-MM-DD, not {start!r} and {end!r}.") from None
-        if first > last:
-            raise ToolError(f"start ({start}) is after end ({end}).")
-        return first, last
 
 
 def summarise(scenes: list[Scene], more: bool) -> list[str]:
-    """What the model reads about the scenes found: counts, computed here, and no scene names.
-    Listed one by one, the scenes got copied into the answer (about 20 s for ten), although the
-    user sees them in a table printed by the code."""
+    """A summary of the scenes found, with counts computed here. The agent's model reads only
+    this, never the scene names: listed one by one, the scenes got copied into the answer (about
+    20 s for ten), although the user sees them in a table printed by the code."""
     if not scenes:
         return ["No scenes found."]
     # Consecutive scenes ("slices") of one pass share the day, the satellite and the track.
@@ -273,8 +322,15 @@ def summarise(scenes: list[Scene], more: bool) -> list[str]:
         + "; ".join(f"{orbit}, track {', '.join(map(str, sorted(t)))}" for orbit, t in sorted(tracks.items()))
         + ".",
         f"Modes and polarisations: {', '.join(f'{m} ({n} scenes)' for m, n in sorted(modes.items()))}.",
-        "The user sees the scenes in a table under your answer: summarise them, do not list them.",
     ]
+
+
+def scene_line(s: Scene) -> str:
+    """One scene as a table row: when, satellite, mode, polarisations, orbit, track and name."""
+    return (
+        f"{s.acquired[:10]} {s.acquired[11:16]}  {s.id[:3]} {s.mode:<3} {'+'.join(s.polarisations):<6}"
+        f" {s.orbit:<10} track {s.relative_orbit:<4} {s.id}"
+    )
 
 
 def satellite(platform: str) -> str:

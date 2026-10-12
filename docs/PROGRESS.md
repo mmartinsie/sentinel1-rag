@@ -1,10 +1,12 @@
 # Progress
 
-_Last updated: 2026-10-11_
+_Last updated: 2026-10-14_
 
 ## Current step
 
-**Step 14: MCP server exposing `search_docs` and `search_scenes` (chosen by the user on 2026-10-11; not started).** Step 13 (the agent) was approved on 2026-10-11 with every item as recommended. All steps of the brief (0–7) are done, and so are the extension steps 8 to 13.
+**Step 14: MCP server exposing `search_docs` and `search_scenes` (approved by the user on 2026-10-12, every item as recommended; tested with Claude Code as the host on 2026-10-14; committed locally, not pushed).** Still to do: the `v0.2` tag, created and pushed only on the user's OK. All steps of the brief (0–7) are done, and so are the extension steps 8 to 13.
+
+**Versions:** the annotated tag `v0.1` marks the end of step 12 (commit `2c8d919`, README with hit@5 0.880 from `…113743-pdfs.json`); it was created and pushed on 2026-10-11 with the user's OK, because a public post links to it. Never move or delete it. **v0.2** = the agent (step 13) + the MCP server (step 14); its tag is proposed when step 14 is approved, and created and pushed only on the user's OK. The reranker is not in v0.2.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -22,7 +24,7 @@ _Last updated: 2026-10-11_
 | 11 | BM25 instead of `ts_rank` for the full-text search | Done |
 | 12 | Extension: technical PDFs from the Sentinel-1 document library | Done |
 | 13 | Extension: agent with a STAC `search_scenes` tool | Done |
-| 14 | Extension: MCP server exposing `search_docs` and `search_scenes` | Next |
+| 14 | Extension: MCP server exposing `search_docs` and `search_scenes` | In review |
 
 ## Done
 
@@ -196,6 +198,22 @@ _Last updated: 2026-10-11_
 - **Memory incident** (D-030): WSL froze for 28 minutes during an eval, because Ollama had turned mmap off and Gemma's runner held 6 GB. Since then every request asks for mmap, and WSL has 12 GB instead of 10 (raised by the user). The step's runs were made with a guard that stopped them if available RAM fell below 2 GiB.
 - `make eval` reproduces the cited retrieval run exactly with the new Ollama option.
 
+### Step 14
+
+- **Plan approved by the user** on 2026-10-11, every item as recommended. Before it, the user asked for the `v0.1` tag on the step-12 commit (done, see "Current step") and set the rules for v0.2.
+- **Verified first** (D-031): the MCP specification's current revision is 2026-07-28, which removed sessions and the `initialize` handshake; the Python SDK `mcp` 2.3.0 serves both eras on stdio (checked on the wire with a throwaway server); a buffered `print()` reached the protocol channel when the server exited, until `sys.stdout` was pointed at stderr.
+- **Code:**
+  - `mcp_server.py` (`make mcp`): the low-level SDK `Server` on stdio, the agent's schemas plus `confirm_place`, results as text plus `structuredContent` with an `outputSchema`, `isError` for tool errors and `-32602` for an unknown tool, one call at a time in a worker thread, logs on stderr.
+  - `mcp_check.py` (`make mcp-check`): starts the server through the SDK's client, with the handshake and with per-request metadata; 19 checks.
+  - `tools.py`: `SceneFinder` (scene searches, moved out of `Toolbox` unchanged), `SmallPlace`, `scene_line`. The agent's tool outputs are identical before and after (18 calls compared).
+  - `.mcp.json` registers the server for Claude Code; `pyproject.toml` version 0.2.0, which the server reports and the User-Agent now uses; `mcp>=2.3,<3` added (21 packages).
+- **Design** (D-032): nothing is kept between calls (passages numbered per result with section and URL; `confirm_place` for places under 1 km); `search_docs` takes an English query from the host's model and runs without Gemma. Measured before choosing: with Gemma's translations standing in for the host's query, 22 of 25 in the top 5 and MRR@5 0.810, as before, and the same through the protocol.
+- **v0.2 runs:** `make eval` (`eval/results/2026-10-11T180312-v0.2.json`) is identical to the cited v0.1 run, chunk by chunk. `make eval-agent` (`…181107-agent-v0.2.json`): the checks counted 14 of 18, but one was an empty answer (`scenes-madrid-week`).
+- **Found: the empty answer** (D-033). Gemma now ends its turn without text for the Madrid scenes question, every time, with the code of step 13 too, so this step did not cause it. The eval's citation check passed an answer that cites nothing. Chosen by the user at the review: the eval gains the check *answered*, and `make agent` says when the answer is empty; retrying in the loop is left for later. With the check: 13 of 18, held-out 5 of 6 (`eval/results/2026-10-12T143532-agent-v0.2-answered.json`). The step-13 runs have no empty answer, so their numbers stand.
+- **Approved by the user** on 2026-10-12, every item as recommended: D-031 to D-033 accepted, version 0.2.0, `.mcp.json` in the repo, the v0.2 runs committed.
+- **Test with a real host** (2026-10-14, D-031): Claude Code started the server from `.mcp.json` and answered four questions in 7 calls. It passes `structuredContent` to its model. For GRD vs SLC it searched twice and found the SLC section that `make ask` misses; for Doñana it searched again with the national park's name. The first connection after a reboot took 4.7 s (Claude Code's probe timed out while the server started from the cold disk, then it reconnected by itself); warm, the server starts in 1.0 s.
+- **Pending:** the `v0.2` tag, created and pushed only on the user's OK.
+
 ## Environment baseline (2026-10-08)
 
 | Item | Value |
@@ -221,11 +239,15 @@ _Last updated: 2026-10-11_
 - **GPU detection after a WSL restart:** right after a restart, Ollama's GPU discovery timed out while reading its CUDA libraries from the cold HDD, and Ollama fell back to the CPU (`inference compute ... library=cpu` in the log). `sudo systemctl restart ollama` fixed it once the libraries were in the disk cache. Check after every restart (see "How to resume").
 - **Stale schema in a running container:** `docker-compose.yml` bind-mounts the single file `db/schema.sql`. A bind mount of a file keeps pointing at the old file when an editor replaces it, so the container started before step 8 still saw the schema without the `tsv` column (found in step 12, building a fresh database inside it). It only matters for databases created inside an old container; `make clean && make up` creates a new one.
 - **Long runs with Ollama:** watch `MemAvailable` while they run, and stop them below 2 GiB. If WSL freezes, look for "disabling mmap" and "discovery" lines in `journalctl -u ollama` before anything else, and avoid `nvidia-smi` while the system is unresponsive. Step 13 has the details.
+- **stdout in an MCP server:** the SDK moves fd 1 to stderr while it serves, but text that a `print()` leaves in Python's buffer is written when the process exits, after fd 1 points at the protocol again. `mcp_server.py` points `sys.stdout` at stderr once the transport is open (D-031).
+- **Empty agent answers:** Gemma can end a turn after a tool result without writing anything (`eval_count` 1). It happened for the Madrid scenes question on 2026-10-11, every time, and in none of the 72 earlier agent answers. The agent eval now fails empty answers (D-033).
 - **Memory budget:** with both models loaded, the GPU uses 5.4 of 8 GiB and WSL uses 5.5 of 9.7 GiB of RAM. Postgres fits, but running other heavy workloads at the same time (such as a local Kubernetes cluster) could make RAM tight.
 
 ## Next
 
-**Step 14:** an MCP server exposing `search_docs` and `search_scenes`, the next extension in the [README](../README.md#extensions-not-implemented). The agent's tools are already plain methods with JSON Schemas in `tools.py`. Smaller follow-ups from step 13, not chosen yet: retrying a rejected place in mixed questions, the remaining "[1]" after scene facts, and new held-out agent questions. After that, OpenSearch is the last extension.
+**Finish step 14:** the `v0.2` tag on the user's OK, and the push.
+
+**After it:** OpenSearch is the last planned extension; the reranker is still pending among the smaller experiments in the README. Smaller follow-ups, not chosen yet: asking the model again after an empty answer (D-033), retrying a rejected place in mixed questions, the remaining "[1]" after scene facts, and new held-out agent questions.
 
 The current `make ask` pipeline, for reference: translate the question (Gemma, temperature 0), vector search (bge-m3, original question) and BM25 full-text search (English question), reciprocal rank fusion, top 5 passages to Gemma. Corpus: 5 SentiWiki pages and 6 PDFs, 568 chunks. Eval: hit@5 0.880, MRR@5 0.810 over 25 questions (`eval/results/2026-10-11T113743-pdfs.json`).
 
@@ -237,5 +259,6 @@ The current `make ask` pipeline, for reference: translate the question (Gemma, t
 4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index` (about 80 s and a minute); otherwise `make index` alone confirms there is nothing to do.
 5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in about 15 s once Gemma is loaded (it translates the questions); `ARGS="--method vector"` skips Gemma.
 6. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.
-7. The comparisons of generated answers (steps 10 to 12), the BM25 cross-check and the PDF checks (page anchors, token counts, heading fonts) ran as throwaway scripts in a session scratchpad, so they are not in the repo. What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 to D-026.
-8. `make agent` and `make eval-agent` need the network (the Copernicus STAC API and Nominatim). Geocoded places are cached in `data/geocode.json`.
+7. The comparisons of generated answers (steps 10 to 12), the BM25 cross-check and the PDF checks (page anchors, token counts, heading fonts) ran as throwaway scripts in a session scratchpad, so they are not in the repo. So did the probes of step 14 (the MCP wire tests, the English-query measure and the comparison of the agent's tool outputs). What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 to D-026, D-031 and D-032.
+8. `make agent`, `make eval-agent` and `make mcp-check` need the network (the Copernicus STAC API and Nominatim). Geocoded places are cached in `data/geocode.json`. `make mcp-check` takes about 10 s and does not load Gemma.
+9. **MCP with Claude Code:** `.mcp.json` registers the server; a new Claude Code session in this folder asks to approve it (`/mcp` shows its state). Postgres and Ollama must be running. The first start after a reboot is slow (about 5 s) and Claude Code's first probe may time out; it reconnects by itself.

@@ -27,7 +27,7 @@ from sentinel1_rag.db import connect
 from sentinel1_rag.geocode import ATTRIBUTION, Geocoder
 from sentinel1_rag.ollama import Ollama
 from sentinel1_rag.scenes import item_url
-from sentinel1_rag.tools import SCHEMAS, Toolbox
+from sentinel1_rag.tools import SCHEMAS, Toolbox, scene_line
 
 # Model turns per question. A question about scenes and documentation takes two: one with both
 # calls, one with the answer.
@@ -156,10 +156,7 @@ def print_scenes(toolbox: Toolbox) -> None:
             print("    none found")
             continue
         for s in search.scenes:
-            print(
-                f"  {s.acquired[:10]} {s.acquired[11:16]}  {s.id[:3]} {s.mode:<3} {'+'.join(s.polarisations):<6}"
-                f" {s.orbit:<10} track {s.relative_orbit:<4} {s.id}"
-            )
+            print(f"  {scene_line(s)}")
         if search.more:
             print(f"  (the {len(search.scenes)} newest; the catalogue has more: narrow the dates to see them)")
         print(f"  Metadata of a scene: {item_url(search.collection, '<name>')}")
@@ -187,6 +184,9 @@ def main() -> None:
             print(f"\nResult of {call.tool} (turn {call.turn}):\n" + textwrap.indent(call.result, "    "))
     if run.answer is None:
         print(f"\nNo answer after {MAX_TURNS} turns.")
+    elif not run.answer:
+        # Gemma can end its turn after a tool result without writing anything (D-032).
+        print("\nThe model ended its turn without writing an answer. --show-results prints what the tools returned.")
     else:
         print(f"\n{run.answer}")
     numbers = cited_numbers(run.answer or "")

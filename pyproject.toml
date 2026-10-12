@@ -1,12 +1,13 @@
 [project]
 name = "sentinel1-rag"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local RAG over the Sentinel-1 SentiWiki documentation (Ollama + Postgres/pgvector)"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4>=4.15.0",
     "httpx>=0.28.1",
+    "mcp>=2.3,<3",
     "pdfplumber>=0.11.10",
     "pgvector>=0.5.0",
     "psycopg[binary]>=3.3.6",

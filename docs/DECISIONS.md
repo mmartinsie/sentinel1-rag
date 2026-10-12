@@ -826,6 +826,7 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
     - *place:* the place found contains an expected point;
     - *passages:* a passage the model read comes from a section labelled in `eval/questions.yaml` (the labels are reused by id);
     - *citations:* an answerable question gets a cited answer, an unanswerable one no citations, and an answer that read no passages cites none.
+    - *answered* (added in step 14, D-033): the answer is not empty.
   - A question passes when every check that applies passes. "Today" is fixed in the file (2026-10-11), so relative dates have one right answer. Scenes are not checked, because the catalogue grows.
   - **18 questions,** all drafted by Claude: 5 about documentation, 8 about scenes, 5 mixed; 10 in Spanish, 8 in English.
     - `tuning` (12): the 5 probe questions, plus 7 that were held out in the first run and then used for the fixes.
@@ -883,3 +884,95 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - **With `use_mmap: true`** and both models loaded at 100% GPU: Gemma's runner 3.1 GB, "used" RAM 2.0 GiB instead of 7.8, available 7.7 GiB instead of 1.9, and no "memory pressure" line in the log.
   - `make eval` reproduces `eval/results/2026-10-11T113743-pdfs.json` exactly with the new option: metrics, ranks, the 20 chunks of every question and the translations.
   - **After raising WSL to 12 GB** (11.7 GiB visible), Ollama fell back to the CPU three times: its GPU discovery has 30 s, and reading its 1.3 GB of CUDA libraries from the cold hard disk took 10.4 s (1.2 s once cached). Restarting Ollama after reading them found the GPU.
+
+## D-031: An MCP server on stdio, built on the official SDK's low-level `Server`
+
+- **Status:** Accepted (step 14, 2026-10-12)
+- **Decision:**
+  - **`make mcp`** (`mcp_server.py`) serves `search_docs` and `search_scenes` over MCP's stdio transport: a host (Claude Code, Claude Desktop, an IDE) starts it as a subprocess and sends JSON-RPC 2.0 messages on its stdin, one per line, reading the answers on its stdout.
+  - **Library:** the official Python SDK, `mcp>=2.3,<3`, with its low-level `Server`. The input schemas are built from the agent's `SCHEMAS` (`tools.py`), so the agent and the server describe the same arguments; the server only changes descriptions and adds `confirm_place` (D-032).
+  - **Both protocol eras:** the SDK answers the `initialize` handshake of revisions up to 2025-11-25 and the per-request metadata of 2026-07-28 on the same process, and the client's first message decides which. The server declares the `tools` capability, a title and short `instructions` for the host.
+  - **Errors:** a problem the model can fix (a wrong argument, a bad date, a place not found, a service down) is a result with `isError: true` and the agent's wording; an unknown tool is a JSON-RPC error, `-32602`.
+  - **Annotations:** both tools are read-only (`readOnlyHint`); `search_scenes` is open-world (`openWorldHint`), because it calls Nominatim and the Copernicus catalogue.
+  - **stdout:** after the SDK has taken the protocol channel, `sys.stdout` points at stderr, so a stray `print()` can never reach the protocol. The server logs one line per call to stderr.
+  - **One call at a time,** run in a worker thread so that the event loop keeps reading messages. Each call opens its own database connection; the Ollama client, the HTTP client and the geocoder (with its cache and its one-request-per-second limit) are shared.
+  - **`make mcp-check`** (`mcp_check.py`) starts the server as a host would and checks it through the SDK's client, in both eras (below).
+  - **`.mcp.json`** in the repository root registers the server for Claude Code, which asks before using a project's server.
+  - The package version is now 0.2.0; the server reports it, and the User-Agent is built from it.
+- **Alternatives considered:**
+  - *The SDK's high-level `MCPServer`* (FastMCP before v2): decorators that derive each schema from the function's type hints. The schemas would be written a second time, as types, and could drift from the agent's, which were tuned on the agent eval (D-027).
+  - *JSON-RPC written by hand,* as the Ollama client (D-007) and the agent loop were: about 150 lines, but the protocol changed in July 2026, and serving both eras means the handshake, per-request metadata, `server/discover`, version errors and cancellation. The agent loop already shows the mechanics of tool calling; here the point is to interoperate with real hosts.
+  - *Streamable HTTP:* it needs a port, `Origin` validation and authentication, for a server that only a local host uses.
+  - *Calls in parallel:* the geocoder's cache file and rate limit, and the Ollama client, are not made for threads, and one person asking questions does not need them.
+  - *The MCP Inspector* to check the server: it needs Node, which is not installed in WSL.
+- **Why:** MCP lets any host use the project's tools without code written for that host. The SDK keeps the server correct across protocol revisions, and the low-level `Server` takes the existing JSON Schemas as they are, which keeps one description of each tool.
+- **Trade-offs:**
+  - **21 more packages** (pydantic, starlette, uvicorn, jsonschema, …), because the SDK also brings its HTTP transports.
+  - **stdio only:** the host must run on the same machine, inside WSL.
+  - **Calls wait for each other:** a host that sends both searches at once gets them one after the other (about 1–2 s more).
+  - **The host decides,** not this code: the agent's forced documentation search and its system prompt (D-027) do not exist here. The server can only describe its tools and send `instructions`, which a host may ignore.
+  - **Nominatim through a host:** the policy allows lookups triggered by a person, cached and at most one per second (D-028); a host's model could make many calls in a loop, which the limit and the cache slow down but do not stop.
+- **Verified [2026-10-11]:**
+  - **Specification:** the current revision is 2026-07-28 (modelcontextprotocol.io). It removed sessions: there is no `initialize`, every request carries its protocol version and client capabilities in `_meta`, servers must implement `server/discover`, and "an open connection, such as a STDIO process, is not a conversation or session". Revisions up to 2025-11-25 use the handshake. stdio messages are newline-delimited, and the server "MUST NOT write anything to its stdout that is not a valid MCP message". Tool errors the model can act on go in the result with `isError: true`; an unknown tool is a protocol error. A tool with an `outputSchema` must return `structuredContent` that conforms to it.
+  - **SDK:** `mcp` 2.3.0 on PyPI (2026-10-02), the v2 line since 2026-07-28; FastMCP was renamed `MCPServer` in v2. The low-level `Server` takes `input_schema` and `output_schema` as plain JSON Schema and does not validate arguments. Its `run` serves both eras (`serve_dual_era_loop`); the SDK knows revisions 2024-11-05 to 2025-11-25 (handshake) and 2026-07-28.
+  - **Probe** (a throwaway server with one tool, raw JSON-RPC): a client sending `initialize` with 2025-06-18 got that version back, and `tools/list` and `tools/call` worked; a client sending `server/discover` with 2026-07-28 metadata got `supportedVersions ["2026-07-28"]`; a request without `_meta` got `-32602`. The SDK's client negotiated 2025-11-25 with `mode="legacy"` and 2026-07-28 with `mode="auto"`, received the `instructions` in both, and raised an error for `structuredContent` that did not match the `outputSchema`.
+  - **stdout:** the SDK moves fd 1 to stderr while it serves and keeps the protocol on a copy, but a `print()` inside a tool stayed in Python's buffer and reached the client when the server exited, after fd 1 was put back: the client logged "Failed to parse JSONRPC message from server" once per run. With `sys.stdout = sys.stderr` after the transport opens, the line went to stderr and the client logged nothing.
+  - **This server, raw JSON-RPC** in both eras: every line on stdout parsed as JSON, nothing followed the last answer, the logs were on stderr, and the server exited by itself when its stdin closed.
+  - **`make mcp-check`:** all 19 checks pass, 6 with the handshake in 5.1 s (4.1 s of it the first `search_docs`, loading bge-m3) and 13 with per-request metadata in 2.6 s: the server's name and version, the instructions, the two tools with the agent's arguments plus `confirm_place`, 5 passages with their section and URL, 10 scenes over Rotterdam in September 2026 with their names in the text, `isError` for an unknown argument, a bad date and a small place (twice in a row, as nothing is remembered), the small place searched with `confirm_place`, and `-32602` for an unknown tool.
+  - **Claude Code** (code.claude.com/docs/en/mcp): a project's `.mcp.json` lists servers under `mcpServers`, and Claude Code asks before using them in an interactive session; `${CLAUDE_PROJECT_DIR:-.}` is the recommended form for project paths; tool output is limited to 25,000 tokens by default.
+  - **With a real host [2026-10-14]:** Claude Code, in a new session in the repository, started the server from `.mcp.json` once the user approved it, and listed both tools with their schemas (`confirm_place` included); the server's `instructions` reached the model. Four questions, 7 calls, all answered:
+    - *Connection:* Claude Code's log says that its `server/discover` probe timed out while the server was starting, the server then rejected `initialize` (its first message had already been the modern probe), and a second `server/discover` connected on revision 2026-07-28 without restarting the process, in 4.7 s. That was the first start after a reboot, from the cold hard disk; warm, the server answers `server/discover` 1.0 s after launch (0.73 s of it importing the SDK).
+    - *What the model reads:* Claude Code passes the `structuredContent` JSON to its model rather than the text block, and an `isError` result as an error with its message.
+    - *"¿Qué diferencia hay entre un producto GRD y uno SLC?":* two `search_docs` calls with English queries. The first returned the product-family sections, the known weak spot (D-022); a second, more specific query found Product Definition 5.2.1 (each SLC pixel is a complex I/Q value with amplitude and phase), which the single search of `make ask` does not reach for this question.
+    - *Madrid, last week:* one call with `days: 7` (and start and end, which are required); 4 scenes over the city.
+    - *Rotterdam and the IW mode:* both tools called at once, served one after the other; 5 scenes, and the IW sections of the wiki and of the Product Definition.
+    - *Doñana, SLC, September 2026:* the small-place error for "Doñana, Spain" (a peak), then a second call with "Parque Nacional de Doñana, Huelva, Spain", which found the national park and its 10 newest SLC scenes (the catalogue has more); `confirm_place` was not needed.
+    - *Times:* the first `search_docs` took 15 s (bge-m3 loading after the reboot), the other calls 0.2–0.5 s.
+    - The host's model was Claude, which knew how the server was designed, so this shows that the server works in a real host, not how an unknown model uses it.
+
+## D-032: The server's tools stand alone on every call, and the host's model writes the query in English
+
+- **Status:** Accepted (step 14, 2026-10-12)
+- **Decision:**
+  - **No state across calls,** as revision 2026-07-28 requires: every call gets a new `SceneFinder` and its own database connection.
+    - *Passages* are numbered 1 to 5 within each result, and each carries its section path and URL, so the host's model can cite a link. In the agent, numbers run across the whole conversation and the code prints the sources (D-027); the server cannot print anything in the host.
+    - *A place under 1 km across* is rejected unless the call says `confirm_place: true`, a new optional argument that only the server has. The agent keeps its rule: the same place asked for twice goes through (D-028). The size check lives once, in `SceneFinder.find`, which raises `SmallPlace`; the agent and the server each add their own way to confirm.
+  - **`search_docs` without a language model:** the query description asks for English, the language of the documents, and the server runs the default retrieval (hybrid, BM25, top 5) with that one query for both halves. Translating is left to the host's model, so the server only needs bge-m3 and Postgres, not Gemma.
+  - **Results:** text for the host's model plus `structuredContent` that conforms to the tool's `outputSchema`.
+    - `search_docs`: the passages with number, section, URL and text.
+    - `search_scenes`: the place found (name, OpenStreetMap type, bounding box), the dates and filters searched, the agent's summary, the scenes with their product names and metadata URLs, whether the catalogue has more, and the OpenStreetMap attribution. The text also lists the scenes: hiding their names was for Gemma, which copied them slowly (D-027), and a host's user sees only what the host's model writes.
+  - **Shared code:** `tools.py` gains `SceneFinder` (the argument checks, the geocoding, the size check and the catalogue search, moved out of `Toolbox` unchanged), `SmallPlace` and `scene_line`, the table row that `make agent` already printed. The agent's `Toolbox` uses them, with the same results.
+- **Alternatives considered:**
+  - *One `Toolbox` per server process:* numbers and the "asked twice" rule would carry over between unrelated conversations of the host, and the specification says a server must not treat a connection as a session.
+  - *Dropping the size check in the server* and leaving it to the host's model, which sees the place's type and size: it would ask Nominatim's first match for "Doñana, Spain", a peak, without a word.
+  - *Translating with Gemma in the server,* as `make ask` does: the same 22 of 25 (below), but every host would load a 6 GB model, taking about a minute from the hard disk the first time, only to translate.
+  - *Text results only:* a client could not show the sources or the scenes from data, only from what the model wrote.
+  - *Hiding the scene names, as for the agent:* a host's model would have no names to give the user.
+- **Why:** the agent's tools assumed one conversation and a model that the project controls; a server talks to unknown hosts and models, one call at a time. What the agent kept in memory now travels in the arguments or in the result. The English query was measured before it was chosen.
+- **Trade-offs:**
+  - **A non-English query weakens the full-text half.** Vector search crosses languages, BM25 does not: with the Spanish questions as they are, the hybrid search finds 18 of 25 in its top 5 instead of 22 (D-026, "hybrid, not translated"). The schema and the instructions ask for English, but the host's model decides.
+  - **The host's English is not measured:** Gemma's translations stood in for it below.
+  - **Longer results:** every passage carries its URL (about 200 characters for a PDF), and a scene search lists up to 10 product names.
+  - **A small place needs one more call,** and the model has to read the error to learn about `confirm_place`, which is also in the schema.
+- **Verified [2026-10-11]:**
+  - **English query for both halves** (throwaway script, the 25 eval questions; Gemma's translations from `eval/results/2026-10-11T113743-pdfs.json` stand in for the host's query, and English questions stay as they are): hit@1 0.760, hit@3 0.840, hit@5 0.880 (22 of 25), hit@10 0.920, MRR@5 0.810, the same as the cited run. Three ranks moved: `grd-vs-slc` 13th to 12th, `iw-swath-resolution` 1st to 2nd, `orbit-files` 2nd to 1st. The rule agreed in the plan was to keep translating in the server if hit@5 dropped by more than one question.
+  - **Through the protocol:** the same 25 queries sent to the running server as `search_docs` calls (SDK client, revision 2026-07-28) gave the same top-5 ranks for every question: 22 of 25, MRR@5 0.810.
+  - **The agent is unchanged:** 18 `Toolbox` calls (scene searches with every kind of argument, the errors, a small place asked for twice, an unknown tool and a wrong argument) returned identical text before and after the refactor, compared as JSON. Its eval on v0.2 is in D-033.
+
+## D-033: The agent eval fails empty answers, and `make agent` says when the answer is empty
+
+- **Status:** Accepted (step 14, 2026-10-12)
+- **Decision:**
+  - `make eval-agent` gains the check *answered*, for every question: the agent's final answer is not empty. Before it, an empty answer to a question about scenes only passed, because the citation check for those questions asks only that no `[n]` is cited.
+  - `make agent` prints "The model ended its turn without writing an answer" instead of an empty line.
+  - The loop does not ask the model again after an empty answer: that would change the agent's behaviour, which the eval would have to measure again, and is left for a later step.
+- **Alternatives considered:**
+  - *Only documenting it:* the eval would keep counting an empty answer as a pass.
+  - *Retrying in the loop now:* one more turn after an empty answer. It probably fixes this question, but it needs its own measurement, and v0.2 was meant to add the MCP server, not change the agent.
+- **Why:** a check that an empty answer passes measures less than its name says. The step-13 runs had no empty answer, so their numbers stand.
+- **Trade-offs:** the Madrid scenes question now fails every run, until the loop handles empty answers.
+- **Verified [2026-10-11 and 2026-10-12]:**
+  - **First v0.2 run** (`eval/results/2026-10-11T181107-agent-v0.2.json`, before the check): the checks counted 14 of 18, against 13 in the cited step-13 run (`…152216-agent-final`). The extra pass was `scenes-madrid-week` ("¿Hay imágenes Sentinel-1 GRD de Madrid de la última semana?"), whose answer was empty: Gemma ended its second turn at once (`eval_count` 1, `done_reason` "stop"), and an empty answer cites no "[1]". One other question made different calls ("Doñana" instead of "Doñana, Spain", with the same checks) and 7 answers were worded differently.
+  - **Not caused by step 14:** the empty answer came back in 5 of 5 runs of `make agent` with the new code, in 2 of 2 with the code of step 13 (`git archive HEAD`), and with Gemma unloaded first. The cause is not known: the search finds the same 3 scenes on the same days that the cited run's answer reports, and temperature 0 is not exactly repeatable here (D-029), so a small difference in the tool result or in Ollama's state may be enough to make the end of the turn the most likely first token.
+  - **The step-13 runs:** none of their 72 answers is empty or missing, so *answered* would pass for all of them and their scores do not change.
+  - **With the check** (`eval/results/2026-10-12T143532-agent-v0.2-answered.json`): 13 of 18, held-out 5 of 6, *answered* 17 of 18. The failures are those of the cited step-13 run, except that `scenes-madrid-week` now fails *answered* instead of *citations*. Lowest available RAM: 7.9 GiB in both v0.2 runs.

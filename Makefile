@@ -1,5 +1,5 @@
 # Project entry points.
-.PHONY: up down ingest index ask agent eval eval-agent clean
+.PHONY: up down ingest index ask agent mcp mcp-check eval eval-agent clean
 
 # Start Postgres + pgvector and wait until it accepts connections.
 up:
@@ -28,6 +28,16 @@ ask:
 # scenes: make agent Q="..." [ARGS="--show-results --today 2026-10-11 --think"]
 agent:
 	uv run python -m sentinel1_rag.agent $(ARGS) "$$Q"
+
+# Run the MCP server on stdio. An MCP host starts it (see .mcp.json); run by hand, it waits for
+# JSON-RPC messages on stdin. The @ keeps make from echoing the command into the protocol channel.
+mcp:
+	@uv run python -m sentinel1_rag.mcp_server
+
+# Start the MCP server as a host would and check its tools through the protocol, with both the
+# initialize handshake and the 2026-07-28 per-request metadata. Needs the network.
+mcp-check:
+	uv run python -m sentinel1_rag.mcp_check
 
 # Measure retrieval on eval/questions.yaml (hit@k, MRR) and save the run in eval/results/.
 # Same defaults and options as ask (--method, --no-translate, --top-k, --lexical-ranking); name a run with

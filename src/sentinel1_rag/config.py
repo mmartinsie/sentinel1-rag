@@ -1,6 +1,7 @@
 """Paths, services, models, project identity and the list of source pages."""
 
 import os
+from importlib.metadata import version
 from pathlib import Path
 
 import yaml
@@ -15,7 +16,7 @@ QUESTIONS_FILE = ROOT / "eval" / "questions.yaml"
 AGENT_QUESTIONS_FILE = ROOT / "eval" / "agent_questions.yaml"
 RESULTS_DIR = ROOT / "eval" / "results"
 
-USER_AGENT = "sentinel1-rag/0.1 (+https://github.com/mmartinsie/sentinel1-rag; learning project)"
+USER_AGENT = f"sentinel1-rag/{version('sentinel1-rag')} (+https://github.com/mmartinsie/sentinel1-rag; learning project)"
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 # Matches the defaults in docker-compose.yml; set it if you override them in .env.
