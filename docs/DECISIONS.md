@@ -976,3 +976,81 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - **Not caused by step 14:** the empty answer came back in 5 of 5 runs of `make agent` with the new code, in 2 of 2 with the code of step 13 (`git archive HEAD`), and with Gemma unloaded first. The cause is not known: the search finds the same 3 scenes on the same days that the cited run's answer reports, and temperature 0 is not exactly repeatable here (D-029), so a small difference in the tool result or in Ollama's state may be enough to make the end of the turn the most likely first token.
   - **The step-13 runs:** none of their 72 answers is empty or missing, so *answered* would pass for all of them and their scores do not change.
   - **With the check** (`eval/results/2026-10-12T143532-agent-v0.2-answered.json`): 13 of 18, held-out 5 of 6, *answered* 17 of 18. The failures are those of the cited step-13 run, except that `scenes-madrid-week` now fails *answered* instead of *citations*. Lowest available RAM: 7.9 GiB in both v0.2 runs.
+
+## D-034: OpenSearch as a second search backend, fed from Postgres
+
+- **Status:** Accepted (step 15, 2026-10-14)
+- **Decision:**
+  - **Service:** `opensearchproject/opensearch:3.9.0` in `docker-compose.yml`, under the Compose profile `opensearch`, so that `make up` still starts Postgres alone. One node (`discovery.type: single-node`), the security plugin disabled (no TLS, no users), the port published on `127.0.0.1` only, a fixed 1 GB heap, and its own volume. `make opensearch-up` starts it; `make down` and `make clean` now include it.
+  - **Index:** `make opensearch-index` (`opensearch.py`) copies every chunk from Postgres into the index `sentinel1-chunks`: chunk id, section, position, URL, text, the field `text` with the same words as Postgres's `tsv` (section and content), and the stored bge-m3 vector. Nothing is embedded again, so both backends search identical vectors. The index is rebuilt whole each time (a few seconds), with one shard, no replica and one merged segment.
+  - **In sync:** the index's `_meta` keeps a fingerprint of Postgres's chunks (their number and a hash of their ids, which change whenever a page is indexed again). `--backend opensearch` stops with "out of date… run `make opensearch-index`" when it does not match, and with a clear message when OpenSearch is down or the index is missing.
+  - **Use:** `--backend pgvector|opensearch` in `make ask` and `make eval`, with the same methods, translation and top-k; results files record the backend. Two combinations stop before any model call: `ts_rank` with OpenSearch, and `hybrid-native` with pgvector.
+  - **Client:** raw REST with httpx, as for Ollama, STAC and Nominatim (D-007).
+  - **pgvector stays the default:** the default retrieval finds the same answers on both (D-035, D-036), and Postgres is lighter.
+- **Alternatives considered:**
+  - *`opensearch-py`:* one more dependency, and it hides the requests that this step is about.
+  - *Embedding the chunks again for OpenSearch:* about a minute of bge-m3, for the same vectors; and the comparison would also depend on the embedding being repeatable.
+  - *Updating the index page by page,* as `make index` does: more code for 568 chunks that load in seconds.
+  - *OpenSearch 2.19.6,* the maintained 2.x line: 3.9 is the current release.
+  - *The security plugin with the demo configuration:* it needs an admin password and TLS for a service that listens only on localhost.
+  - *Replacing pgvector:* the measurements gave no reason to (below).
+- **Why:** to compare the engines, everything else must be equal: the same chunks, the same vectors, the same queries and the same eval. Copying from Postgres guarantees it, and the fingerprint keeps the copy honest.
+- **Trade-offs:**
+  - **Heavier:** a 2.88 GB image (pgvector's: 665 MB), 1.4–1.6 GiB of RAM for the container (Postgres: 30–75 MiB), and 36–64 s to start (Postgres: about 13 s).
+  - **A second copy** to rebuild after every `make index` that changes something.
+  - **No security:** acceptable only because the port is bound to localhost.
+- **Verified [2026-10-14]:**
+  - **Image:** 3.9.0 is the newest stable tag on Docker Hub (2026-09-29; 2.19.6 is the 2.x line). It reports Lucene 10.5.1 and JVM 25, a 1 GiB heap, and the plugins `opensearch-knn` and `opensearch-neural-search`. With `DISABLE_SECURITY_PLUGIN` and `DISABLE_INSTALL_DEMO_CONFIG` it starts without `OPENSEARCH_INITIAL_ADMIN_PASSWORD` and answers over plain HTTP. `vm.max_map_count` in WSL is already 1048576.
+  - **Defaults of a new k-NN index:** `index.knn.algo_param.ef_search` 100, `index.knn.advanced.approximate_threshold` 0 (graphs are built even for small segments), one replica.
+  - **Loading:** 568 chunks in 3.5–7.5 s (reading Postgres 0.2–0.3 s, bulk 1.9–2.9 s, merge and refresh 1.4–1.5 s); 5.1 MiB on disk, one segment.
+  - **Checks:** a changed fingerprint, an unreachable URL and a missing index each stop with their message; `make ask --backend opensearch` answers with cited sources; `make eval` on pgvector still reproduces `eval/results/2026-10-11T113743-pdfs.json` exactly; after `make down` and `make opensearch-up` the index and the search pipeline are still there and in sync.
+
+## D-035: k-NN with Faiss's HNSW and pgvector's parameters; the vector results are identical
+
+- **Status:** Accepted (step 15, 2026-10-14)
+- **Decision:** the `embedding` field is a `knn_vector` of 1024 dimensions, `space_type: cosinesimil`, method `hnsw` on the `faiss` engine (OpenSearch's default), with pgvector's parameters: `m` 16, `ef_construction` 64, and `ef_search` 40 instead of OpenSearch's 100. OpenSearch's score, (2 − d) / 2 for a cosine distance d, is turned back into the distance, so `--show-context` prints the same numbers as with pgvector. Ties are ordered by section and position, as in Postgres (D-020).
+- **Alternatives considered:**
+  - *The Lucene engine:* OpenSearch's other HNSW implementation, which ignores `ef_search` and uses k. Faiss is the default and was the first to try; with recall 1.000 there was nothing for another engine to improve.
+  - *OpenSearch's default `ef_search` (100):* a larger search than pgvector's, which would mix two differences in one comparison.
+  - *Exact search only* (`script_score`): used here to measure recall, not as the search.
+- **Why:** with the same vectors and the same graph parameters, any difference would come from the HNSW implementations; there turned out to be none in the results.
+- **Trade-offs:** at 568 chunks HNSW is not needed by either engine (D-006); this measures agreement, not speed at scale. Over HTTP, a vector search costs OpenSearch about 3 ms more than Postgres.
+- **Verified [2026-10-14]:**
+  - **Scores:** for the five nearest chunks of a question, OpenSearch's score equals (2 − d) / 2 for pgvector's distance d, to 4 decimals, with the same chunks in the same order.
+  - **Eval, vector search** (`eval/results/2026-10-14T214507-os-vector.json` against `…113745-pdfs-vector`): the same 20 sections in the same order for all 25 questions, scores within 0.0001; hit@5 0.800 and MRR@5 0.673 on both.
+  - **Recall against exact search** (25 eval questions): OpenSearch's HNSW 1.000 at 5, 20 and 40 neighbours; pgvector's HNSW (forced with `enable_seqscan = off`, `ef_search` 40) 1.000, 0.998 and 0.993, worst question 0.975 at 40. pgvector's planner uses the exact scan at this size anyway (D-006), which is what the backend comparison runs against.
+  - **Memory of the graph:** one graph, 2,356 KB of native memory (outside the JVM heap).
+  - **Latency** (throwaway script; the question vectors computed beforehand, 25 questions × 5 runs, from Python): vector search median 3.6 ms on pgvector (exact scan), 6.5 ms on OpenSearch.
+
+## D-036: OpenSearch's BM25 uses Postgres's stop words; its own hybrid query is measured too
+
+- **Status:** Accepted (step 15, 2026-10-14)
+- **Decision:**
+  - **Analyser:** the field `text` uses a custom analyser that rebuilds OpenSearch's `english` (standard tokenizer, English possessives, lowercase, stop words, Porter stemming) with Postgres's 127 English stop words (the Snowball list of `english.stop`) instead of Lucene's 33. BM25 keeps Lucene's defaults, k1 1.2 and b 0.75, as in D-023.
+  - **Hybrid search:** `--method hybrid` fuses OpenSearch's two lists in Python, with the same reciprocal rank fusion as pgvector (D-020), so that only the engines differ. `--method hybrid-native` sends OpenSearch's own `hybrid` query (a BM25 `match` and a `knn` query, 40 candidates each) through a search pipeline with `score-ranker-processor`, technique `rrf`, rank constant 60, which `make opensearch-index` creates.
+- **Alternatives considered:**
+  - *OpenSearch's built-in `english` analyser:* measured. Its short stop list keeps question words ("what", "how", "does", "which", "why", "can", "from") as search terms, and BM25 found 19 of 25 answers in its top 5.
+  - *Snowball's English stemmer (Porter2),* which Postgres's `english_stem` uses, instead of Porter: no change at all on the eval.
+  - *Fusing by normalised scores* (`normalization-processor`, min-max or L2), OpenSearch's other hybrid option: a different method from the one measured in steps 8–11.
+- **Why:** with the built-in analyser the comparison measured two stop lists rather than two engines. With Postgres's list, BM25 on OpenSearch finds more answers in its top 5 than BM25 in SQL, and the hybrid search stays as good.
+- **Trade-offs:**
+  - **A custom analyser** is one more thing to know about the index, and differs from what an OpenSearch user would assume.
+  - **Not identical to Postgres:** OpenSearch splits "Sentinel-1" into "sentinel" and "1" where Postgres keeps "-1" (and adds compounds such as "ground-rang"), and Lucene stores each field's length approximately, in one byte: one chunk of 169 words in Postgres counts as 152 in OpenSearch's BM25. The lexical top 5 still differs for 12 of the 25 questions.
+  - **BM25 alone is better at 5 and worse at 10:** hit@10 0.840 against 0.880 in Postgres.
+- **Verified [2026-10-14]:**
+  - **Analysis of the 25 translated questions:** all 25 get other terms from the built-in analyser than from Postgres: question words, "1" for "-1", "us" for "use".
+  - **BM25 with the question translated** (throwaway script for the analyser variants, then `eval/results/2026-10-14T214621-os-lexical-en.json`), hit@5 / MRR@5 / hit@10, and the questions with the same top 5 as Postgres:
+
+    | Full-text search | hit@5 | MRR@5 | hit@10 | Same top 5 as Postgres |
+    |---|---|---|---|---|
+    | Postgres, BM25 in SQL (`…113757-pdfs-lexical-en`) | 0.800 | 0.663 | 0.880 | — |
+    | OpenSearch, built-in `english` analyser | 0.760 | 0.605 | 0.880 | 2 of 25 |
+    | OpenSearch, Postgres's stop words | **0.840** | **0.687** | 0.840 | 13 of 25 |
+    | the same, with Snowball's stemmer | 0.840 | 0.687 | 0.840 | 13 of 25 |
+
+    With Postgres's stop words, the introduction of the TOPS deramping note rises from 10th to 2nd; `thermal-denoising` falls from 9th to 15th.
+  - **Hybrid search** (`…214725-os-hybrid`, `…214741-os-hybrid-native`, against `…113743-pdfs`): hit@5 0.880 and MRR@5 0.810 for both, as on pgvector; the first correct chunk at the same rank for 23 of 25 questions (`grd-vs-slc` 13th → 15th, `tops-deramping` 10th → 6th); the same top-5 sections in the same order for 18 of 25, and the same sections in another order for 3 more. With the built-in analyser the metrics were the same but the top 5 agreed for only 8 questions. Python RRF and the native query give the same top 5 for all 25 questions; below 5 they differ for 11, where equal ranks are broken differently.
+  - **Answers** for the 4 questions whose hybrid top 5 has other sections (`iw-swath-resolution`, `level2-ocean`, `sigma0-calibration`, `thermal-denoising`), 2 runs on each backend: 6 of 8 cite a correct section on both, and `sigma0-calibration` fails on both, as before (D-026). The answers say the same, in other words.
+  - **Explain:** for one chunk, OpenSearch's BM25 uses dl 152 and avgdl 112.9 where the SQL uses 169 and 113.9; IDF follows the same formula.
+  - **Latency** (as in D-035): BM25 median 44.9 ms in SQL (corpus statistics on every query, D-023) against 4.9 ms in OpenSearch; hybrid 47.0 ms on Postgres, 15.2 ms on OpenSearch with Python RRF (two requests) and 9.0 ms with the native query (one).
+  - **Memory:** the OpenSearch container used 1.45–1.65 GiB, Postgres 33–73 MiB; the lowest available RAM during the step's runs, with Gemma, bge-m3, Postgres and OpenSearch loaded, was 7.1 GiB of 11.7.

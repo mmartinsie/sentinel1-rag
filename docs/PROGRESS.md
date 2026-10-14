@@ -4,9 +4,9 @@ _Last updated: 2026-10-14_
 
 ## Current step
 
-**Step 14: MCP server exposing `search_docs` and `search_scenes` (approved by the user on 2026-10-12, every item as recommended; tested with Claude Code as the host on 2026-10-14; committed locally, not pushed).** Still to do: the `v0.2` tag, created and pushed only on the user's OK. All steps of the brief (0–7) are done, and so are the extension steps 8 to 13.
+**None: step 15 is done (approved by the user on 2026-10-14) and committed; its push and the `v0.3` tag wait for the user's "súbelo".** All steps of the brief (0–7) are done, and so are the extension steps 8 to 15, which cover all five planned extensions. What comes next is open (see "Next").
 
-**Versions:** the annotated tag `v0.1` marks the end of step 12 (commit `2c8d919`, README with hit@5 0.880 from `…113743-pdfs.json`); it was created and pushed on 2026-10-11 with the user's OK, because a public post links to it. Never move or delete it. **v0.2** = the agent (step 13) + the MCP server (step 14); its tag is proposed when step 14 is approved, and created and pushed only on the user's OK. The reranker is not in v0.2.
+**Versions:** the annotated tag `v0.1` marks the end of step 12 (commit `2c8d919`, README with hit@5 0.880 from `…113743-pdfs.json`); it was created and pushed on 2026-10-11 with the user's OK, because a public post links to it. Never move or delete it. **v0.2** = the agent (step 13) + the MCP server (step 14): annotated tag on commit `4247db7`, created and pushed on 2026-10-14 with the user's OK. The reranker is not in v0.2. **v0.3** = OpenSearch compared with pgvector (step 15): approved by the user on 2026-10-14, as an annotated tag on the step-15 commit, created and pushed together with that commit. Any later tag is created and pushed only on the user's OK.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -24,7 +24,8 @@ _Last updated: 2026-10-14_
 | 11 | BM25 instead of `ts_rank` for the full-text search | Done |
 | 12 | Extension: technical PDFs from the Sentinel-1 document library | Done |
 | 13 | Extension: agent with a STAC `search_scenes` tool | Done |
-| 14 | Extension: MCP server exposing `search_docs` and `search_scenes` | In review |
+| 14 | Extension: MCP server exposing `search_docs` and `search_scenes` | Done (v0.2) |
+| 15 | Extension: OpenSearch k-NN compared with pgvector | Done (v0.3) |
 
 ## Done
 
@@ -212,7 +213,19 @@ _Last updated: 2026-10-14_
 - **Found: the empty answer** (D-033). Gemma now ends its turn without text for the Madrid scenes question, every time, with the code of step 13 too, so this step did not cause it. The eval's citation check passed an answer that cites nothing. Chosen by the user at the review: the eval gains the check *answered*, and `make agent` says when the answer is empty; retrying in the loop is left for later. With the check: 13 of 18, held-out 5 of 6 (`eval/results/2026-10-12T143532-agent-v0.2-answered.json`). The step-13 runs have no empty answer, so their numbers stand.
 - **Approved by the user** on 2026-10-12, every item as recommended: D-031 to D-033 accepted, version 0.2.0, `.mcp.json` in the repo, the v0.2 runs committed.
 - **Test with a real host** (2026-10-14, D-031): Claude Code started the server from `.mcp.json` and answered four questions in 7 calls. It passes `structuredContent` to its model. For GRD vs SLC it searched twice and found the SLC section that `make ask` misses; for Doñana it searched again with the national park's name. The first connection after a reboot took 4.7 s (Claude Code's probe timed out while the server started from the cold disk, then it reconnected by itself); warm, the server starts in 1.0 s.
-- **Pending:** the `v0.2` tag, created and pushed only on the user's OK.
+- **Pushed and tagged** on 2026-10-14: commit `4247db7` on `main`, annotated tag `v0.2`.
+
+### Step 15
+
+- **Plan approved by the user** on 2026-10-14, every item as recommended.
+- **Verified first** (D-034): OpenSearch 3.9.0 is the newest stable image (Lucene 10.5.1); with the security plugin disabled it starts without an admin password; a new k-NN index defaults to Faiss, `ef_search` 100 and graphs even for small segments.
+- **Code:**
+  - `docker-compose.yml`: the `opensearch` service under a Compose profile (one node, security off, localhost only, 1 GB heap, its own volume). `make opensearch-up`, `make opensearch-index`; `make down` and `make clean` include it.
+  - `opensearch.py`: raw REST with httpx; the index rebuilt from Postgres with the stored vectors (Faiss HNSW with pgvector's m 16, ef_construction 64, ef_search 40; BM25 on a custom English analyser with Postgres's stop words); a fingerprint of Postgres's chunk ids in `_meta`; vector, exact, BM25 and native hybrid searches; the RRF search pipeline.
+  - `retrieval.py`: `opensearch=` in `retrieve`, method `hybrid-native`, `open_backend` (checks the combination and that the copy is in sync). `--backend pgvector|opensearch` in `make ask` and `make eval`; results record the backend.
+- **Results** (D-035, D-036): vector search identical (the same 20 sections for all 25 questions, recall 1.000 against exact search); BM25 hit@5 0.840 / MRR@5 0.687 against 0.800 / 0.663 in SQL (0.760 / 0.605 with the built-in `english` analyser, whose short stop list keeps question words); the default hybrid search 0.880 / 0.810 on both, and the native hybrid query the same; the 4 questions whose top 5 changes get answers just as correct. OpenSearch's BM25 is 9 times faster (4.9 against 44.9 ms), pgvector's vector search 2 times faster (3.6 against 6.5 ms); OpenSearch uses 1.4–1.6 GiB of RAM and 36–64 s to start. pgvector stays the default.
+- **Runs:** `eval/results/2026-10-14T214507-os-vector.json`, `…214621-os-lexical-en`, `…214725-os-hybrid`, `…214741-os-hybrid-native`. The analyser variants, recall, latency and answer comparisons ran as throwaway scripts.
+- **Approved by the user** on 2026-10-14, every item as recommended: D-034 to D-036 accepted, Postgres's stop words in the OpenSearch analyser, pgvector stays the default, `--method hybrid-native` kept, the 4 runs committed, and the tag `v0.3`. The package version is now 0.3.0, which the MCP server reports.
 
 ## Environment baseline (2026-10-08)
 
@@ -241,13 +254,12 @@ _Last updated: 2026-10-14_
 - **Long runs with Ollama:** watch `MemAvailable` while they run, and stop them below 2 GiB. If WSL freezes, look for "disabling mmap" and "discovery" lines in `journalctl -u ollama` before anything else, and avoid `nvidia-smi` while the system is unresponsive. Step 13 has the details.
 - **stdout in an MCP server:** the SDK moves fd 1 to stderr while it serves, but text that a `print()` leaves in Python's buffer is written when the process exits, after fd 1 points at the protocol again. `mcp_server.py` points `sys.stdout` at stderr once the transport is open (D-031).
 - **Empty agent answers:** Gemma can end a turn after a tool result without writing anything (`eval_count` 1). It happened for the Madrid scenes question on 2026-10-11, every time, and in none of the 72 earlier agent answers. The agent eval now fails empty answers (D-033).
+- **OpenSearch:** the container takes 1.4–1.6 GiB of RAM with a 1 GB heap, and 36–64 s to become healthy from the hard disk. With Gemma, bge-m3, Postgres and OpenSearch all loaded, available RAM stayed at 7 GiB or more of 11.7 (step 15).
 - **Memory budget:** with both models loaded, the GPU uses 5.4 of 8 GiB and WSL uses 5.5 of 9.7 GiB of RAM. Postgres fits, but running other heavy workloads at the same time (such as a local Kubernetes cluster) could make RAM tight.
 
 ## Next
 
-**Finish step 14:** the `v0.2` tag on the user's OK, and the push.
-
-**After it:** OpenSearch is the last planned extension; the reranker is still pending among the smaller experiments in the README. Smaller follow-ups, not chosen yet: asking the model again after an empty answer (D-033), retrying a rejected place in mixed questions, the remaining "[1]" after scene facts, and new held-out agent questions.
+**Push step 15 and the `v0.3` tag** when the user says "súbelo". All five planned extensions are done; what to do next is open, and the user chooses. Candidates: the reranker and the other smaller experiments listed in the README, asking the model again after an empty agent answer (D-033), retrying a rejected place in mixed agent questions, and new held-out agent questions.
 
 The current `make ask` pipeline, for reference: translate the question (Gemma, temperature 0), vector search (bge-m3, original question) and BM25 full-text search (English question), reciprocal rank fusion, top 5 passages to Gemma. Corpus: 5 SentiWiki pages and 6 PDFs, 568 chunks. Eval: hit@5 0.880, MRR@5 0.810 over 25 questions (`eval/results/2026-10-11T113743-pdfs.json`).
 
@@ -259,6 +271,7 @@ The current `make ask` pipeline, for reference: translate the question (Gemma, t
 4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index` (about 80 s and a minute); otherwise `make index` alone confirms there is nothing to do.
 5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in about 15 s once Gemma is loaded (it translates the questions); `ARGS="--method vector"` skips Gemma.
 6. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.
-7. The comparisons of generated answers (steps 10 to 12), the BM25 cross-check and the PDF checks (page anchors, token counts, heading fonts) ran as throwaway scripts in a session scratchpad, so they are not in the repo. So did the probes of step 14 (the MCP wire tests, the English-query measure and the comparison of the agent's tool outputs). What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 to D-026, D-031 and D-032.
+7. The comparisons of generated answers (steps 10 to 12), the BM25 cross-check and the PDF checks (page anchors, token counts, heading fonts) ran as throwaway scripts in a session scratchpad, so they are not in the repo. So did the probes of step 14 (the MCP wire tests, the English-query measure and the comparison of the agent's tool outputs) and the measurements of step 15 (analyser variants, HNSW recall, latency, answers). What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 to D-026, D-031, D-032 and D-034 to D-036.
 8. `make agent`, `make eval-agent` and `make mcp-check` need the network (the Copernicus STAC API and Nominatim). Geocoded places are cached in `data/geocode.json`. `make mcp-check` takes about 10 s and does not load Gemma.
-9. **MCP with Claude Code:** `.mcp.json` registers the server; a new Claude Code session in this folder asks to approve it (`/mcp` shows its state). Postgres and Ollama must be running. The first start after a reboot is slow (about 5 s) and Claude Code's first probe may time out; it reconnects by itself.
+9. **OpenSearch (optional):** `make opensearch-up` (about a minute), then `make opensearch-index` (seconds) whenever `make index` has changed anything; `ARGS="--backend opensearch"` in `make ask` or `make eval`. `make down` stops it too.
+10. **MCP with Claude Code:** `.mcp.json` registers the server; a new Claude Code session in this folder asks to approve it (`/mcp` shows its state). Postgres and Ollama must be running. The first start after a reboot is slow (about 5 s) and Claude Code's first probe may time out; it reconnects by itself.

@@ -11,8 +11,8 @@ records the rank of the first chunk that comes from one of those sections:
   otherwise, to see what another k would give).
 
 Only retrieval is measured, so Gemma is used only to translate the questions for the lexical
-search (on by default; --method vector or --no-translate skip it). Each run is saved in
-eval/results/.
+search (on by default; --method vector or --no-translate skip it). --backend opensearch runs
+the same searches in OpenSearch (D-034). Each run is saved in eval/results/.
 """
 
 import argparse
@@ -26,7 +26,19 @@ from sentinel1_rag.config import EMBED_MODEL, QUESTIONS_FILE, RESULTS_DIR, ROOT
 from sentinel1_rag.db import connect
 from sentinel1_rag.fetch import is_pdf
 from sentinel1_rag.ollama import Ollama
-from sentinel1_rag.retrieval import DEFAULT_METHOD, DEFAULT_RANKING, METHODS, RANKINGS, TOP_K, Hit, retrieve, score_label
+from sentinel1_rag.retrieval import (
+    BACKENDS,
+    DEFAULT_BACKEND,
+    DEFAULT_METHOD,
+    DEFAULT_RANKING,
+    METHODS,
+    RANKINGS,
+    TOP_K,
+    Hit,
+    open_backend,
+    retrieve,
+    score_label,
+)
 from sentinel1_rag.translate import to_english, use_translation
 
 # Retrieve deeper than the top k so that a miss still shows how far down the answer was.
@@ -93,10 +105,11 @@ def print_report(
     method: str,
     translate: bool,
     ranking: str,
+    backend: str,
 ) -> None:
     model = f" | {EMBED_MODEL}" if method != "lexical" else ""
     lexical = "" if method == "vector" else f" ({ranking}{', question in English' if translate else ''})"
-    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {method}{lexical}{model} | top {top_k}")
+    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {backend} | {method}{lexical}{model} | top {top_k}")
     for name, group in scores.items():
         values = " | ".join(f"{metric} {value:.3f}" for metric, value in group.items() if metric != "questions")
         print(f"  {name + ' (' + str(group['questions']) + ')':<17} {values}")
@@ -135,6 +148,7 @@ def main() -> None:
         "--lexical-ranking", choices=RANKINGS, default=DEFAULT_RANKING,
         help=f"how the full-text search ranks chunks (default {DEFAULT_RANKING})",
     )
+    parser.add_argument("--backend", choices=BACKENDS, default=DEFAULT_BACKEND, help=f"where to search (default {DEFAULT_BACKEND})")
     args = parser.parse_args()
     if not 1 <= args.top_k <= DEPTH:
         raise SystemExit(f"--top-k must be between 1 and {DEPTH}")
@@ -156,12 +170,14 @@ def main() -> None:
         check_labels(questions, known)
         configs = [json.loads(c) for (c,) in conn.execute("SELECT DISTINCT index_config FROM documents")]
         chunks = conn.execute("SELECT count(*) FROM chunks").fetchone()[0]
+        opensearch = open_backend(args.backend, conn, args.method, args.lexical_ranking)
 
         results = []
         for q in questions:
             english = to_english(ollama, q["question"]) if args.translate else None
             hits = retrieve(
-                conn, ollama, q["question"], k=DEPTH, method=args.method, english=english, ranking=args.lexical_ranking
+                conn, ollama, q["question"], k=DEPTH, method=args.method, english=english,
+                ranking=args.lexical_ranking, opensearch=opensearch,
             )
             relevant = {(r["url"], r["section"]) for r in q["relevant"]}
             results.append(
@@ -181,7 +197,7 @@ def main() -> None:
             )
 
     scores = scores_by_group(results, args.top_k)
-    print_report(results, scores, chunks, args.top_k, args.method, args.translate, args.lexical_ranking)
+    print_report(results, scores, chunks, args.top_k, args.method, args.translate, args.lexical_ranking, args.backend)
 
     now = datetime.now().astimezone()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -189,6 +205,7 @@ def main() -> None:
     record = {
         "run_at": now.isoformat(timespec="seconds"),
         "label": args.label,
+        "backend": args.backend,
         "method": args.method,
         "translate": args.translate,
         "lexical_ranking": None if args.method == "vector" else args.lexical_ranking,

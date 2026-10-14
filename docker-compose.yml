@@ -26,5 +26,28 @@ services:
       timeout: 3s
       retries: 30
 
+  # OpenSearch with its k-NN plugin, to compare with pgvector (D-034). Only started by
+  # `make opensearch-up` (the "opensearch" profile), so `make up` stays light.
+  opensearch:
+    image: opensearchproject/opensearch:3.9.0
+    profiles: ["opensearch"]
+    environment:
+      discovery.type: single-node
+      # Local development only: no TLS, no users. The port below is bound to localhost.
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      # A fixed 1 GB heap: Gemma, bge-m3 and Postgres share WSL's 12 GB with it.
+      OPENSEARCH_JAVA_OPTS: "-Xms1g -Xmx1g"
+    ports:
+      - "127.0.0.1:${OPENSEARCH_PORT:-9200}:9200"
+    volumes:
+      - osdata:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health?wait_for_status=yellow\\&timeout=2s >/dev/null"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
 volumes:
   pgdata:
+  osdata:

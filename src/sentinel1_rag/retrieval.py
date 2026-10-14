@@ -7,6 +7,10 @@ Three methods:
 - hybrid (the default): both lists merged with reciprocal rank fusion (D-020, D-022).
 
 The lexical search can take the question translated into English instead (translate.py, D-021).
+
+Two backends answer the same searches over the same chunks and vectors (D-034): Postgres with
+pgvector (the default), and OpenSearch (opensearch.py), which also has its own hybrid query
+(method hybrid-native, D-036).
 """
 
 from dataclasses import dataclass, replace
@@ -16,13 +20,16 @@ from pgvector import Vector
 
 from sentinel1_rag.config import EMBED_MODEL
 from sentinel1_rag.ollama import Ollama
+from sentinel1_rag.opensearch import OpenSearchError, OpenSearchIndex
 
 # Hybrid search with the lexical half in English finds as many answers in its top 5 as vector
 # search did in its top 10, with prompts about 40 % shorter (D-022; it was 10 in D-018).
 TOP_K = 5
 
-METHODS = ("vector", "lexical", "hybrid")
+METHODS = ("vector", "lexical", "hybrid", "hybrid-native")
 DEFAULT_METHOD = "hybrid"
+BACKENDS = ("pgvector", "opensearch")
+DEFAULT_BACKEND = "pgvector"
 # How the lexical search ranks the chunks that share words with the question.
 RANKINGS = ("bm25", "ts_rank")
 DEFAULT_RANKING = "bm25"
@@ -79,6 +86,7 @@ def score_label(method: str, ranking: str = DEFAULT_RANKING) -> str:
         "vector": "cosine distance: lower is closer",
         "lexical": f"{ranking}: higher is closer",
         "hybrid": "RRF score: higher is closer",
+        "hybrid-native": "OpenSearch's RRF score: higher is closer",
     }[method]
 
 # Hybrid search fuses this many chunks from each list. An HNSW scan returns at most
@@ -112,26 +120,62 @@ def retrieve(
     method: str = DEFAULT_METHOD,
     english: str | None = None,
     ranking: str = DEFAULT_RANKING,
+    opensearch: OpenSearchIndex | None = None,
 ) -> list[Hit]:
     """The k chunks that best match the question, best first.
 
     `english`, the question translated into English, replaces it in the lexical search only,
-    and `ranking` picks how that search ranks its chunks.
+    and `ranking` picks how that search ranks its chunks. With `opensearch`, the searches run
+    in OpenSearch instead of Postgres (D-034); `conn` is still used by the pgvector backend only.
     """
+    if opensearch is not None and ranking != "bm25":
+        raise ValueError("OpenSearch ranks full-text matches with BM25 only")
     if method == "vector":
         if english is not None:
             raise ValueError("the English translation only applies to lexical and hybrid search")
-        return vector_search(conn, ollama, question, k)
+        return vector_search(conn, ollama, question, k, opensearch)
     if method == "lexical":
-        return lexical_search(conn, english or question, k, ranking)
+        return lexical_search(conn, english or question, k, ranking, opensearch)
     if method == "hybrid":
-        return hybrid_search(conn, ollama, question, k, english, ranking)
+        return hybrid_search(conn, ollama, question, k, english, ranking, opensearch)
+    if method == "hybrid-native":
+        if opensearch is None:
+            raise ValueError("hybrid-native is OpenSearch's own hybrid query: use it with the opensearch backend")
+        return native_hybrid_search(ollama, opensearch, question, k, english)
     raise ValueError(f"unknown retrieval method {method!r}; expected one of {METHODS}")
 
 
-def vector_search(conn: psycopg.Connection, ollama: Ollama, question: str, k: int) -> list[Hit]:
+def open_backend(backend: str, conn: psycopg.Connection, method: str, ranking: str) -> OpenSearchIndex | None:
+    """The OpenSearch index for --backend opensearch, checked against the chunks in Postgres;
+    None for pgvector. Combinations that one backend cannot run stop here, with the reason."""
+    if backend == "pgvector":
+        if method == "hybrid-native":
+            raise SystemExit("--method hybrid-native is OpenSearch's own hybrid query: add --backend opensearch")
+        return None
+    if ranking != "bm25":
+        raise SystemExit("--lexical-ranking ts_rank exists only in Postgres: OpenSearch ranks with BM25")
+    index = OpenSearchIndex()
+    try:
+        index.check_in_sync(conn)
+    except OpenSearchError as exc:
+        raise SystemExit(str(exc)) from None
+    return index
+
+
+def embed_question(ollama: Ollama, question: str) -> list[float]:
     # The question is embedded as it is: bge-m3 needs no query prefix (D-003).
-    vector = Vector(ollama.embed(EMBED_MODEL, [question])[0])
+    return ollama.embed(EMBED_MODEL, [question])[0]
+
+
+def vector_search(
+    conn: psycopg.Connection, ollama: Ollama, question: str, k: int, opensearch: OpenSearchIndex | None = None
+) -> list[Hit]:
+    if opensearch is not None:
+        # OpenSearch scores cosine similarity as (2 - d) / 2, where d is pgvector's cosine
+        # distance (checked to 4 decimals, D-035), so the score is turned back into a distance.
+        hits = opensearch.vector_search(embed_question(ollama, question), k)
+        return [os_hit(hit, score=2 - 2 * hit["_score"]) for hit in hits]
+    vector = Vector(embed_question(ollama, question))
     # The top k come from chunks alone, and documents is joined afterwards: with the join
     # inside, the planner never considers the HNSW index (checked with EXPLAIN, D-015).
     return _fetch(
@@ -143,7 +187,11 @@ def vector_search(conn: psycopg.Connection, ollama: Ollama, question: str, k: in
     )
 
 
-def lexical_search(conn: psycopg.Connection, question: str, k: int, ranking: str = DEFAULT_RANKING) -> list[Hit]:
+def lexical_search(
+    conn: psycopg.Connection, question: str, k: int, ranking: str = DEFAULT_RANKING, opensearch: OpenSearchIndex | None = None
+) -> list[Hit]:
+    if opensearch is not None:
+        return [os_hit(hit, score=hit["_score"]) for hit in opensearch.lexical_search(question, k)]
     if ranking == "bm25":
         params = {"question": question, "k": k, "k1": BM25_K1, "b": BM25_B}
         return _fetch(conn, BM25_QUERY, params, best_first="DESC")
@@ -172,6 +220,7 @@ def hybrid_search(
     k: int,
     english: str | None = None,
     ranking: str = DEFAULT_RANKING,
+    opensearch: OpenSearchIndex | None = None,
 ) -> list[Hit]:
     """Reciprocal rank fusion: each list adds 1 / (RRF_K + rank) to a chunk's score (D-020).
 
@@ -179,8 +228,8 @@ def hybrid_search(
     The vector half always embeds the original question: translating it as well scored lower (D-021).
     """
     lists = [
-        vector_search(conn, ollama, question, CANDIDATES),
-        lexical_search(conn, english or question, CANDIDATES, ranking),
+        vector_search(conn, ollama, question, CANDIDATES, opensearch),
+        lexical_search(conn, english or question, CANDIDATES, ranking, opensearch),
     ]
     scores: dict[int, float] = {}
     hits: dict[int, Hit] = {}
@@ -190,6 +239,21 @@ def hybrid_search(
             hits.setdefault(hit.chunk_id, hit)
     best = sorted(hits.values(), key=lambda hit: (-scores[hit.chunk_id], hit.tie_break()))[:k]
     return [replace(hit, score=scores[hit.chunk_id]) for hit in best]
+
+
+def native_hybrid_search(
+    ollama: Ollama, opensearch: OpenSearchIndex, question: str, k: int, english: str | None = None
+) -> list[Hit]:
+    """OpenSearch's hybrid query: the same two searches, fused by its own RRF pipeline (D-036).
+    As in hybrid_search, the vector half embeds the original question and the BM25 half gets
+    the English one."""
+    hits = opensearch.hybrid_search(embed_question(ollama, question), english or question, k, CANDIDATES)
+    return [os_hit(hit, score=hit["_score"]) for hit in hits]
+
+
+def os_hit(hit: dict, score: float) -> Hit:
+    source = hit["_source"]
+    return Hit(source["chunk_id"], source["section"], source["chunk_index"], source["url"], source["content"], score)
 
 
 def shared_ranks(hits: list[Hit]) -> list[int]:

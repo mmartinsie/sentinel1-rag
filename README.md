@@ -4,7 +4,7 @@ A small, local and free RAG (retrieval-augmented generation) system that answers
 
 Everything runs on one machine: Ollama serves the embedding model (`bge-m3`) and the language model (`gemma4:e4b-it-qat`), and PostgreSQL stores the chunks with their vectors (pgvector) and a full-text index. Questions can be asked in Spanish or English about the English documentation.
 
-An [agent](#agent-documentation-and-scene-search) (`make agent`) can also search the Copernicus catalogue for the scenes Sentinel-1 acquired over a place and dates, and combine both in one answer. The same two tools are offered to other applications through an [MCP server](#mcp-server) (`make mcp`), so that a host such as Claude Code can search the documentation and the catalogue with its own model.
+An [agent](#agent-documentation-and-scene-search) (`make agent`) can also search the Copernicus catalogue for the scenes Sentinel-1 acquired over a place and dates, and combine both in one answer. The same two tools are offered to other applications through an [MCP server](#mcp-server) (`make mcp`), so that a host such as Claude Code can search the documentation and the catalogue with its own model. The same searches can also run on [OpenSearch](#opensearch-versus-pgvector) instead of Postgres, to compare the two engines on identical data.
 
 ```
 $ make ask Q="¿Cómo se elimina el ruido térmico de un producto GRD de Sentinel-1 y por qué no viene eliminado por defecto?"
@@ -103,7 +103,7 @@ Every design choice, with the alternatives weighed and what was measured, is rec
 
 **hit@5 is 0.880 and MRR@5 0.810 over 25 questions**, from [eval/results/2026-10-11T113743-pdfs.json](eval/results/2026-10-11T113743-pdfs.json). The eval is deterministic: the translations are made at temperature 0, and repeated runs give the same chunks in the same order.
 
-These numbers are the same for [v0.1 and v0.2](#versions): v0.2 adds the agent and the MCP server but does not change the retrieval, and `make eval` on v0.2 returns the same 20 chunks in the same order for all 25 questions, with the same translations ([eval/results/2026-10-11T180312-v0.2.json](eval/results/2026-10-11T180312-v0.2.json)).
+These numbers are the same for [v0.1, v0.2 and v0.3](#versions): v0.2 adds the agent and the MCP server but does not change the retrieval, and `make eval` on v0.2 returns the same 20 chunks in the same order for all 25 questions, with the same translations ([eval/results/2026-10-11T180312-v0.2.json](eval/results/2026-10-11T180312-v0.2.json)). v0.3 adds OpenSearch as an option; the default search still runs on pgvector and gives the same results.
 
 How to read these numbers:
 
@@ -318,7 +318,7 @@ The arguments are the agent's, built from the same JSON Schemas, and so are the 
 
 ```
 Per-request metadata: protocol 2026-07-28
-  ok   server: sentinel1-rag 0.2.0
+  ok   server: sentinel1-rag 0.3.0
   ok   instructions sent
   ok   tools: search_docs, search_scenes
   ok   search_docs: the agent's arguments: query
@@ -333,6 +333,35 @@ Per-request metadata: protocol 2026-07-28
 **With Claude Code as the host,** in a new session in the repository, four questions went through 7 calls, all answered ([D-031](docs/DECISIONS.md#d-031-an-mcp-server-on-stdio-built-on-the-official-sdks-low-level-server)). Claude Code passes the structured data to its model, not the text. For "¿Qué diferencia hay entre un producto GRD y uno SLC?" its model searched twice, in English, and the second, more specific query found the product definition's section on SLC products (complex values with amplitude and phase), which the single search of `make ask` misses for this question. For "Doñana" it got the small-place error and searched again with the national park's name. The first connection after a reboot took 4.7 s, because the server was slow to start from a cold disk and Claude Code's first probe timed out; it recovered by itself. The host's model knew how the server was designed, so this shows that the server works in a real host, not how any model would use it.
 
 The server writes nothing but protocol messages on stdout, where a stray line would break the host's reading of it. Its log goes to stderr: the protocol revision the client speaks, and one line per call.
+
+## OpenSearch versus pgvector
+
+The same searches can run on OpenSearch 3.9 with its k-NN plugin instead of Postgres: `make opensearch-up` starts it, `make opensearch-index` copies the chunks into it, and `--backend opensearch` uses it in `make ask` and `make eval`. The copy takes the chunks' text **and their stored vectors** from Postgres, so nothing is embedded again and both engines search identical data: any difference comes from the engines ([D-034](docs/DECISIONS.md#d-034-opensearch-as-a-second-search-backend-fed-from-postgres)).
+
+| Method, top 5 (hit@5 / MRR@5) | pgvector and BM25 in SQL | OpenSearch | Same top 5 |
+|---|---|---|---|
+| Vector | 0.800 / 0.673 | 0.800 / 0.673 | 25 of 25 |
+| Full-text, question translated | 0.800 / 0.663 | **0.840 / 0.687** | 13 of 25 |
+| Full-text, with OpenSearch's built-in `english` analyser | | 0.760 / 0.605 | 2 of 25 |
+| **Hybrid (the default)** | **0.880 / 0.810** | **0.880 / 0.810** | 18 of 25 |
+| OpenSearch's own hybrid query (`--method hybrid-native`) | | 0.880 / 0.810 | 18 of 25 |
+
+"Same top 5": questions whose first five sections are the same, in the same order, as on Postgres. The runs are in [eval/results/](eval/results/) (`2026-10-14T2145…-os-*`).
+
+- **Vector search is identical.** With the same graph parameters as pgvector (HNSW, m 16, ef_construction 64, ef_search 40, on OpenSearch's default Faiss engine), OpenSearch returns the same 20 sections in the same order for every question, with the same scores to 4 decimals. Its graph found exactly what an exact search finds, even 40 deep ([D-035](docs/DECISIONS.md#d-035-k-nn-with-faisss-hnsw-and-pgvectors-parameters-the-vector-results-are-identical)).
+- **Full-text search differs, mostly through stop words.** OpenSearch's built-in `english` analyser drops only 33 stop words, so "what", "how", "does" or "which" became search terms, and BM25 found 19 answers in its top 5 instead of Postgres's 20. With Postgres's 127 stop words it finds 21, and the introduction of the TOPS deramping note rises from 10th to 2nd. The rest differs because the two analysers split words like "Sentinel-1" differently and Lucene stores each chunk's length approximately ([D-036](docs/DECISIONS.md#d-036-opensearchs-bm25-uses-postgress-stop-words-its-own-hybrid-query-is-measured-too)).
+- **The default hybrid search ends up the same:** the same metrics, the first correct chunk at the same rank for 23 of 25 questions, and, for the 4 questions whose top 5 has other sections, answers that cite a correct section just as often. OpenSearch's own hybrid query, fused by a search pipeline with reciprocal rank fusion, gives the same top 5 as the fusion in Python.
+
+| | Postgres with pgvector | OpenSearch 3.9 |
+|---|---|---|
+| Search time, median (vector / full-text / hybrid) | 3.6 / 44.9 / 47.0 ms | 6.5 / 4.9 / 15.2 ms (9.0 with its own hybrid query) |
+| HNSW recall at 40 neighbours, against exact search | 0.993 (index forced; the planner scans exactly at this size) | 1.000 |
+| Memory of the container | 30–75 MiB | 1.4–1.6 GiB (1 GiB heap) |
+| Start | about 13 s | 36–64 s |
+| Image | 665 MB | 2.88 GB |
+| Index on disk | 11.5 MiB (table, HNSW 4.9 MiB, full-text 1.0 MiB) | 5.1 MiB |
+
+OpenSearch's BM25 is about 9 times faster than the SQL version, which recomputes the corpus statistics on every query; pgvector's exact scan beats a request over HTTP for vectors. At this size every search takes milliseconds next to seconds of generation, so **pgvector stays the default**: the answers are the same, and Postgres needs a twentieth of the memory.
 
 ## Running it on WSL
 
@@ -364,6 +393,10 @@ make eval     # retrieval metrics (translates the questions with Gemma), saved i
 make agent Q="¿Hay imágenes Sentinel-1 de Madrid de la última semana?"
 make eval-agent   # the agent's tool calls on 18 questions; needs the network
 make mcp-check    # starts the MCP server and checks its tools through the protocol; needs the network
+
+# Optional: the same searches on OpenSearch (about 1.6 GB of RAM)
+make opensearch-up && make opensearch-index
+make eval ARGS="--backend opensearch"
 ```
 
 Measured on a clean clone before the PDFs were added: `make up` 13 s and the first `make ask` about 70 s, almost all of it loading Gemma from a hard disk. With the PDFs, `make ingest` takes about 80 s, most of it reading the PDFs, and `make index` about a minute for the 568 chunks into an empty database. With the models loaded, an answer takes about 4–7 s, and up to about 16 s when it is long. Ollama unloads a model after 5 idle minutes, so the next question pays the load time again.
@@ -377,22 +410,25 @@ Every request asks Ollama to map the model files (`use_mmap`) instead of copying
 | Command | What it does |
 |---|---|
 | `make up` | Starts Postgres + pgvector and waits until it is ready. The database listens on `127.0.0.1:5432` only. |
-| `make down` | Stops the database. The data is kept. |
+| `make down` | Stops the database, and OpenSearch if it runs. The data is kept. |
 | `make ingest` | Downloads the pages and PDFs in `sources.yaml` (once; cached in `data/raw/`) and writes the chunks to `data/chunks/`. |
 | `make index` | Embeds the chunks and stores them. Pages that have not changed are skipped. |
-| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores. `--method vector`, `lexical` or `hybrid`, `--no-translate`, `--top-k N` and `--lexical-ranking ts_rank` change the retrieval; the default is hybrid, translated, BM25, top 5. |
+| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores. `--method vector`, `lexical` or `hybrid`, `--no-translate`, `--top-k N` and `--lexical-ranking ts_rank` change the retrieval; the default is hybrid, translated, BM25, top 5. `--backend opensearch` searches OpenSearch, which also offers `--method hybrid-native`. |
 | `make eval` | Measures retrieval, with the same defaults and options as `make ask`. `ARGS="--label name"` names the run. |
+| `make opensearch-up` | Starts OpenSearch (not started by `make up`) and waits until it answers. |
+| `make opensearch-index` | Copies the chunks and their vectors from Postgres into a new OpenSearch index. Run it again after `make index` changes anything. |
 | `make agent Q="..."` | Answers with the agent, which can search the documentation and the scene catalogue. `ARGS` takes `--show-results` (print what each tool returned), `--today YYYY-MM-DD` and `--think`. |
 | `make eval-agent` | Checks the agent's tool calls on `eval/agent_questions.yaml`. `ARGS` takes `--label name`, `--think`, `--set tuning` or `held-out`, and `--only id ...`. |
 | `make mcp` | Runs the MCP server on stdio. A host starts it (see [Connecting a host](#connecting-a-host)); run by hand, it waits for messages on stdin. |
 | `make mcp-check` | Starts the MCP server and checks its tools through the protocol, with both kinds of client. |
-| `make clean` | Stops the database and deletes its volume and `data/`. |
+| `make clean` | Stops the containers and deletes their volumes and `data/`. |
 
-The defaults work without configuration. `OLLAMA_URL` and `DATABASE_URL` override where the code finds Ollama and Postgres, `STAC_URL` and `NOMINATIM_URL` the catalogue and the geocoder, and `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `POSTGRES_PORT` in a `.env` file override the database settings.
+The defaults work without configuration. `OLLAMA_URL`, `DATABASE_URL` and `OPENSEARCH_URL` override where the code finds Ollama, Postgres and OpenSearch, `STAC_URL` and `NOMINATIM_URL` the catalogue and the geocoder, and `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `POSTGRES_PORT` in a `.env` file override the database settings.
 
 ## Project layout
 
 ```
+docker-compose.yml        Postgres with pgvector, and OpenSearch under the "opensearch" profile
 sources.yaml              the pages and PDFs in the corpus
 db/schema.sql             tables, constraints, the HNSW index and the full-text index
 src/sentinel1_rag/
@@ -405,6 +441,7 @@ src/sentinel1_rag/
   db.py                   database connection
   index.py                make index
   retrieval.py            vector, lexical and hybrid top-k search, shared by ask and eval
+  opensearch.py           make opensearch-index, and the same searches on OpenSearch
   translate.py            translates a question into English for the lexical search
   ask.py                  make ask: prompt, answer and citations
   evaluate.py             make eval
@@ -447,13 +484,12 @@ docs/PROGRESS.md          build log and notes for resuming work
 - **Scene searches need the network** (the Copernicus catalogue and Nominatim) and stop at the 10 newest scenes. Products cannot be downloaded: that needs a Copernicus account.
 - **The MCP server runs on stdio only,** so the host must run on the same machine, inside WSL, and calls are served one at a time. It has no Streamable HTTP transport and no authentication.
 - **The MCP host's model decides how the tools are used.** The server asks for English queries and explains its tools, but cannot enforce what the agent's loop enforces, such as searching the documentation before answering.
+- **OpenSearch is a copy.** Its index is filled from Postgres and must be rebuilt after `make index` changes anything; `--backend opensearch` refuses an out-of-date copy. It runs with its security plugin off, so its port is bound to localhost.
 - **No automated tests.** The checks run while building it are recorded under "Verified" in [docs/DECISIONS.md](docs/DECISIONS.md).
 
-## Extensions (not implemented)
+## Extensions
 
-Four of the five planned extensions are done: a lexical baseline and hybrid search, which with a translated question is now the default (see [Lexical and hybrid search](#lexical-and-hybrid-search)), technical PDFs from the Sentinel-1 document library (see [Technical PDFs](#technical-pdfs)), an agent with a `search_scenes` tool over the Copernicus STAC API (see [Agent](#agent-documentation-and-scene-search)), and an MCP server that offers its tools to other applications (see [MCP server](#mcp-server)). The last one:
-
-1. **OpenSearch k-NN** instead of pgvector, comparing results.
+All five planned extensions are done: a lexical baseline and hybrid search, which with a translated question is now the default (see [Lexical and hybrid search](#lexical-and-hybrid-search)), technical PDFs from the Sentinel-1 document library (see [Technical PDFs](#technical-pdfs)), an agent with a `search_scenes` tool over the Copernicus STAC API (see [Agent](#agent-documentation-and-scene-search)), an MCP server that offers its tools to other applications (see [MCP server](#mcp-server)), and OpenSearch k-NN compared with pgvector (see [OpenSearch versus pgvector](#opensearch-versus-pgvector)).
 
 Smaller experiments that `make eval` can measure in minutes, not run yet: merging the chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, at most two chunks per section in the top 5, adding the SentiWiki's POD or Glossary pages, more PDFs from the library, and a reranker over the top 20.
 
@@ -463,6 +499,7 @@ Smaller experiments that `make eval` can measure in minutes, not run yet: mergin
 |---|---|
 | [v0.1](https://github.com/mmartinsie/sentinel1-rag/tree/v0.1) | The RAG over the SentiWiki and six technical PDFs: hybrid search with the question translated for BM25, top 5, page-cited answers, and the retrieval eval. |
 | [v0.2](https://github.com/mmartinsie/sentinel1-rag/tree/v0.2) | Adds the agent with scene search (`make agent`, `make eval-agent`) and the MCP server (`make mcp`, `make mcp-check`). The retrieval is unchanged: `make eval` gives the same results as in v0.1 (see [Retrieval results](#retrieval-results)). |
+| [v0.3](https://github.com/mmartinsie/sentinel1-rag/tree/v0.3) | Adds OpenSearch as an optional second search engine (`make opensearch-up`, `make opensearch-index`, `--backend opensearch`), compared with pgvector on the same chunks and vectors (see [OpenSearch versus pgvector](#opensearch-versus-pgvector)). pgvector stays the default, and `make eval` still gives the same results as in v0.1. |
 
 ## License
 

@@ -13,7 +13,19 @@ import textwrap
 from sentinel1_rag.config import CHAT_MODEL, CHAT_NUM_CTX
 from sentinel1_rag.db import connect
 from sentinel1_rag.ollama import Ollama
-from sentinel1_rag.retrieval import DEFAULT_METHOD, DEFAULT_RANKING, METHODS, RANKINGS, TOP_K, Hit, retrieve, score_label
+from sentinel1_rag.retrieval import (
+    BACKENDS,
+    DEFAULT_BACKEND,
+    DEFAULT_METHOD,
+    DEFAULT_RANKING,
+    METHODS,
+    RANKINGS,
+    TOP_K,
+    Hit,
+    open_backend,
+    retrieve,
+    score_label,
+)
 from sentinel1_rag.translate import to_english, use_translation
 
 # Sent with every request (D-002). num_predict stops an answer that never ends.
@@ -99,6 +111,7 @@ def main() -> None:
         "--lexical-ranking", choices=RANKINGS, default=DEFAULT_RANKING,
         help=f"how the full-text search ranks chunks (default {DEFAULT_RANKING})",
     )
+    parser.add_argument("--backend", choices=BACKENDS, default=DEFAULT_BACKEND, help=f"where to search (default {DEFAULT_BACKEND})")
     args = parser.parse_args()
     question = args.question.strip()
     if not question:
@@ -108,12 +121,15 @@ def main() -> None:
     translate = use_translation(args.method, args.translate)
 
     ollama = Ollama()
-    english = to_english(ollama, question) if translate else None
-    if english is not None and english != question:
-        print(f"Lexical search in English: {english}\n")
     with connect() as conn:
+        # Checked before translating, so that an impossible combination costs no Gemma call.
+        opensearch = open_backend(args.backend, conn, args.method, args.lexical_ranking)
+        english = to_english(ollama, question) if translate else None
+        if english is not None and english != question:
+            print(f"Lexical search in English: {english}\n")
         hits = retrieve(
-            conn, ollama, question, k=args.top_k, method=args.method, english=english, ranking=args.lexical_ranking
+            conn, ollama, question, k=args.top_k, method=args.method, english=english,
+            ranking=args.lexical_ranking, opensearch=opensearch,
         )
     if not hits:
         raise SystemExit("The index is empty. Run `make ingest` and `make index` first.")

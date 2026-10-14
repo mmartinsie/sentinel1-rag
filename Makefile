@@ -1,13 +1,13 @@
 # Project entry points.
-.PHONY: up down ingest index ask agent mcp mcp-check eval eval-agent clean
+.PHONY: up down ingest index opensearch-up opensearch-index ask agent mcp mcp-check eval eval-agent clean
 
 # Start Postgres + pgvector and wait until it accepts connections.
 up:
 	docker compose up -d --wait
 
-# Stop the containers. The database volume is kept.
+# Stop the containers, OpenSearch included. The data volumes are kept.
 down:
-	docker compose down
+	docker compose --profile opensearch down
 
 # Download the pages and PDFs in sources.yaml (cached in data/raw/) and split them into data/chunks/.
 ingest:
@@ -16,6 +16,16 @@ ingest:
 # Embed the chunks and store them in Postgres. Unchanged pages are skipped.
 index:
 	uv run python -m sentinel1_rag.index
+
+# Start OpenSearch, the second search backend (D-034), and wait until it answers. It needs about
+# 1.6 GB of RAM and half a minute to start; `make up` does not start it.
+opensearch-up:
+	docker compose --profile opensearch up -d --wait opensearch
+
+# Copy the chunks and their vectors from Postgres into a new OpenSearch index. Run it again after
+# `make index` changes anything; --backend opensearch stops if the copy is out of date.
+opensearch-index:
+	uv run python -m sentinel1_rag.opensearch
 
 # Answer a question with cited sources: make ask Q="..." [ARGS="--show-context --method vector --top-k 10"]
 # The default retrieval is hybrid, with the question translated for the full-text half, top 5.
@@ -40,7 +50,7 @@ mcp-check:
 	uv run python -m sentinel1_rag.mcp_check
 
 # Measure retrieval on eval/questions.yaml (hit@k, MRR) and save the run in eval/results/.
-# Same defaults and options as ask (--method, --no-translate, --top-k, --lexical-ranking); name a run with
+# Same defaults and options as ask (--method, --no-translate, --top-k, --lexical-ranking, --backend); name a run with
 # ARGS="--label <name>". The default translates the questions, so Gemma is loaded.
 eval:
 	uv run python -m sentinel1_rag.evaluate $(ARGS)
@@ -50,7 +60,7 @@ eval:
 eval-agent:
 	uv run python -m sentinel1_rag.evaluate_agent $(ARGS)
 
-# Stop the containers, delete the database volume and the downloaded data.
+# Stop the containers, delete the data volumes (Postgres and OpenSearch) and the downloaded data.
 clean:
-	docker compose down -v
+	docker compose --profile opensearch down -v
 	rm -rf data/

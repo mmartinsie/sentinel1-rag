@@ -26,6 +26,9 @@ STAC_URL = os.environ.get("STAC_URL", "https://stac.dataspace.copernicus.eu/v1")
 # OpenStreetMap's geocoder. Its usage policy asks that the server can be switched without
 # changing the code (D-028).
 NOMINATIM_URL = os.environ.get("NOMINATIM_URL", "https://nominatim.openstreetmap.org")
+# OpenSearch, the second search backend compared with pgvector (D-034), and its index.
+OPENSEARCH_URL = os.environ.get("OPENSEARCH_URL", "http://localhost:9200")
+OPENSEARCH_INDEX = "sentinel1-chunks"
 
 EMBED_MODEL = "bge-m3"
 CHAT_MODEL = "gemma4:e4b-it-qat"
