@@ -1,0 +1,2978 @@
+{
+  "run_at": "2026-10-14T23:31:34+02:00",
+  "label": "rerank",
+  "backend": "pgvector",
+  "method": "hybrid",
+  "translate": true,
+  "lexical_ranking": "bm25",
+  "rerank": {
+    "model": "hf.co/mradermacher/Qwen3-Reranker-0.6B-GGUF:Q8_0",
+    "digest": "5a1ea3ab8b66e04d9ae7559c4861d75cb1c6dfe358dff5ef142c58c6d4ffa6c8",
+    "candidates": 20,
+    "instruction": "Given a question about the Sentinel-1 radar mission, retrieve the documentation passages that answer it"
+  },
+  "top_k": 5,
+  "depth": 20,
+  "chunks": 568,
+  "index_config": [
+    {
+      "chunking": {
+        "max_tokens": 500,
+        "overlap_tokens": 60,
+        "target_tokens": 400,
+        "tokens_per_word": 1.68,
+        "version": 1
+      },
+      "embed_model": "bge-m3",
+      "embed_model_digest": "7907646426070047a77226ac3e684fbbe8410524f7b4a74d02837e43f2146bab",
+      "embed_template": "{section}\n\n{content}"
+    }
+  ],
+  "metrics": {
+    "all": {
+      "hit@1": 0.84,
+      "hit@3": 0.92,
+      "hit@5": 0.96,
+      "hit@10": 0.96,
+      "mrr@5": 0.89,
+      "questions": 25
+    },
+    "blind": {
+      "hit@1": 0.8,
+      "hit@3": 0.8,
+      "hit@5": 1.0,
+      "hit@10": 1.0,
+      "mrr@5": 0.85,
+      "questions": 5
+    },
+    "from-text": {
+      "hit@1": 0.85,
+      "hit@3": 0.95,
+      "hit@5": 0.95,
+      "hit@10": 0.95,
+      "mrr@5": 0.9,
+      "questions": 20
+    },
+    "en": {
+      "hit@1": 0.9,
+      "hit@3": 1.0,
+      "hit@5": 1.0,
+      "hit@10": 1.0,
+      "mrr@5": 0.95,
+      "questions": 10
+    },
+    "es": {
+      "hit@1": 0.8,
+      "hit@3": 0.8666666666666667,
+      "hit@5": 0.9333333333333333,
+      "hit@10": 0.9333333333333333,
+      "mrr@5": 0.85,
+      "questions": 15
+    },
+    "pdf-only": {
+      "hit@1": 0.5,
+      "hit@3": 0.8333333333333334,
+      "hit@5": 0.8333333333333334,
+      "hit@10": 0.8333333333333334,
+      "mrr@5": 0.6666666666666666,
+      "questions": 6
+    },
+    "wiki+pdf": {
+      "hit@1": 1.0,
+      "hit@3": 1.0,
+      "hit@5": 1.0,
+      "hit@10": 1.0,
+      "mrr@5": 1.0,
+      "questions": 11
+    },
+    "wiki-only": {
+      "hit@1": 0.875,
+      "hit@3": 0.875,
+      "hit@5": 1.0,
+      "hit@10": 1.0,
+      "mrr@5": 0.90625,
+      "questions": 8
+    }
+  },
+  "questions": [
+    {
+      "id": "grd-vs-slc",
+      "written": "blind",
+      "lang": "es",
+      "answer_in": "wiki+pdf",
+      "question": "¿Qué diferencia hay entre un producto GRD y uno SLC?",
+      "english": "What is the difference between a GRD product and an SLC product?",
+      "expected": [
+        "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+        "S1 Processing > L1 Algorithms > Ground Range Detected (GRD)",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC)",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.2 Ground Range, Multi-Look, Detected Products (GRD)"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.2 Ground Range, Multi-Look, Detected Products (GRD)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=39",
+          "score": 6.7682
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 6.1948
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 6.1069
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 5.915
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 5.8952
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 5.7307
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.1 Ingestion to Annotated RADAR Geometry Raster > 4.1.1 Product Input",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=14",
+          "score": 5.4208
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 5.3945
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A1 Level 1 Product Description Terminology > A1.1 Main Product Characteristics > A1.1.1 Coordinate System",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=88",
+          "score": 5.2895
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 1 INTRODUCTION > 1.1 Sentinel-1 Product Types for Geocoding",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=7",
+          "score": 4.7747
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 4.7285
+        },
+        {
+          "section": "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=102",
+          "score": 4.5818
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 4.4162
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=46",
+          "score": 4.2811
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 4 SENTINEL-1 PRODUCT FAMILY TREE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=34",
+          "score": 4.2194
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 3.2739
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.1 Ingestion to Annotated RADAR Geometry Raster > 4.1.1 Product Input",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=14",
+          "score": 3.0485
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 6 Denoising and clipping procedures > 6.4 Denoising of SM SLC/GRD and TOPS SLC products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=26",
+          "score": 2.7686
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 2.7642
+        },
+        {
+          "section": "Radiometric Calibration of S-1 Level-1 Products > 3 CALIBRATION LOOK UP TABLES > 3.1 Calibration LUT Description",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_362015d79d4b31d2ec7bfc41d6edf57727461ab4812ae4fbc7d634df98d3db58/ESA-EOPG-CSCOP-TN-0002%20-%20Sentienl-1%20Radiometric%20Calibration%20of%20Products%202015%20-%201.0.pdf#page=4",
+          "score": 2.0017
+        }
+      ]
+    },
+    {
+      "id": "sar-principle",
+      "written": "blind",
+      "lang": "es",
+      "answer_in": "wiki+pdf",
+      "question": "¿Cómo funciona el sensor SAR de Sentinel-1?",
+      "english": "How does the Sentinel-1 SAR sensor work?",
+      "expected": [
+        "S1 Mission > SAR Instrument > Geophysical Measurements",
+        "S1 Products > SAR Products Overview",
+        "S1 Mission > SAR Instrument",
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 7.8625
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.6514
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=23",
+          "score": 5.3224
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.2284
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 4.2907
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.1 Sentinel-1 Acquisition Modes Overview",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=24",
+          "score": 3.6955
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 3.5924
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 3.5507
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.5 Radiometric Corrections > 5.5.1 Standard Corrections",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=41",
+          "score": 3.3253
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 3.0412
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.1 Stripmap Mode (SM)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=29",
+          "score": 3.0124
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Flood Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Flood-Monitoring",
+          "score": 2.88
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.3 Attitude Steering Capabilities > 3.2.3.1 Zero-Doppler Attitude Steering",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=26",
+          "score": 2.3262
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 1.6712
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 2 DOCUMENTS > 2.1 Applicable Documents",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=21",
+          "score": 0.6749
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Satellite Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Satellite-Description",
+          "score": 0.6681
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.1 Range-Doppler (RD) Geolocation",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=23",
+          "score": 0.3341
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.3 Attitude Steering Capabilities > 3.2.3.1 Zero-Doppler Attitude Steering",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=26",
+          "score": 0.2528
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 1 INTRODUCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=7",
+          "score": 0.0067
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.3 Attitude Steering Capabilities > 3.2.3.2 Roll Steering",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=27",
+          "score": -1.3039
+        }
+      ]
+    },
+    {
+      "id": "product-metadata",
+      "written": "blind",
+      "lang": "es",
+      "answer_in": "wiki-only",
+      "question": "¿Qué metadatos contiene un producto Sentinel-1 y cómo se consultan?",
+      "english": "What metadata does a Sentinel-1 product contain and how is it queried?",
+      "expected": [
+        "S1 Products > SAR Products Overview > SAR Naming Convention"
+      ],
+      "rank": 4,
+      "retrieved": [
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 Global Backscatter Model (S1GBM)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-Global-Backscatter-Model-(S1GBM)",
+          "score": 4.9296
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 1 INTRODUCTION > 1.2 Scope",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=19",
+          "score": 4.6654
+        },
+        {
+          "section": "Sentinel-1 > S1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1#S1-Products",
+          "score": 4.178
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 4.1139
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 4.0784
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 4.0202
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 3.8108
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 Global Backscatter Model (S1GBM)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-Global-Backscatter-Model-(S1GBM)",
+          "score": 3.6942
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 9 AUXILIARY DATA FOR L1 PROCESSING",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=83",
+          "score": 3.6843
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 1 INTRODUCTION > 1.3 Sentinel-1 Product Data Types",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=9",
+          "score": 3.6397
+        },
+        {
+          "section": "S1 Products > AIS AUX Products Overview > AIS AUX: Message Data Product Format",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#AIS-AUX:-Message-Data-Product-Format",
+          "score": 3.3946
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 3.2175
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 1 INTRODUCTION > 1.3 Document Structure",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=19",
+          "score": 3.1693
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 2.6058
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 9 AUXILIARY DATA FOR L1 PROCESSING > 9.5 Orbit and Attitude Information",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=84",
+          "score": 1.8545
+        },
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 0.4831
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": 0.4322
+        },
+        {
+          "section": "S1 Processing > Processing Baseline > L1 - L2 Processing Baseline > SETAP Processing Baseline",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#SETAP-Processing-Baseline",
+          "score": -0.2934
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 9 AUXILIARY DATA FOR L1 PROCESSING > 9.2 L1 Processor Parameters",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=84",
+          "score": -1.4141
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 10 AUXILIARY DATA FOR L2 PROCESSING > 10.6 L2 Processor Parameters",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=87",
+          "score": -1.8963
+        }
+      ]
+    },
+    {
+      "id": "grd-content",
+      "written": "blind",
+      "lang": "es",
+      "answer_in": "wiki+pdf",
+      "question": "¿Qué información contiene un producto Sentinel-1 GRD?",
+      "english": "What information does a Sentinel-1 GRD product contain?",
+      "expected": [
+        "S1 Processing > L1 Algorithms > Ground Range Detected (GRD)",
+        "S1 Products > Level-1 Products",
+        "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.2 Ground Range, Multi-Look, Detected Products (GRD)"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.2 Ground Range, Multi-Look, Detected Products (GRD)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=39",
+          "score": 6.7928
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 5.4707
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 5.3389
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 5.3042
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": 5.2165
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": 5.0605
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.2 Extra Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=67",
+          "score": 5.043
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.2 Interferometric Wide Swath L1 Products Definition > 7.2.2 Interferometric Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=63",
+          "score": 5.0268
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.4 Wave L1 Products Definition > 7.4.2 Wave GRD Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=72",
+          "score": 4.5148
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A1 Level 1 Product Description Terminology > A1.1 Main Product Characteristics > A1.1.1 Coordinate System",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=88",
+          "score": 3.7626
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 1 Introduction",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=6",
+          "score": 2.9669
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 4 SENTINEL-1 PRODUCT FAMILY TREE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=34",
+          "score": 2.7262
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Wind Field Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Wind-Field-Processing",
+          "score": 2.1086
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 1.4986
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 1.0035
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 0.7872
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 9 AUXILIARY DATA FOR L1 PROCESSING > 9.5 Orbit and Attitude Information",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=84",
+          "score": 0.3219
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Satellite Parameters for POD",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Satellite-Parameters-for-POD",
+          "score": -0.624
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": -2.0213
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 6 DERAMPING EXAMPLE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=9",
+          "score": -3.2403
+        }
+      ]
+    },
+    {
+      "id": "slc-content",
+      "written": "blind",
+      "lang": "es",
+      "answer_in": "wiki+pdf",
+      "question": "¿Qué información contiene un producto Sentinel-1 SLC?",
+      "english": "What information does a Sentinel-1 SLC product contain?",
+      "expected": [
+        "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+        "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC)"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=37",
+          "score": 7.8522
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 6.4168
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC) > 5.2.1.2 IW SLC Product",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=38",
+          "score": 6.1236
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC) > 5.2.1.4 WV SLC Product",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=38",
+          "score": 5.9977
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC) > 5.2.1.1 SM SLC Product",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=37",
+          "score": 5.7511
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 5.5932
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 5.3757
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 4.981
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 4.7684
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A1 Level 1 Product Description Terminology > A1.1 Main Product Characteristics > A1.1.1 Coordinate System",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=88",
+          "score": 4.6554
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.1 Stripmap SLC Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=55",
+          "score": 4.5633
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 4.3991
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.4 Wave L1 Products Definition > 7.4.1 Wave SLC Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=71",
+          "score": 4.2422
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=46",
+          "score": 3.7706
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 3.5668
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 4 SENTINEL-1 PRODUCT FAMILY TREE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=34",
+          "score": 2.9848
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 2.8144
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Radial Velocity Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Radial-Velocity-Processing",
+          "score": 2.2241
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 1 INTRODUCTION > 1.3 Document Structure",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=19",
+          "score": 2.1452
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 6 DERAMPING EXAMPLE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=9",
+          "score": 1.1889
+        }
+      ]
+    },
+    {
+      "id": "repeat-cycle",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "wiki-only",
+      "question": "What is the repeat cycle of Sentinel-1, and how does a second satellite change it?",
+      "english": "What is the repeat cycle of Sentinel-1, and how does a second satellite change it?",
+      "expected": [
+        "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+        "S1 Mission > Overview of Sentinel-1 Mission > Geographical Coverage"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Orbit",
+          "score": 5.8817
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Geographical Coverage",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geographical-Coverage",
+          "score": 5.5841
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 2.6131
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 0.4591
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.1 Sentinel-1 Acquisition Modes Overview",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=24",
+          "score": 0.3592
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": -1.0198
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": -2.5341
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": -2.6187
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Satellite Parameters for POD",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Satellite-Parameters-for-POD",
+          "score": -2.9614
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": -2.9948
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": -3.0224
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": -3.2152
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": -3.2215
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": -3.4339
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Satellite Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Satellite-Description",
+          "score": -3.51
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Earthquake Analysis",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Earthquake-Analysis",
+          "score": -3.6176
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": -3.6454
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.3 Attitude Steering Capabilities > 3.2.3.1 Zero-Doppler Attitude Steering",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=26",
+          "score": -3.7488
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.6 Geophysical fine perturbations on the target position > 4.6.3 Solid Earth Tide (SET)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=23",
+          "score": -4.1215
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.3 Attitude Steering Capabilities > 3.2.3.2 Roll Steering",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=27",
+          "score": -4.1857
+        }
+      ]
+    },
+    {
+      "id": "iw-swath-resolution",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "wiki+pdf",
+      "question": "¿Qué anchura de barrido y qué resolución espacial tiene el modo IW?",
+      "english": "What swath width and spatial resolution does the IW mode have?",
+      "expected": [
+        "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 8.0054
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=30",
+          "score": 7.7601
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=30",
+          "score": 6.6021
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.3 Extra-Wide Swath Mode (EW)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=31",
+          "score": 5.9431
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.9301
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 5.1354
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 4.8346
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.2 Interferometric Wide Swath L2 Products Definition > 8.2.1 Interferometric Wide Swath OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=77",
+          "score": 4.5901
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.2 Interferometric Wide Swath L1 Products Definition > 7.2.2 Interferometric Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=63",
+          "score": 4.3852
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 4.3559
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Extra Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Extra-Wide-Swath",
+          "score": 4.2189
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 4.2131
+        },
+        {
+          "section": "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE > B2 IW Mode",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=110",
+          "score": 4.1632
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.2 Interferometric Wide Swath L1 Products Definition > 7.2.2 Interferometric Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=63",
+          "score": 4.1299
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A2 Level 2 Product Description Terminology > A2.1 Main Product Characteristics > A2.1.3 Spatial Resolution",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=96",
+          "score": 3.7259
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 3.3103
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC) > 5.2.1.3 EW SLC Product",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=38",
+          "score": 2.799
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Stripmap",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Stripmap",
+          "score": 1.6701
+        },
+        {
+          "section": "S1 Mission > Performance > Radiometric Resolution",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Radiometric-Resolution",
+          "score": -0.5762
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A1 Level 1 Product Description Terminology > A1.1 Main Product Characteristics > A1.1.4 Resolution",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=89",
+          "score": -1.0378
+        }
+      ]
+    },
+    {
+      "id": "topsar-vs-scansar",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "wiki+pdf",
+      "question": "How does the TOPSAR technique improve on conventional ScanSAR?",
+      "english": "How does the TOPSAR technique improve on conventional ScanSAR?",
+      "expected": [
+        "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+        "S1 Processing > L1 Algorithms > Algorithm Overview",
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 6.1626
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 5.4637
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 5.3569
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": 5.2206
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=30",
+          "score": 5.119
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.3 Attitude Steering Capabilities > 3.2.3.1 Zero-Doppler Attitude Steering",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=26",
+          "score": 4.0228
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.3 Extra-Wide Swath Mode (EW)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=31",
+          "score": 0.9933
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 0.8597
+        },
+        {
+          "section": "S1 Mission > SAR Instrument",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument",
+          "score": -0.61
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Extra Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Extra-Wide-Swath",
+          "score": -0.6164
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Algorithm Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Algorithm-Overview",
+          "score": -0.7221
+        },
+        {
+          "section": "Sentinel-1 Product Definition > D PRODUCT DEFINITION RELATED ISSUES > D2 Doppler Centroid Frequency Accuracy",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=129",
+          "score": -1.1359
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 4 Impact of Noise on S-1 products > 4.1 TOPS and azimuth descalloping",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=15",
+          "score": -1.3121
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": -2.1754
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": -2.6603
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": -2.7508
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > SLC Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#SLC-Processing-Algorithms",
+          "score": -3.3394
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": -3.6085
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": -3.7699
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > SLC Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#SLC-Processing-Algorithms",
+          "score": -4.0876
+        }
+      ]
+    },
+    {
+      "id": "ew-mode-use",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "wiki-only",
+      "question": "¿Para qué se utiliza principalmente el modo Extra Wide swath?",
+      "english": "What is the primary use of the Extra Wide swath mode?",
+      "expected": [
+        "S1 Mission > Acquisition Modes > Extra Wide Swath",
+        "S1 Mission > Acquisition Modes"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Acquisition Modes",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes",
+          "score": 7.1623
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.3 Extra-Wide Swath Mode (EW)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=31",
+          "score": 6.2346
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 6.2019
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.2 Interferometric Wide Swath Mode (IW)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=30",
+          "score": 5.9901
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Extra Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Extra-Wide-Swath",
+          "score": 5.7761
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 4.8506
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.2 Extra Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=67",
+          "score": 4.4446
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 4.2557
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.2 Extra Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=67",
+          "score": 4.0415
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 3.9518
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.1 Extra Wide Swath SLC Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=66",
+          "score": 3.8011
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.3 Extra Wide Swath L2 Products Definition > 8.3.1 Extra Wide Swath OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=79",
+          "score": 3.4984
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.3 Extra Wide Swath L2 Products Definition > 8.3.1 Extra Wide Swath OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=79",
+          "score": 3.478
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 3.2748
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.1 Extra Wide Swath SLC Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=66",
+          "score": 3.032
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.3 Extra Wide Swath L2 Products Definition > 8.3.1 Extra Wide Swath OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=79",
+          "score": 2.9388
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.2 Extra Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=67",
+          "score": 2.5776
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.3 Extra Wide Swath L2 Products Definition > 8.3.1 Extra Wide Swath OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=79",
+          "score": 2.5025
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.3 Extra Wide Swath L2 Products Definition > 8.3.1 Extra Wide Swath OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=79",
+          "score": 2.4435
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.1 Ingestion to Annotated RADAR Geometry Raster > 4.1.1 Product Input",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=14",
+          "score": 1.3267
+        }
+      ]
+    },
+    {
+      "id": "wave-vignettes",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "wiki+pdf",
+      "question": "How large are the Wave mode vignettes, and how far apart are they along the orbit?",
+      "english": "How large are the Wave mode vignettes, and how far apart are they along the orbit?",
+      "expected": [
+        "S1 Mission > Acquisition Modes > Wave",
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.4 Wave Mode (WV)"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Mission > Acquisition Modes > Wave",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Wave",
+          "score": 8.246
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.4 Wave Mode (WV)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=32",
+          "score": 7.1345
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Wave",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Wave",
+          "score": 6.7207
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 6.3779
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.4 Wave Mode (WV)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=32",
+          "score": 6.3021
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A2 Level 2 Product Description Terminology > A2.1 Main Product Characteristics > A2.1.3 Spatial Resolution",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=96",
+          "score": 2.9589
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.4 Wave L1 Products Definition > 7.4.1 Wave SLC Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=71",
+          "score": 2.4126
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.4 Wave Mode (WV)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=32",
+          "score": 2.4069
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes",
+          "score": 2.367
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.4 Wave L1 Products Definition > 7.4.2 Wave GRD Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=72",
+          "score": 2.2115
+        },
+        {
+          "section": "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE > B4 WV Mode",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=122",
+          "score": 1.9548
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.3 Extra-Wide Swath Mode (EW)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=31",
+          "score": 0.3834
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Wave",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Wave",
+          "score": -0.4527
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": -1.1436
+        },
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": -1.5179
+        },
+        {
+          "section": "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE > B2 IW Mode",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=110",
+          "score": -1.979
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": -2.382
+        },
+        {
+          "section": "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE > B1 SM Mode",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=103",
+          "score": -2.7999
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": -2.8348
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.5 Burst-Position Dependent Timing Corrections (TOPS Mode)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=30",
+          "score": -3.9231
+        }
+      ]
+    },
+    {
+      "id": "centre-frequency",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "wiki+pdf",
+      "question": "At what frequency does the Sentinel-1 radar operate, and what wavelength is that?",
+      "english": "At what frequency does the Sentinel-1 radar operate, and what wavelength is that?",
+      "expected": [
+        "S1 Mission > SAR Instrument",
+        "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=23",
+          "score": 4.4601
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 3.2403
+        },
+        {
+          "section": "S1 Mission > SAR Instrument",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Instrument",
+          "score": 3.0837
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 1.7005
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 0.5188
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 0.0773
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.1 Range-Doppler (RD) Geolocation",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=23",
+          "score": -0.4079
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": -1.1259
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Acquisition-Modes",
+          "score": -1.563
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.1 Range-Doppler (RD) Geolocation",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=23",
+          "score": -1.7066
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.4 Wave Mode (WV)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=32",
+          "score": -2.1812
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": -2.3898
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 3 DEFINITION OF THE S-1 TOPS DERAMPING FUNCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=4",
+          "score": -2.3996
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.2 SAR Instrument Polarisation Capabilities",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=25",
+          "score": -3.0505
+        },
+        {
+          "section": "S1 Mission > Performance > Radiometric Accuracy",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Radiometric-Accuracy",
+          "score": -3.3894
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.2 Interferometric Wide Swath L1 Products Definition > 7.2.2 Interferometric Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=63",
+          "score": -3.3982
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.4 Wave L1 Products Definition > 7.4.2 Wave GRD Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=72",
+          "score": -3.6551
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.2 Extra Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=67",
+          "score": -4.1379
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": -4.2384
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": -4.5425
+        }
+      ]
+    },
+    {
+      "id": "etad-corrections",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "wiki-only",
+      "question": "¿Qué errores de geolocalización corrige el producto ETAD?",
+      "english": "What geolocation errors does the ETAD product correct?",
+      "expected": [
+        "S1 Products > Level-1 Products > ETAD Products",
+        "S1 Processing > L1 Algorithms > ETAD processing"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 8.3551
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 7.6024
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 7.3123
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": 6.8672
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.11 Sentinel-1 “Out-of-the-Box” vs. Precise Geolocation Accuracy",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=34",
+          "score": 5.623
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.11 Sentinel-1 “Out-of-the-Box” vs. Precise Geolocation Accuracy",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=34",
+          "score": 5.2978
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 5.0601
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.8 Calculation of Absolute Location Error (ALE)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=33",
+          "score": 4.9039
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 4.8181
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 4.7309
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.10 Applicability of Corrections to S-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=34",
+          "score": 4.5401
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.8 Calculation of Absolute Location Error (ALE)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=33",
+          "score": 4.5315
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.8 Calculation of Absolute Location Error (ALE)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=33",
+          "score": 3.887
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.9 Impact of Local Height Variations and Ellipsoid- vs. Terrain-Geocoding",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=34",
+          "score": 3.8552
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.5 Burst-Position Dependent Timing Corrections (TOPS Mode)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=30",
+          "score": 3.8502
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 3.2093
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.2 “Bistatic” Azimuth Bias Correction",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=27",
+          "score": 3.2059
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 1.0984
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > ETAD processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#ETAD-processing",
+          "score": 1.0105
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting > ETAD Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products-Formatting",
+          "score": -0.8786
+        }
+      ]
+    },
+    {
+      "id": "product-name",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "wiki-only",
+      "question": "What information can be read from the name of a Sentinel-1 product folder?",
+      "english": "What information can be read from the name of a Sentinel-1 product folder?",
+      "expected": [
+        "S1 Products > SAR Products Overview > SAR Naming Convention"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 5.4278
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 4.6182
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-2 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products-Formatting",
+          "score": 4.5924
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting > ETAD Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products-Formatting",
+          "score": 4.4339
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": 3.7651
+        },
+        {
+          "section": "Sentinel-1 > S1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1#S1-Products",
+          "score": 3.6542
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 2.9283
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 9 AUXILIARY DATA FOR L1 PROCESSING",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=83",
+          "score": 1.8249
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 1 INTRODUCTION > 1.2 Scope",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=19",
+          "score": 1.7717
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": 1.4847
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 2 REQUIRED SAR GEOMETRY PARAMETERS",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=10",
+          "score": 1.3788
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 1 INTRODUCTION > 1.3 Document Structure",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=19",
+          "score": 0.8771
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 10 AUXILIARY DATA FOR L2 PROCESSING",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=85",
+          "score": 0.6625
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 4 SENTINEL-1 PRODUCT FAMILY TREE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=34",
+          "score": 0.5398
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 0.4507
+        },
+        {
+          "section": "S1 Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing",
+          "score": 0.1083
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 1 INTRODUCTION > 1.3 Sentinel-1 Product Data Types",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=9",
+          "score": 0.0284
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Wind Field Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Wind-Field-Processing",
+          "score": -1.666
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L2-Algorithms",
+          "score": -3.1931
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.4 Slicing Impact on L1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=40",
+          "score": -3.5349
+        }
+      ]
+    },
+    {
+      "id": "orbit-files",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "wiki+pdf",
+      "question": "¿Qué tipos de ficheros de órbita hay para Sentinel-1 y en qué se diferencian en latencia y precisión?",
+      "english": "What types of orbit files are there for Sentinel-1 and how do they differ in latency and accuracy?",
+      "expected": [
+        "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+        "S1 Mission > Precise Orbit Determination Service",
+        "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.3 Orbital State Vectors > 4.3.1 State Vector Input"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 7.6899
+        },
+        {
+          "section": "S1 Mission > Precise Orbit Determination Service",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Precise-Orbit-Determination-Service",
+          "score": 5.9596
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.3 Orbital State Vectors > 4.3.1 State Vector Input",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=18",
+          "score": 5.6042
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 5.3514
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 9 AUXILIARY DATA FOR L1 PROCESSING > 9.5 Orbit and Attitude Information",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=84",
+          "score": 5.2013
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 4.7006
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Orbit",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Orbit",
+          "score": 4.6506
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Orbit-Comparisons",
+          "score": 4.3523
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#POD-Sentinel-1-Products-Specification",
+          "score": 3.8723
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Satellite Parameters for POD",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Satellite-Parameters-for-POD",
+          "score": 3.6866
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Products-Description",
+          "score": 3.3632
+        },
+        {
+          "section": "S1 Processing > POD Sentinel-1 Products Specification > Products Description > Orbit Comparisons > AUX_PREORB (first orbit)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#AUX_PREORB-(first-orbit)",
+          "score": 3.1292
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission > Satellite Description",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Satellite-Description",
+          "score": 2.3012
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=36",
+          "score": 1.5168
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.3 Attitude Steering Capabilities > 3.2.3.2 Roll Steering",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=27",
+          "score": 1.4755
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=54",
+          "score": 0.7157
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 1 INTRODUCTION > 1.3 Sentinel-1 Product Data Types",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=9",
+          "score": 0.0652
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 2 REQUIRED SAR GEOMETRY PARAMETERS",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=10",
+          "score": -0.6279
+        },
+        {
+          "section": "S1 Products > Related Production > Burst ID Maps",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Burst-ID-Maps",
+          "score": -2.2561
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-0 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products-Formatting",
+          "score": -2.4182
+        }
+      ]
+    },
+    {
+      "id": "level2-ocean",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "wiki+pdf",
+      "question": "Which geophysical measurements does the Level-2 ocean product provide?",
+      "english": "What geophysical measurements does the Level-2 ocean product provide?",
+      "expected": [
+        "S1 Products > Level-2 Products",
+        "S1 Processing > L2 Algorithms",
+        "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.1 Products Summary"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 6.1791
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.1 OSW Component > 6.4.1.1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=50",
+          "score": 4.2207
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.2 Product Type Descriptions > 6.2.1 Ocean Products (OCN) > 6.2.1.2 Ocean Wind Field Component (OWI)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=48",
+          "score": 3.9029
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.1 OSW Component > 6.4.1.1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=50",
+          "score": 3.8917
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.1 Stripmap L2 Products Definition > 8.1.1 Stripmap OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=75",
+          "score": 3.7119
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.2 Product Type Descriptions > 6.2.1 Ocean Products (OCN) > 6.2.1.3 Radial Surface Velocity Component (RVL)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=48",
+          "score": 3.4963
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A2 Level 2 Product Description Terminology > A2.2 Product Performance Parameters > A2.2.6 SAR Significant Waveheight",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=98",
+          "score": 3.208
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.1 Stripmap L2 Products Definition > 8.1.1 Stripmap OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=75",
+          "score": 2.9833
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L2-Algorithms",
+          "score": 2.9141
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A2 Level 2 Product Description Terminology > A2.2 Product Performance Parameters > A2.2.1 Wind Speed",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=97",
+          "score": 2.5503
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.4 Wave L2 Products Definition > 8.4.1 Wave OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=81",
+          "score": 2.436
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.2 Interferometric Wide Swath L2 Products Definition > 8.2.1 Interferometric Wide Swath OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=77",
+          "score": 2.2769
+        },
+        {
+          "section": "S1 Products > Level-2 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products",
+          "score": 2.2727
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.2 Interferometric Wide Swath L2 Products Definition > 8.2.1 Interferometric Wide Swath OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=77",
+          "score": 2.121
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 1.9427
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Wind Field Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Wind-Field-Processing",
+          "score": 1.9248
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 8 LEVEL 2 PRODUCTS DEFINITION > 8.3 Extra Wide Swath L2 Products Definition > 8.3.1 Extra Wide Swath OCN Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=79",
+          "score": 1.8503
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": 1.8163
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-2 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-2-Products-Formatting",
+          "score": 0.9074
+        },
+        {
+          "section": "S1 Processing > L2 Algorithms > Ocean Swell Spectra Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ocean-Swell-Spectra-Processing",
+          "score": -0.7989
+        }
+      ]
+    },
+    {
+      "id": "oil-spills",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "wiki-only",
+      "question": "¿Cómo se detectan los vertidos de petróleo en el mar con Sentinel-1 y qué productos conviene usar?",
+      "english": "How are oil spills detected at sea with Sentinel-1 and which products should be used?",
+      "expected": [
+        "S1 Applications > Maritime Monitoring > Oil Pollution Monitoring"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Applications > Maritime Monitoring > Oil Pollution Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Oil-Pollution-Monitoring",
+          "score": 6.8641
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.2 OWI Component > 6.4.2.2 GMES Services",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=52",
+          "score": 4.1974
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": 3.1193
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Marine Waves and Winds",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Marine-Waves-and-Winds",
+          "score": 2.1092
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 1.6556
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 0.3751
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ship Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ship-Monitoring",
+          "score": 0.196
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": -0.0977
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.2 OWI Component > 6.4.2.2 GMES Services",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=52",
+          "score": -0.4677
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": -0.5487
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": -0.7193
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.1 OSW Component > 6.4.1.2 GMES services",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=51",
+          "score": -0.7317
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": -1.2968
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": -1.3592
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ship Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ship-Monitoring",
+          "score": -1.4702
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Forestry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Forestry",
+          "score": -2.0688
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ice Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ice-Monitoring",
+          "score": -3.2588
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.1 OSW Component > 6.4.1.1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=50",
+          "score": -3.7763
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 1 INTRODUCTION > 1.1 Sentinel-1 Product Types for Geocoding",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=7",
+          "score": -4.0382
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Extra Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Extra-Wide-Swath",
+          "score": -4.1824
+        }
+      ]
+    },
+    {
+      "id": "flood-mapping",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "wiki-only",
+      "question": "Why is Sentinel-1 good for mapping floods, and which polarisations are needed to detect flooded vegetation?",
+      "english": "Why is Sentinel-1 good for mapping floods, and which polarisations are needed to detect flooded vegetation?",
+      "expected": [
+        "S1 Applications > Emergency Management > Flood Monitoring"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Applications > Emergency Management > Flood Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Flood-Monitoring",
+          "score": 7.1235
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Forestry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Forestry",
+          "score": 5.0592
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 4.0724
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 3.9503
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 3.6533
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": 3.0166
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 2.952
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 2.7362
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": 2.5942
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Polarimetry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Polarimetry",
+          "score": 2.4837
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 2.0102
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": 1.8711
+        },
+        {
+          "section": "S1 Mission > Observation and Production Scenarios > SAR Observation Scenario",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#SAR-Observation-Scenario",
+          "score": 0.8022
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 0.4464
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": 0.2539
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": -0.1993
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.2 OWI Component > 6.4.2.2 GMES Services",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=52",
+          "score": -0.2385
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.4 Applications for L2 OCN Products > 6.4.2 OWI Component > 6.4.2.2 GMES Services",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=52",
+          "score": -0.6255
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Urban Deformation Mapping",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Urban-Deformation-Mapping",
+          "score": -1.431
+        },
+        {
+          "section": "S1 Applications > Maritime Monitoring > Ice Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Ice-Monitoring",
+          "score": -2.5358
+        }
+      ]
+    },
+    {
+      "id": "ground-subsidence",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "wiki-only",
+      "question": "¿Cómo puede Sentinel-1 medir hundimientos del terreno de pocos milímetros al año?",
+      "english": "How can Sentinel-1 measure ground subsidence of a few millimetres per year?",
+      "expected": [
+        "S1 Mission > SAR Instrument > Interferometry",
+        "S1 Applications > Land Monitoring > Urban Deformation Mapping"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Applications > Land Monitoring > Urban Deformation Mapping",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Urban-Deformation-Mapping",
+          "score": 5.7
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 3.9205
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Interferometry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometry",
+          "score": 3.2959
+        },
+        {
+          "section": "S1 Mission > SAR Instrument > Geophysical Measurements",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Geophysical-Measurements",
+          "score": 3.0606
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Flood Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Flood-Monitoring",
+          "score": 2.7447
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": 2.5195
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.6 Applications for Level 1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=43",
+          "score": 2.2587
+        },
+        {
+          "section": "S1 Mission > Overview of Sentinel-1 Mission",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Overview-of-Sentinel-1-Mission",
+          "score": 1.5762
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 0.9291
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Forestry",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Forestry",
+          "score": 0.3433
+        },
+        {
+          "section": "S1 Applications > Land Monitoring > Agriculture",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Agriculture",
+          "score": 0.1897
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 Global Backscatter Model (S1GBM)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-Global-Backscatter-Model-(S1GBM)",
+          "score": -0.2418
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Landslide and Volcano Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Landslide-and-Volcano-Monitoring",
+          "score": -0.5472
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.2 Sentinel-1 Main Payload and Platform Characteristics > 3.2.3 Attitude Steering Capabilities > 3.2.3.2 Roll Steering",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=27",
+          "score": -1.1474
+        },
+        {
+          "section": "S1 Applications > Overview of S1 Applications",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Overview-of-S1-Applications",
+          "score": -1.151
+        },
+        {
+          "section": "S1 Applications > Emergency Management > Landslide and Volcano Monitoring",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-applications#Landslide-and-Volcano-Monitoring",
+          "score": -1.9215
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.11 Sentinel-1 “Out-of-the-Box” vs. Precise Geolocation Accuracy",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=34",
+          "score": -2.0375
+        },
+        {
+          "section": "S1 Products > Level-1 Products > ETAD Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#ETAD-Products",
+          "score": -2.3723
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.4 Wave L1 Products Definition > 7.4.2 Wave GRD Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=72",
+          "score": -2.761
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.1 Stripmap Mode (SM)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=29",
+          "score": -3.0051
+        }
+      ]
+    },
+    {
+      "id": "product-slicing",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "wiki+pdf",
+      "question": "¿Por qué los productos de nivel 1 se cortan en slices y cómo se vuelven a ensamblar?",
+      "english": "Why are the Level-1 products sliced and how are they reassembled?",
+      "expected": [
+        "S1 Processing > Product Slicing Handling",
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.4 Slicing Impact on L1 Products"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 7.9408
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.4 Slicing Impact on L1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=40",
+          "score": 7.8771
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 7.8635
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 7.215
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.4 Slicing Impact on L1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=40",
+          "score": 6.8323
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 6.4194
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 5.4054
+        },
+        {
+          "section": "S1 Processing > Product Slicing Handling",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Product-Slicing-Handling",
+          "score": 5.275
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW > 6.3 Slicing Impact on L2 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=49",
+          "score": 5.1538
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 4.3062
+        },
+        {
+          "section": "Sentinel-1 > S1 Processing",
+          "url": "https://sentiwiki.copernicus.eu/web/sentinel-1#S1-Processing",
+          "score": 3.816
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 3.669
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L1-Algorithms",
+          "score": 3.4591
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.4 Slicing Impact on L1 Products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=40",
+          "score": 3.1956
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 6 LEVEL 2 PRODUCTS OVERVIEW",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=46",
+          "score": 2.9619
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 1.6995
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > SAR Naming Convention",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Naming-Convention",
+          "score": 0.8887
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 1 INTRODUCTION > 1.2 Scope",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=19",
+          "score": 0.575
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 0.1697
+        },
+        {
+          "section": "S1 Products > Level-0 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-0-Products",
+          "score": -0.8969
+        }
+      ]
+    },
+    {
+      "id": "sigma0-calibration",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "pdf-only",
+      "question": "¿Cómo se calcula sigma cero a partir de los valores de los píxeles de un producto Sentinel-1 de nivel 1?",
+      "english": "How is sigma zero calculated from the pixel values of a Sentinel-1 Level 1 product?",
+      "expected": [
+        "Radiometric Calibration of S-1 Level-1 Products > 3 CALIBRATION LOOK UP TABLES > 3.2 Calibration LUT Definition",
+        "Radiometric Calibration of S-1 Level-1 Products > 4 RADIOMETRIC CALIBRATION OF DISTRIBUTED TARGETS",
+        "Radiometric Calibration of S-1 Level-1 Products > 4 RADIOMETRIC CALIBRATION OF DISTRIBUTED TARGETS > 4.1 Numerical Example"
+      ],
+      "rank": null,
+      "retrieved": [
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A1 Level 1 Product Description Terminology > A1.2 Product Performance Parameters > A1.2.5 Noise Equivalent Sigma Zero (NESZ)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=92",
+          "score": 4.058
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#L1-Algorithms",
+          "score": 2.9602
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.1 Stripmap SLC Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=55",
+          "score": 2.218
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.2 Extra Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=67",
+          "score": 2.0169
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.2 Interferometric Wide Swath L1 Products Definition > 7.2.2 Interferometric Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=63",
+          "score": 1.9794
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": 1.9659
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": 1.9257
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.2 Extra Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=67",
+          "score": 1.9251
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": 1.7887
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": 1.693
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.2 Interferometric Wide Swath L1 Products Definition > 7.2.1 Interferometric Wide Swath SLC Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=61",
+          "score": 1.5165
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.4 Wave L1 Products Definition > 7.4.1 Wave SLC Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=71",
+          "score": 1.4022
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.4 Wave L1 Products Definition > 7.4.2 Wave GRD Product Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=72",
+          "score": 1.3412
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.2 Interferometric Wide Swath L1 Products Definition > 7.2.2 Interferometric Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=63",
+          "score": 1.3386
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": -0.2426
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": -0.2674
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A1 Level 1 Product Description Terminology > A1.4 Data Size and Volume > A1.4.2 Number of Pixels per Line",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=95",
+          "score": -0.858
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 1 Introduction",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=6",
+          "score": -2.3355
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A1 Level 1 Product Description Terminology > A1.4 Data Size and Volume > A1.4.1 Number of Lines",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=95",
+          "score": -2.9959
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 6 Denoising and clipping procedures > 6.1 Denoising procedure",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=20",
+          "score": -3.1388
+        }
+      ]
+    },
+    {
+      "id": "thermal-denoising",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "pdf-only",
+      "question": "How is thermal noise removed from a Sentinel-1 Level-1 product, and why is it not removed by default?",
+      "english": "How is thermal noise removed from a Sentinel-1 Level-1 product, and why is it not removed by default?",
+      "expected": [
+        "Thermal Denoising of S-1 Products > 6 Denoising and clipping procedures > 6.1 Denoising procedure"
+      ],
+      "rank": 2,
+      "retrieved": [
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.5 Radiometric Corrections > 5.5.2 Thermal Noise Removal",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=42",
+          "score": 7.5435
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 6 Denoising and clipping procedures > 6.1 Denoising procedure",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=20",
+          "score": 6.7823
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 1 Introduction",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=7",
+          "score": 6.1822
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 6.0272
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 5.2549
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Post Processing Algorithms",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms",
+          "score": 4.7593
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 7 Verification Results",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=28",
+          "score": 4.5768
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.5 Radiometric Corrections",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=41",
+          "score": 4.4101
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 3 S-1 Noise Equivalent Sigma Zero > 3.2 Estimation of NESZ in the SAR processor",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=12",
+          "score": 3.5466
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 7 Verification Results",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=28",
+          "score": 3.5393
+        },
+        {
+          "section": "S1 Products > Related Production > Sentinel-1 ARD Normalised Radar Backscatter (NRB) Product",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Sentinel-1-ARD-Normalised-Radar-Backscatter-(NRB)-Product",
+          "score": 1.8959
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 6 Denoising and clipping procedures > 6.5 Computational efficiency",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=26",
+          "score": 1.8331
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 3 S-1 Noise Equivalent Sigma Zero",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=9",
+          "score": 1.275
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 0.1112
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A2 Level 2 Product Description Terminology > A2.2 Product Performance Parameters > A2.2.13 Signal-to-Noise Ratio",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=99",
+          "score": -0.7449
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 1 INTRODUCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=4",
+          "score": -0.9353
+        },
+        {
+          "section": "Sentinel-1 Product Definition > A PRODUCT DESCRIPTION TERMINOLOGY > A2 Level 2 Product Description Terminology > A2.3 Processing Parameters > A2.3.6 Low Pass Filter Width for Detrending of Image",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=100",
+          "score": -1.569
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.5 Radiometric Corrections > 5.5.1 Standard Corrections",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=41",
+          "score": -2.5025
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 4 SENTINEL-1 PRODUCT FAMILY TREE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=34",
+          "score": -3.8182
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": -4.2679
+        }
+      ]
+    },
+    {
+      "id": "grd-border-noise",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "pdf-only",
+      "question": "¿Por qué aparecen píxeles sin valor en los bordes de las imágenes GRD y cómo se enmascaran?",
+      "english": "Why do pixels with no value appear at the edges of GRD images and how are they masked?",
+      "expected": [
+        "Masking No-value Pixels on S-1 GRD Products > 1 Introduction",
+        "Masking No-value Pixels on S-1 GRD Products > 2 Problem description"
+      ],
+      "rank": 2,
+      "retrieved": [
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 4 Masking approach for IPF version 2.90 and higher",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=8",
+          "score": 8.4222
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 1 Introduction",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=6",
+          "score": 7.3702
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 2 Problem description",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=6",
+          "score": 6.4231
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 5 Masking approach for IPF version lower than 2.90",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=8",
+          "score": 5.3859
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 7 Limitations",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=14",
+          "score": 5.2422
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 5 Masking approach for IPF version lower than 2.90 > 5.5 Step 4: Masking at near range",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=11",
+          "score": 4.5638
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 5 Masking approach for IPF version lower than 2.90 > 5.1 Denoising vectors",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=8",
+          "score": 4.1766
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 5 Masking approach for IPF version lower than 2.90 > 5.2 Step 1: Selecting the noise ADS",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=9",
+          "score": 3.8106
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 5 Masking approach for IPF version lower than 2.90 > 5.1 Denoising vectors",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=8",
+          "score": 3.694
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 5 Masking approach for IPF version lower than 2.90 > 5.4 Step 3: Denoising at near range",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=10",
+          "score": 3.2464
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 5 Masking approach for IPF version lower than 2.90 > 5.3 Step 2: Reading the noise vector",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=10",
+          "score": 2.7472
+        },
+        {
+          "section": "Masking No-value Pixels on S-1 GRD Products > 5 Masking approach for IPF version lower than 2.90 > 5.1 Denoising vectors",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_4fc26fd4a229d5c1683dc387d0921bd271c1f062506a8bdaf28594f8b62b1053/OI-MPC-OTH-MPC-0243%20-%20Sentinel-1%20masking%20no%20value%20pixels%20grd%20products%20note%202023%20-%202.2.pdf#page=8",
+          "score": 2.3396
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Ground Range Detected (GRD)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Ground-Range-Detected-(GRD)",
+          "score": 0.4134
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": -0.1358
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.2 Ground Range, Multi-Look, Detected Products (GRD)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=39",
+          "score": -0.6727
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": -1.3569
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": -1.6929
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": -1.7065
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": -2.5549
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.9 Impact of Local Height Variations and Ellipsoid- vs. Terrain-Geocoding",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=34",
+          "score": -3.1846
+        }
+      ]
+    },
+    {
+      "id": "tops-deramping",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "pdf-only",
+      "question": "Why do Sentinel-1 TOPS SLC bursts have to be deramped before they are resampled?",
+      "english": "Why do Sentinel-1 TOPS SLC bursts have to be deramped before they are resampled?",
+      "expected": [
+        "S-1 TOPS SLC Deramping > 1 INTRODUCTION"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "S-1 TOPS SLC Deramping > 1 INTRODUCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=4",
+          "score": 7.816
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 3 DEFINITION OF THE S-1 TOPS DERAMPING FUNCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=4",
+          "score": 6.7838
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 3 DEFINITION OF THE S-1 TOPS DERAMPING FUNCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=4",
+          "score": 6.0725
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 5 DEFINTION OF THE OF THE S-1 TOPS DERAMPING AND DEMODULATION FUNCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=8",
+          "score": 5.6505
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 6 DERAMPING EXAMPLE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=9",
+          "score": 5.4987
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 3 DEFINITION OF THE S-1 TOPS DERAMPING FUNCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=4",
+          "score": 5.1271
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 4 DEFINITION OF THE S-1 TOPS RE-RAMPING FUNCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=8",
+          "score": 4.9752
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 3 DEFINITION OF THE S-1 TOPS DERAMPING FUNCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=4",
+          "score": 4.5565
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 6 DERAMPING EXAMPLE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=9",
+          "score": 3.5216
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 6 DERAMPING EXAMPLE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=9",
+          "score": 2.8024
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 6 DERAMPING EXAMPLE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=9",
+          "score": 2.4467
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": 2.4292
+        },
+        {
+          "section": "S1 Mission > Acquisition Modes > Interferometric Wide Swath",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-mission#Interferometric-Wide-Swath",
+          "score": 2.284
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.1 Slant Range, Single-Look, Complex Products (SLC) > 5.2.1.2 IW SLC Product",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=38",
+          "score": 1.4474
+        },
+        {
+          "section": "S-1 TOPS SLC Deramping > 6 DERAMPING EXAMPLE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab20a069e0bf299920ebde9bc74c3bbc9d0b1f3ef33e427f7f9fcbd29b2deb53/COPE-GSEG-EOPG-TN-14-0025%20-%20Sentinel-1%20TOPS%20SLC%20Deramping%202017%20-%201.3.pdf#page=9",
+          "score": 1.1221
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.5 Burst-Position Dependent Timing Corrections (TOPS Mode)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=30",
+          "score": 0.3674
+        },
+        {
+          "section": "Thermal Denoising of S-1 Products > 6 Denoising and clipping procedures > 6.4 Denoising of SM SLC/GRD and TOPS SLC products",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=26",
+          "score": -0.2557
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.5 Burst-Position Dependent Timing Corrections (TOPS Mode)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=30",
+          "score": -1.3579
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.5 Burst-Position Dependent Timing Corrections (TOPS Mode)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=30",
+          "score": -2.1841
+        },
+        {
+          "section": "S1 Processing > L1 Algorithms > Single Look Complex (SLC)",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-processing#Single-Look-Complex-(SLC)",
+          "score": -2.474
+        }
+      ]
+    },
+    {
+      "id": "dem-height-errors",
+      "written": "from-text",
+      "lang": "es",
+      "answer_in": "pdf-only",
+      "question": "¿Cómo afectan los errores de altura del DEM a la geolocalización de una imagen Sentinel-1 geocodificada?",
+      "english": "How do DEM height errors affect the geolocalisation of a geocoded Sentinel-1 image?",
+      "expected": [
+        "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.9 Impact of Local Height Variations and Ellipsoid- vs. Terrain-Geocoding"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.9 Impact of Local Height Variations and Ellipsoid- vs. Terrain-Geocoding",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=34",
+          "score": 8.6739
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.5 Orthorectification / DEM Traversal",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=20",
+          "score": 7.2
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.5 Orthorectification / DEM Traversal",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=20",
+          "score": 6.2271
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.5 Burst-Position Dependent Timing Corrections (TOPS Mode)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=30",
+          "score": 5.9049
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.5 Orthorectification / DEM Traversal",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=20",
+          "score": 5.8025
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 1 INTRODUCTION > 1.1 Sentinel-1 Product Types for Geocoding",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=7",
+          "score": 5.6904
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.2 DEM Input and Map Geometry Initialisation",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=17",
+          "score": 5.4206
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.8 Calculation of Absolute Location Error (ALE)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=33",
+          "score": 5.3774
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.5 Orthorectification / DEM Traversal",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=20",
+          "score": 5.3168
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 1 INTRODUCTION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=7",
+          "score": 5.2318
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=23",
+          "score": 5.2185
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.8 Calculation of Absolute Location Error (ALE)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=33",
+          "score": 4.9542
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.8 Calculation of Absolute Location Error (ALE)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=33",
+          "score": 4.9322
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.5 Orthorectification / DEM Traversal",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=20",
+          "score": 4.8614
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 4 SAR GEOCODING IN DETAIL > 4.7 Point Geolocation > 4.7.5 Burst-Position Dependent Timing Corrections (TOPS Mode)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=30",
+          "score": 4.6563
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 3 SYSTEM DESIGN",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=12",
+          "score": 4.4777
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 9 AUXILIARY DATA FOR L1 PROCESSING > 9.1 Digital Elevation Model (DEM)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=83",
+          "score": 3.7729
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 1 INTRODUCTION > 1.2 Acronyms",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=8",
+          "score": 3.6268
+        },
+        {
+          "section": "Guide to Sentinel-1 Geocoding > 3 SYSTEM DESIGN",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_5059b2b5c28fa73b9b3da518fee6c8954a5e3c687d33a2c091764622c81fd741/UZH-S1-GC-AD%20-%20Guide%20to%20Sentinel-1%20Geocoding%202022%20-%201.12.pdf#page=12",
+          "score": 2.1326
+        },
+        {
+          "section": "Sentinel-1 Product Definition > D PRODUCT DEFINITION RELATED ISSUES > D2 Doppler Centroid Frequency Accuracy",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=129",
+          "score": -1.9058
+        }
+      ]
+    },
+    {
+      "id": "grd-resolution-classes",
+      "written": "from-text",
+      "lang": "en",
+      "answer_in": "pdf-only",
+      "question": "Which resolution classes exist for Sentinel-1 GRD products, and how do they differ?",
+      "english": "Which resolution classes exist for Sentinel-1 GRD products, and how do they differ?",
+      "expected": [
+        "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary"
+      ],
+      "rank": 1,
+      "retrieved": [
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 7.2814
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 7.2331
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.2 Product Type Descriptions > 5.2.2 Ground Range, Multi-Look, Detected Products (GRD)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=39",
+          "score": 7.1002
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 6.7121
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=54",
+          "score": 6.4311
+        },
+        {
+          "section": "S1 Products > SAR Products Overview",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#SAR-Products-Overview",
+          "score": 6.071
+        },
+        {
+          "section": "S1 Products > SAR Products Overview > Level-1 Products Formatting",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products-Formatting",
+          "score": 5.786
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.1 Products Summary",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=35",
+          "score": 5.6442
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 4 SENTINEL-1 PRODUCT FAMILY TREE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=34",
+          "score": 5.2963
+        },
+        {
+          "section": "S1 Products > Level-1 Products",
+          "url": "https://sentiwiki.copernicus.eu/web/s1-products#Level-1-Products",
+          "score": 5.1985
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.4 Wave Mode (WV)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=32",
+          "score": 4.9329
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 3 SENTINEL-1 MISSION AND SAR SYSTEM OVERVIEW > 3.3 Sentinel-1 Acquisition Modes > 3.3.1 Stripmap Mode (SM)",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=29",
+          "score": 4.7843
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.3 Extra Wide Swath L1 Products Definition > 7.3.2 Extra Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=67",
+          "score": 4.5471
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": 4.3423
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.2 Interferometric Wide Swath L1 Products Definition > 7.2.2 Interferometric Wide Swath GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=63",
+          "score": 4.2736
+        },
+        {
+          "section": "Sentinel-1 Product Definition > 7 LEVEL 1 PRODUCTS DEFINITION > 7.1 Stripmap L1 Products Definition > 7.1.2 Stripmap GRD Products Definition",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=56",
+          "score": 4.2222
+        },
+        {
+          "section": "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE > B1 SM Mode",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=103",
+          "score": 2.8623
+        },
+        {
+          "section": "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=102",
+          "score": 2.7812
+        },
+        {
+          "section": "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE > B2 IW Mode",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=110",
+          "score": 2.7038
+        },
+        {
+          "section": "Sentinel-1 Product Definition > B DETAILED SAR PERFORMANCE > B3 EW Mode",
+          "url": "https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=116",
+          "score": 2.6203
+        }
+      ]
+    }
+  ]
+}

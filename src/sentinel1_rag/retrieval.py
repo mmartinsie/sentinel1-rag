@@ -11,6 +11,8 @@ The lexical search can take the question translated into English instead (transl
 Two backends answer the same searches over the same chunks and vectors (D-034): Postgres with
 pgvector (the default), and OpenSearch (opensearch.py), which also has its own hybrid query
 (method hybrid-native, D-036).
+
+Any method's top 20 can then be reordered by a reranker (rerank.py, D-037).
 """
 
 from dataclasses import dataclass, replace
@@ -21,6 +23,7 @@ from pgvector import Vector
 from sentinel1_rag.config import EMBED_MODEL
 from sentinel1_rag.ollama import Ollama
 from sentinel1_rag.opensearch import OpenSearchError, OpenSearchIndex
+from sentinel1_rag.rerank import RERANK_CANDIDATES, reorder
 
 # Hybrid search with the lexical half in English finds as many answers in its top 5 as vector
 # search did in its top 10, with prompts about 40 % shorter (D-022; it was 10 in D-018).
@@ -33,6 +36,9 @@ DEFAULT_BACKEND = "pgvector"
 # How the lexical search ranks the chunks that share words with the question.
 RANKINGS = ("bm25", "ts_rank")
 DEFAULT_RANKING = "bm25"
+# The reranker finds the answer in the top 5 for 24 of 25 eval questions instead of 22, and
+# adds about 1.7 s per question (D-039).
+DEFAULT_RERANK = True
 
 # BM25's parameters, at the defaults of Lucene and Elasticsearch: k1 sets how quickly further
 # occurrences of a word stop adding to the score, and b how much longer chunks are discounted.
@@ -80,8 +86,10 @@ LIMIT %(k)s
 """
 
 
-def score_label(method: str, ranking: str = DEFAULT_RANKING) -> str:
+def score_label(method: str, ranking: str = DEFAULT_RANKING, rerank: bool = DEFAULT_RERANK) -> str:
     """What Hit.score means for a method."""
+    if rerank:
+        return "reranker log-odds of yes against no: higher is closer"
     return {
         "vector": "cosine distance: lower is closer",
         "lexical": f"{ranking}: higher is closer",
@@ -121,13 +129,21 @@ def retrieve(
     english: str | None = None,
     ranking: str = DEFAULT_RANKING,
     opensearch: OpenSearchIndex | None = None,
+    rerank: bool = DEFAULT_RERANK,
 ) -> list[Hit]:
     """The k chunks that best match the question, best first.
 
     `english`, the question translated into English, replaces it in the lexical search only,
     and `ranking` picks how that search ranks its chunks. With `opensearch`, the searches run
     in OpenSearch instead of Postgres (D-034); `conn` is still used by the pgvector backend only.
+    With `rerank`, the reranker reads the method's top 20 with the original question and keeps
+    the best k (D-037).
     """
+    if rerank:
+        candidates = retrieve(
+            conn, ollama, question, max(k, RERANK_CANDIDATES), method, english, ranking, opensearch, rerank=False
+        )
+        return reorder(ollama, question, candidates, k)
     if opensearch is not None and ranking != "bm25":
         raise ValueError("OpenSearch ranks full-text matches with BM25 only")
     if method == "vector":

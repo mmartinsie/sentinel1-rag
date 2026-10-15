@@ -1054,3 +1054,81 @@ Status values: **Proposed** (waiting for review) · **Accepted** · **Superseded
   - **Explain:** for one chunk, OpenSearch's BM25 uses dl 152 and avgdl 112.9 where the SQL uses 169 and 113.9; IDF follows the same formula.
   - **Latency** (as in D-035): BM25 median 44.9 ms in SQL (corpus statistics on every query, D-023) against 4.9 ms in OpenSearch; hybrid 47.0 ms on Postgres, 15.2 ms on OpenSearch with Python RRF (two requests) and 9.0 ms with the native query (one).
   - **Memory:** the OpenSearch container used 1.45–1.65 GiB, Postgres 33–73 MiB; the lowest available RAM during the step's runs, with Gemma, bge-m3, Postgres and OpenSearch loaded, was 7.1 GiB of 11.7.
+
+## D-037: A reranker reorders the top 20: Qwen3-Reranker-0.6B through Ollama's log-probabilities
+
+- **Status:** Accepted (step 16, 2026-10-15)
+- **Decision:**
+  - **What:** the search's 20 best chunks, for any method and backend, are scored again by Qwen3-Reranker-0.6B, and the best 5 go to the model (`rerank.py`, `--rerank` / `--no-rerank` in `make ask` and `make eval`). Equal scores keep the search's order.
+  - **The model:** the Q8_0 GGUF published by `mradermacher` on Hugging Face (`hf.co/mradermacher/Qwen3-Reranker-0.6B-GGUF:Q8_0`, 610 MiB), pulled by Ollama itself. Qwen3-Reranker is a small language model trained to answer "yes" or "no" to whether a document meets a query; it is multilingual and under Apache 2.0.
+  - **The score:** the model card's prompt is sent raw to `/api/generate` with `top_logprobs` 20 and `num_predict` 1, and the score is log P("yes") − log P("no") of the next token: the log-odds of the card's score, which is the probability of "yes" against "no" alone. When one of the two is not among the 20 tokens returned, the 20th log-probability stands in for it, as an upper bound.
+  - **Options:** `num_ctx` 4096 (the longest prompt in the eval had 1,139 tokens) and temperature 0, the same on every request (D-002).
+- **Alternatives considered:**
+  - *bge-reranker-v2-m3,* the cross-encoder of the bge-m3 family (Apache 2.0, 568M parameters). It has no route on this GPU: Ollama has no reranking endpoint (`/api/rerank` and `/v1/rerank` return 404 on 0.40.1), PyTorch's CUDA 12.8 and later builds dropped Pascal cards such as the GTX 1070 from release 2.8, and its CUDA 12.6 builds end with 2.14. On the CPU, the reference Qwen3-Reranker-0.6B with PyTorch took about 12 s per pair here (4 minutes per question), and bge-reranker-v2-m3 is the same size. Qwen's model card also scores it lower on multilingual retrieval (MMTEB-R 58.4 against 66.4, the vendor's own figures).
+  - *The `ggml-org` Q8_0 GGUF of the same model,* the most downloaded one: it is converted for llama.cpp's reranking endpoint, with a classification head, and Ollama loads it as an embedding model. `/api/generate` refuses it ("does not support generate"), and `/api/embed` returns 1024-number vectors that are almost all zeros.
+  - *Gemma as the judge:* no new model, but 4B parameters for 20 calls per question, and not trained for it. Not measured.
+  - *Reranking the top 40:* measured in D-039; worse and slower.
+- **Why:** it runs on the GPU through the same Ollama, with no new Python dependency, and its scores follow the reference implementation closely (below).
+- **Trade-offs:**
+  - **Twenty model calls per question:** about 1.7 s more per search (below).
+  - **A third model** in GPU memory and 610 MiB more on disk.
+  - **A GGUF from a third-party uploader,** with Qwen's special tokens written into the prompt by this code. The eval records the model's digest, and `make ask`, `make eval`, `make agent` and `make eval-agent` stop with the `ollama pull` command if it is missing.
+  - **The 20-token limit** turns some scores into bounds (below).
+- **Verified [2026-10-14]:**
+  - **Against the reference:** 60 pairs, the top 20 of three questions (`grd-vs-slc`, `grd-border-noise`, `tops-deramping`), scored with the model card's Transformers code on the CPU in a throwaway environment (PyTorch 2.14.1, Transformers 5.19.0): rank correlation 0.989, 1.000 and 0.998 with Ollama's scores, largest difference 0.41 in log-odds (the Q8_0 quantisation), and the same first correct chunk and the same top-5 sections for all three, in the same order for two.
+  - **The bound:** with the instruction of D-039, "yes" was missing from the 20 tokens for 15 of the 500 eval pairs and "no" never; none of those 15 reached a top 5. With the card's default instruction, 49 pairs missed one of the two.
+  - **Repeatable:** `make eval` gives the same ranks and the same scores to 4 decimals twice.
+  - **Speed** (models loaded, the 25 eval questions twice, translations taken from the cited run): the search alone takes a median of 1.66 s with the reranker (p90 2.03 s, max 2.20 s), against 0.09 s without.
+  - **Memory:** with Gemma, bge-m3 and the reranker loaded, all three 100 % on the GPU, 6.7 of 8 GiB of GPU memory are in use, and WSL has 9.1 GiB of RAM available, with the RAM cache of D-038 off.
+
+## D-038: The RAM prompt cache of Ollama's llama-server is turned off (LLAMA_ARG_CACHE_RAM=0)
+
+- **Status:** Accepted (step 16, 2026-10-15)
+- **Decision:** the Ollama service gets `Environment="LLAMA_ARG_CACHE_RAM=0"` in a systemd drop-in (`/etc/systemd/system/ollama.service.d/cache-ram.conf`), set by the user, as `.wslconfig` was in D-030. The README gives the commands.
+- **Context:** Ollama 0.40.1 runs each model in llama.cpp's `llama-server`, started without `--cache-ram`, so that server's default applies: it keeps a copy of the state of each prompt it has processed, in RAM, up to 8,192 MiB per loaded model, to reuse it if a later prompt starts the same way. Ollama has no setting of its own for it, but passes its environment to the server, and the server reads `LLAMA_ARG_CACHE_RAM` (its `--help`).
+- **Alternatives considered:**
+  - *Unloading the reranker after each question* (`keep_alive` 0): no system change, but loading it again takes 2.7 s, or 9.4 s from a cold disk, and Gemma's runner would keep its own cache.
+  - *A smaller limit,* such as 1 GiB: it keeps some reuse, but this project's prompts share little (below).
+- **Why:** the reranker sends 20 new prompts per question. After the 25 eval questions its runner held 8.8 GB of RAM (8,112 MiB of cache in 173 prompts), and WSL had 1.6 GiB available, close to the freeze of D-030. Its prompts share only their first 60 to 89 tokens (the system turn and the question), which the server's log reports for each lookup.
+- **Trade-offs:**
+  - **It applies to every model** of this Ollama: a prompt seen before is processed again. Gemma's cache had reached 591 MiB that day.
+  - **A machine setting outside the repository,** which an Ollama update could make unnecessary or stop honouring.
+- **Verified [2026-10-14]:**
+  - After the restart, `systemctl show ollama` lists the variable, Ollama found the GPU (CUDA, compute 6.1), and the server's log has no cache updates.
+  - **The same 500 pairs again:** the largest runner stayed at 1,029 MiB (sampled every 5 s), each question took 1.2–2.0 s against 2–79 s with the cache (the slow ones while the cache filled), and the scores were identical for 467 pairs, at most 0.15 apart for the rest, with the same reranked ranks.
+  - `make eval --no-rerank` took 13.7 s, as before the change (about 15 s).
+
+## D-039: The reranker is the default, with an instruction for the domain and the original question
+
+- **Status:** Accepted (step 16, 2026-10-15)
+- **Decision:**
+  - **Default:** `make ask`, `make eval`, the agent's `search_docs` and the MCP server's rerank the top 20 (`DEFAULT_RERANK`). `--no-rerank` gives the earlier retrieval.
+  - **Instruction:** "Given a question about the Sentinel-1 radar mission, retrieve the documentation passages that answer it", written in the plan before measuring, instead of the card's default "Given a web search query, retrieve relevant passages that answer the query".
+  - **Query:** the reranker reads the question as it was asked. The MCP server's query is already in English.
+  - **No per-section cap.**
+- **Criterion, set in the plan before measuring:** hit@5 or MRR@5 higher, no question whose answer was in the top 5 leaving it, and less than 3 s more per question. All three are met.
+- **Alternatives considered** (the eval's top 20, metrics from the stored log-probabilities, except the default, which is `eval/results/2026-10-14T233134-rerank.json`):
+
+  | Retrieval | hit@1 | hit@3 | hit@5 | hit@10 | MRR@5 |
+  |---|---|---|---|---|---|
+  | No reranker (`…113743-pdfs`) | 0.760 | 0.840 | 0.880 | 0.920 | 0.810 |
+  | Card's instruction, the question | 0.600 | 0.800 | 0.920 | 0.920 | 0.708 |
+  | Card's instruction, the English translation | 0.720 | 0.840 | 0.920 | 0.960 | 0.787 |
+  | Our instruction, the English translation | 0.800 | 0.960 | 0.960 | 0.960 | 0.880 |
+  | **Our instruction, the question (the default)** | **0.840** | 0.920 | **0.960** | 0.960 | **0.890** |
+  | The same, reranking the top 40 | 0.840 | 0.920 | 0.920 | 0.960 | 0.880 |
+
+  - *The card's instruction* demoted chunks that answer the question: `dem-height-errors` fell from 1st to 13th.
+  - *The top 40:* `product-metadata` falls from 4th to 6th, nothing rises, and the search takes 3.3 s (max 4.2 s). The one question still missed, `sigma0-calibration`, has no correct chunk in the hybrid top 40 either.
+  - *At most 1 or 2 chunks per section in the top 5* (the README's cheap alternative), on the hybrid order and on the reranked one: no question's first correct chunk moves. `tops-deramping`'s introduction ranked 10th, below more than one other section.
+- **Why:** the reranker brings in the answers that two questions were missing, puts the right section first for three more questions, and the answers improve with it (below), for under 2 s per question. The instruction matters more than the language of the query.
+- **Trade-offs:**
+  - **Chosen on the same 25 questions,** like every retrieval change (D-017): only two instructions were tried, and ours was written before measuring. The 5 questions written without reading the documents rise the most (hit@5 0.800 → 1.000).
+  - **It also demotes good chunks.** `grd-border-noise` falls from 1st to 2nd and `product-metadata` from 2nd to 4th. For the README's example question, "¿Cómo se elimina el ruido térmico de un producto GRD de Sentinel-1 y por qué no viene eliminado por defecto?", the technical note's denoising procedure, which says why the noise is not removed by default, falls from 5th to 8th, and the answer no longer gives that reason. The eval's question on the same topic (in English, about Level-1 products) moves that section from 4th to 2nd.
+  - **A third model call per search** for the agent and the MCP server, and `--show-context` prints the reranker's scores instead of the fusion's.
+- **Verified [2026-10-14]:**
+  - **The eval** (`…233134-rerank`) against `…113743-pdfs`: first correct chunk `grd-vs-slc` 13th → 1st, `tops-deramping` 10th → 1st, `orbit-files` 2nd → 1st, `thermal-denoising` 4th → 2nd, `grd-border-noise` 1st → 2nd, `product-metadata` 2nd → 4th; the other 19 unchanged. hit@5 by group: blind 0.800 → 1.000, PDF-only 0.667 → 0.833, SentiWiki and PDF 0.909 → 1.000, SentiWiki-only 1.000 (MRR@5 0.938 → 0.906). Other sections in the top 5 for 23 of 25 questions.
+  - **Answers** for those 23 questions, twice each, with and without the reranker: a correct section cited in 43 of 46 answers against 40 of 46 (`tops-deramping` 0 → 2 of 2, `grd-vs-slc` 0 → 1 of 2, no question lower); a correct section among the 5 passages in 44 against 40; median prompt 1,596 against 1,608 tokens; median answer time 4.3 s for both; 2.30 sections cited per answer against 2.09.
+  - **The MCP server's search,** with Gemma's translations standing in for the host's English query (as in D-032): hit@5 0.880 → 0.960, MRR@5 0.810 → 0.873.
+  - **The agent** (`eval/results/2026-10-14T235006-agent-rerank.json`): 13 of 18, held-out 5 of 6, with the same checks passed and failed for every question as in `…143532-agent-v0.2-answered`; median time per question 5.9 s against 5.2 s. Its two retrieval misses (thermal noise, GRD versus SLC) come from the model's own queries and stay.
+  - `make eval --no-rerank` reproduces `…113743-pdfs` exactly, the default reproduces `…233134-rerank` exactly, and `make mcp-check` passes.

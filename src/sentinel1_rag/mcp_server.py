@@ -48,7 +48,7 @@ from sentinel1_rag.config import USER_AGENT
 from sentinel1_rag.db import connect
 from sentinel1_rag.geocode import ATTRIBUTION, Geocoder
 from sentinel1_rag.ollama import Ollama, OllamaError
-from sentinel1_rag.retrieval import DEFAULT_METHOD, DEFAULT_RANKING, TOP_K, retrieve
+from sentinel1_rag.retrieval import DEFAULT_METHOD, DEFAULT_RANKING, DEFAULT_RERANK, TOP_K, retrieve
 from sentinel1_rag.scenes import SCENE_LIMIT, item_url
 from sentinel1_rag.tools import SCHEMAS, SceneFinder, SmallPlace, ToolError, scene_line, summarise
 
@@ -203,8 +203,9 @@ class Tools:
             return failure(str(exc))
 
     def search_docs(self, query: str) -> CallToolResult:
-        """The default retrieval (hybrid, BM25, top 5), with the host's English query for both
-        halves: measured on the eval questions, it finds the same 22 of 25 (D-032)."""
+        """The default retrieval (hybrid, BM25, the top 20 reranked, top 5), with the host's English
+        query for both halves and the reranker. Without the reranker, measured on the eval questions,
+        it found the same 22 of 25 as `make ask` (D-032)."""
         if not isinstance(query, str) or not query.strip():
             raise ToolError("query must be a question, in English.")
         try:
@@ -213,9 +214,12 @@ class Tools:
             raise ToolError("the documentation database is not running; start it with `make up`.") from None
         with conn:
             try:
-                hits = retrieve(conn, self._ollama, query, k=TOP_K, method=DEFAULT_METHOD, ranking=DEFAULT_RANKING)
+                hits = retrieve(
+                    conn, self._ollama, query, k=TOP_K, method=DEFAULT_METHOD, ranking=DEFAULT_RANKING,
+                    rerank=DEFAULT_RERANK,
+                )
             except OllamaError as exc:
-                raise ToolError(f"the embedding model is not available: {exc}") from None
+                raise ToolError(f"a search model is not available: {exc}") from None
         if not hits:
             raise ToolError("the documentation index is empty; build it with `make ingest` and `make index`.")
         passages = [

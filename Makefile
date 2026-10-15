@@ -28,7 +28,8 @@ opensearch-index:
 	uv run python -m sentinel1_rag.opensearch
 
 # Answer a question with cited sources: make ask Q="..." [ARGS="--show-context --method vector --top-k 10"]
-# The default retrieval is hybrid, with the question translated for the full-text half, top 5.
+# The default retrieval is hybrid, with the question translated for the full-text half, and the
+# reranker reorders the top 20 to keep 5 (--no-rerank skips it).
 # make exports Q to the environment and the shell reads it as "$$Q", so quotes and
 # backticks in the question reach Python unchanged (a $ is still expanded by make).
 ask:
@@ -50,8 +51,9 @@ mcp-check:
 	uv run python -m sentinel1_rag.mcp_check
 
 # Measure retrieval on eval/questions.yaml (hit@k, MRR) and save the run in eval/results/.
-# Same defaults and options as ask (--method, --no-translate, --top-k, --lexical-ranking, --backend); name a run with
-# ARGS="--label <name>". The default translates the questions, so Gemma is loaded.
+# Same defaults and options as ask (--method, --no-translate, --top-k, --lexical-ranking, --backend, --no-rerank);
+# name a run with ARGS="--label <name>". The default translates the questions and reranks, so Gemma and the
+# reranker are loaded.
 eval:
 	uv run python -m sentinel1_rag.evaluate $(ARGS)
 

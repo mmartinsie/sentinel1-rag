@@ -2,7 +2,7 @@
 
 A small, local and free RAG (retrieval-augmented generation) system that answers technical questions about the Sentinel-1 radar mission (acquisition modes, GRD and SLC products, processing levels, calibration…) from its official documentation: the [Sentinel-1 SentiWiki](https://sentiwiki.copernicus.eu/web/sentinel-1) and six technical documents from its [document library](https://sentiwiki.copernicus.eu/web/s1-documents). Every answer cites the sections it comes from, with links; for a PDF, the link opens it at the right page.
 
-Everything runs on one machine: Ollama serves the embedding model (`bge-m3`) and the language model (`gemma4:e4b-it-qat`), and PostgreSQL stores the chunks with their vectors (pgvector) and a full-text index. Questions can be asked in Spanish or English about the English documentation.
+Everything runs on one machine: Ollama serves the embedding model (`bge-m3`), a small reranker (`Qwen3-Reranker-0.6B`) and the language model (`gemma4:e4b-it-qat`), and PostgreSQL stores the chunks with their vectors (pgvector) and a full-text index. Questions can be asked in Spanish or English about the English documentation.
 
 An [agent](#agent-documentation-and-scene-search) (`make agent`) can also search the Copernicus catalogue for the scenes Sentinel-1 acquired over a place and dates, and combine both in one answer. The same two tools are offered to other applications through an [MCP server](#mcp-server) (`make mcp`), so that a host such as Claude Code can search the documentation and the catalogue with its own model. The same searches can also run on [OpenSearch](#opensearch-versus-pgvector) instead of Postgres, to compare the two engines on identical data.
 
@@ -10,28 +10,30 @@ An [agent](#agent-documentation-and-scene-search) (`make agent`) can also search
 $ make ask Q="¿Cómo se elimina el ruido térmico de un producto GRD de Sentinel-1 y por qué no viene eliminado por defecto?"
 Lexical search in English: How is thermal noise removed from a Sentinel-1 GRD product and why is it not removed by default?
 
-La eliminación del ruido térmico de un producto GRD de Sentinel-1 se realiza restando la LUT de ruido
-al valor de intensidad del píxel [5]. Para los productos SLC, esto se aplica después de la detección
-(pasando de complejo a amplitud) y elevándolo al cuadrado (de amplitud a intensidad) $|DN|^2$ [5].
+El ruido térmico se estima y se elimina opcionalmente para los productos GRD de Nivel 1 con el fin de
+mejorar la calidad de la imagen [4]. El ruido térmico no viene eliminado por defecto porque la
+eliminación del ruido térmico es opcional y configurable [2].
 
-El ruido térmico no viene eliminado por defecto porque la IPF no lo aplica desde el inicio de la
-misión, ya que es una corrección destructiva (no es posible revertir el valor original del píxel) y
-para mantener la consistencia con los datos de ERS y Envisat/ASAR donde esta corrección no se aplicó
-[5].
-
-Además, el ruido térmico se puede estimar y eliminar opcionalmente para los productos GRD con el fin
-de mejorar la calidad de la imagen [2].
+Para eliminar el ruido térmico de un producto GRD, el vector de ruido se convierte a coordenadas de
+rango terrestre y se aplica al restar el ruido de la imagen detectada por potencia [4]. Además, se
+puede realizar la eliminación del ruido en dos pasos: primero, restando al imagen GRD L1 el mapa de
+ruido generado usando el procedimiento descrito en la sección 6; y luego, se recortan todos los
+valores negativos a cero, lo cual es el mismo procedimiento realizado internamente por IPF [1].
 
 Sources:
-[2] S1 Processing > L1 Algorithms > Post Processing Algorithms
+[1] Thermal Denoising of S-1 Products > 7 Verification Results
+    https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=28
+[2] Sentinel-1 Product Definition > 5 LEVEL 1 PRODUCTS OVERVIEW > 5.5 Radiometric Corrections > 5.5.2 Thermal Noise Removal
+    https://sentiwiki.copernicus.eu/__attachments/a_9d556abaa46ab095ed4dec0ca13798281182401682fd3c3c87e70ffe942774ad/S1-RS-MDA-52-7440-Sentinel-1-Product-Definition-2.11.pdf#page=42
+[4] S1 Processing > L1 Algorithms > Post Processing Algorithms
     https://sentiwiki.copernicus.eu/web/s1-processing#Post-Processing-Algorithms
-[5] Thermal Denoising of S-1 Products > 6 Denoising and clipping procedures > 6.1 Denoising procedure
-    https://sentiwiki.copernicus.eu/__attachments/a_ab979d8ca949ffba50f47622706a34e8ee5e7afef2989b82c9d4d351d45c492d/DI-MPC-TN-MPC-0392%20-%20Thermal%20Denoising%20of%20Products%20Generated%20by%20Sentinel-1%20IPF%202024%20-%202.3.pdf#page=20
 
-gemma4:e4b-it-qat: 1802 prompt tokens, 181 answer tokens, 7.0s
+gemma4:e4b-it-qat: 1711 prompt tokens, 166 answer tokens, 6.0s
 ```
 
-This is real output (line breaks added). The question is in Spanish and the documentation in English: Gemma first translates the question for the keyword half of the search, and the answer comes back in Spanish. Passage [2] is a SentiWiki section; passage [5] comes from a technical note in the document library, and its link opens the PDF at page 20, where that section starts. Each `[n]` points to one of the passages the model was given, and the source list is built by the code from the database, so the model can cite the wrong passage but never invent a section or a URL. Small slips remain, such as the formula written in LaTeX notation (`$|DN|^2$`).
+This is real output (line breaks added). The question is in Spanish and the documentation in English: Gemma first translates the question for the keyword half of the search, and the answer comes back in Spanish. Passage [4] is a SentiWiki section; passages [1] and [2] come from PDFs in the document library, a technical note and the product definition, and their links open each PDF at the page where that section starts. Each `[n]` points to one of the passages the model was given, and the source list is built by the code from the database, so the model can cite the wrong passage but never invent a section or a URL. Small slips remain, such as "restando al imagen".
+
+The answer is also weaker than it was before the [reranker](#reranker) (v0.3): the technical note's denoising procedure, which says why the noise is not removed by default (the correction cannot be undone, and older ERS and Envisat products were not corrected either), now ranks 8th instead of 5th, so the model only says that the removal is optional. On the eval questions the reranker brought two answers into the top 5 and pushed none out; this question, which is not one of them, goes the other way.
 
 ## How it works
 
@@ -57,9 +59,11 @@ flowchart TB
         V <--> E2[["Ollama: bge-m3"]]
         V <--> DB2[("Postgres")]
         L <--> DB2
-        V --> RRF["retrieval.py<br/>rank fusion, top 5"]
+        V --> RRF["retrieval.py<br/>rank fusion, top 20"]
         L --> RRF
-        RRF --> P["ask.py<br/>rules + numbered passages"]
+        RRF --> RR["rerank.py<br/>reranker, top 5"]
+        RR <--> E3[["Ollama: Qwen3-Reranker-0.6B"]]
+        RR --> P["ask.py<br/>rules + numbered passages"]
         P <--> G
         P --> OUT["Answer with citations<br/>+ sources from the database"]
     end
@@ -79,31 +83,34 @@ flowchart TB
 2. **Search twice:**
    - *Vector search* embeds the original question with `bge-m3` and takes the 40 chunks with the smallest cosine distance. The model is multilingual, so a Spanish question lands close to the English passage that answers it. An HNSW index is in place, although at 568 chunks Postgres prefers an exact scan, which takes about 4 ms; the index is there to learn how approximate search works.
    - *Full-text search* looks up the English words in the full-text index and takes the 40 chunks with the best BM25 score, which rewards words that are rare in the corpus, stops rewarding a word after a few repetitions and discounts long chunks.
-3. **Fuse:** reciprocal rank fusion gives each chunk 1 / (60 + its rank) from each list it appears in, so chunks that both searches rank well come first. The top 5 go to the model.
-4. **Answer:** the prompt gives Gemma rules in the system turn (use only the passages, cite them as `[n]`, say when the answer is not there, answer in the question's language) and the 5 numbered passages followed by the question in the user turn.
-5. **Cite:** the code reads the `[n]` citations in the answer and prints the cited sections with their URLs.
+3. **Fuse:** reciprocal rank fusion gives each chunk 1 / (60 + its rank) from each list it appears in, so chunks that both searches rank well come first.
+4. **Rerank:** a small model, Qwen3-Reranker-0.6B, reads the original question together with each of the 20 best chunks and judges whether the chunk answers it, scored by how much likelier it is to say "yes" than "no". The 5 it scores highest go to the model. This takes about 1.7 s.
+5. **Answer:** the prompt gives Gemma rules in the system turn (use only the passages, cite them as `[n]`, say when the answer is not there, answer in the question's language) and the 5 numbered passages followed by the question in the user turn.
+6. **Cite:** the code reads the `[n]` citations in the answer and prints the cited sections with their URLs.
 
 Every design choice, with the alternatives weighed and what was measured, is recorded in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Retrieval results
 
-`make eval` runs 25 labelled questions through the same retrieval that `make ask` uses, translation included, and checks where the sections that answer each question end up in the ranking. With the models loaded it takes about 15 seconds.
+`make eval` runs 25 labelled questions through the same retrieval that `make ask` uses, translation and reranking included, and checks where the sections that answer each question end up in the ranking. With the models loaded it takes about 55 seconds, or 15 without the reranker.
 
 - **hit@k:** the share of questions where at least one chunk from a correct section is among the first k results, that is, whether the model received what it needed.
 - **MRR@5:** the mean of 1/rank of the first correct chunk (1st scores 1, 2nd 0.5, 4th 0.25), counted as 0 below rank 5 because `make ask` passes only 5 chunks to the model.
 
+Each cell shows the score without the reranker (v0.1 to v0.3) and with it (the default since v0.4), or one number when it did not change:
+
 | Questions | hit@1 | hit@3 | hit@5 | hit@10 | MRR@5 |
 |---|---|---|---|---|---|
-| **All (25)** | 0.760 | 0.840 | **0.880** | 0.920 | **0.810** |
-| Answer only in the SentiWiki (8) | 0.875 | 1.000 | 1.000 | 1.000 | 0.938 |
-| Answer in the SentiWiki and a PDF (11) | 0.818 | 0.909 | 0.909 | 0.909 | 0.864 |
-| Answer only in the PDFs (6) | 0.500 | 0.500 | 0.667 | 0.833 | 0.542 |
-| Written without reading the documents (5) | 0.600 | 0.800 | 0.800 | 0.800 | 0.700 |
-| Drafted from the text (20) | 0.800 | 0.850 | 0.900 | 0.950 | 0.838 |
+| **All (25)** | 0.760 → 0.840 | 0.840 → 0.920 | 0.880 → **0.960** | 0.920 → 0.960 | 0.810 → **0.890** |
+| Answer only in the SentiWiki (8) | 0.875 | 1.000 → 0.875 | 1.000 | 1.000 | 0.938 → 0.906 |
+| Answer in the SentiWiki and a PDF (11) | 0.818 → 1.000 | 0.909 → 1.000 | 0.909 → 1.000 | 0.909 → 1.000 | 0.864 → 1.000 |
+| Answer only in the PDFs (6) | 0.500 | 0.500 → 0.833 | 0.667 → 0.833 | 0.833 | 0.542 → 0.667 |
+| Written without reading the documents (5) | 0.600 → 0.800 | 0.800 | 0.800 → 1.000 | 0.800 → 1.000 | 0.700 → 0.850 |
+| Drafted from the text (20) | 0.800 → 0.850 | 0.850 → 0.950 | 0.900 → 0.950 | 0.950 | 0.838 → 0.900 |
 
-**hit@5 is 0.880 and MRR@5 0.810 over 25 questions**, from [eval/results/2026-10-11T113743-pdfs.json](eval/results/2026-10-11T113743-pdfs.json). The eval is deterministic: the translations are made at temperature 0, and repeated runs give the same chunks in the same order.
+**With the reranker, hit@5 is 0.960 and MRR@5 0.890 over 25 questions** ([eval/results/2026-10-14T233134-rerank.json](eval/results/2026-10-14T233134-rerank.json)); without it, 0.880 and 0.810 ([eval/results/2026-10-11T113743-pdfs.json](eval/results/2026-10-11T113743-pdfs.json)). The eval is deterministic: the translations are made at temperature 0, the reranker reads log-probabilities rather than sampling, and repeated runs give the same chunks in the same order.
 
-These numbers are the same for [v0.1, v0.2 and v0.3](#versions): v0.2 adds the agent and the MCP server but does not change the retrieval, and `make eval` on v0.2 returns the same 20 chunks in the same order for all 25 questions, with the same translations ([eval/results/2026-10-11T180312-v0.2.json](eval/results/2026-10-11T180312-v0.2.json)). v0.3 adds OpenSearch as an option; the default search still runs on pgvector and gives the same results.
+The numbers without the reranker are the same for [v0.1, v0.2 and v0.3](#versions): v0.2 adds the agent and the MCP server but does not change the retrieval, and `make eval` on v0.2 returns the same 20 chunks in the same order for all 25 questions, with the same translations ([eval/results/2026-10-11T180312-v0.2.json](eval/results/2026-10-11T180312-v0.2.json)). v0.3 adds OpenSearch as an option, and from v0.4 `make eval ARGS=--no-rerank` still gives them.
 
 How to read these numbers:
 
@@ -159,7 +166,7 @@ Six PDFs from the Sentinel-1 document library were then added: short technical n
 
 | Method, top 5 (hit@5 / MRR@5) | All (25) | Answer only in the SentiWiki (8) | In both (11) | Only in the PDFs (6) | Blind (5) |
 |---|---|---|---|---|---|
-| **Hybrid, translated, BM25 (the default)** | **0.880 / 0.810** | 1.000 / 0.938 | 0.909 / 0.864 | 0.667 / 0.542 | 0.800 / 0.700 |
+| **Hybrid, translated, BM25 (the default before the reranker)** | **0.880 / 0.810** | 1.000 / 0.938 | 0.909 / 0.864 | 0.667 / 0.542 | 0.800 / 0.700 |
 | Vector | 0.800 / 0.673 | 1.000 / 0.760 | 0.727 / 0.682 | 0.667 / 0.542 | 0.600 / 0.367 |
 | Lexical, translated, BM25 | 0.800 / 0.663 | 1.000 / 0.906 | 0.818 / 0.576 | 0.500 / 0.500 | 0.600 / 0.200 |
 | Hybrid, not translated | 0.720 / 0.590 | 0.625 / 0.625 | 0.818 / 0.652 | 0.667 / 0.431 | 0.600 / 0.367 |
@@ -180,6 +187,36 @@ What the comparison showed:
 - **The default stays.** Hybrid search with the translated question is still the best of the methods at 5 passages.
 
 The details are in [D-024](docs/DECISIONS.md#d-024-six-technical-pdfs-from-the-sentinel-1-document-library-join-the-corpus) to [D-026](docs/DECISIONS.md#d-026-the-eval-with-the-pdfs-labels-on-pdf-sections-matched-with-the-section-path-the-default-retrieval-stays).
+
+### Reranker
+
+The two searches compare the question and a chunk separately: two vectors, or the words they share. A reranker reads them together, in one pass of a model, so it can judge whether the chunk answers the question, at the cost of one model call per chunk. So it only reads the 20 best chunks of the fused search, and the 5 it scores highest go to the model. The reranker is Qwen3-Reranker-0.6B, a small language model trained to answer "yes" or "no" to whether a document answers a query. Ollama has no reranking endpoint, so the code sends the model card's prompt as raw text and reads how much likelier "yes" is than "no" as the next token, from the log-probabilities that Ollama returns ([D-037](docs/DECISIONS.md#d-037-a-reranker-reorders-the-top-20-qwen3-reranker-06b-through-ollamas-log-probabilities)).
+
+| Retrieval, top 5 | hit@1 | hit@5 | MRR@5 | Search time (median) |
+|---|---|---|---|---|
+| No reranker (v0.1 to v0.3) | 0.760 | 0.880 | 0.810 | 0.09 s |
+| Reranker, the model card's instruction | 0.600 | 0.920 | 0.708 | about the same as below |
+| **Reranker, an instruction for this domain (the default)** | **0.840** | **0.960** | **0.890** | 1.7 s |
+| The same, reading the top 40 | 0.840 | 0.920 | 0.880 | 3.3 s |
+
+And the answers, for the 23 questions whose top 5 changed, twice each:
+
+| | Answers citing a correct section | A correct section among the 5 passages | Median prompt | Median answer time |
+|---|---|---|---|---|
+| No reranker | 40 of 46 | 40 of 46 | 1,608 tokens | 4.3 s |
+| **Reranker** | **43 of 46** | 44 of 46 | 1,596 tokens | 4.3 s |
+
+What the comparison showed:
+
+- **The instruction matters more than the language.** With the model card's generic instruction ("Given a web search query, retrieve relevant passages that answer the query"), the reranker found two more answers but put fewer of them first, and moved one from 1st to 13th. An instruction that names the Sentinel-1 mission and its documentation, written before measuring, puts the right section first for 21 of the 25 questions. Reading the English translation instead of the question gave about the same.
+- **It fixes the two questions that missed for a known reason.** For why TOPS bursts are deramped, the note's introduction rises from 10th to 1st, past the four chunks of its long definition section, and both answers now give the reason. Capping the chunks per section in the top 5 had changed nothing. For the project's original example, GRD versus SLC, the product definition's section on GRD products comes 1st instead of 13th, and one of its two answers now cites it; the sections on SLC products, which explain the phase they keep, are still not among the 20 best.
+- **It also demotes good chunks.** Two questions' first correct chunks move from 1st to 2nd and from 2nd to 4th, and the example at the top of this page lost the section that explains its "why". In the eval, no question that had its answer in the top 5 lost it.
+- **The scores follow the reference implementation.** On 60 pairs scored again with the model card's Transformers code, on the CPU, the order of the scores matched (rank correlation 0.989 to 1.000) and so did the top 5 sections.
+- **One question stays out of reach:** for "sigma cero", no correct chunk is among the search's 40 best, so no reranking of that list can find it.
+- **The agent and the MCP server use it too.** The agent passes the same 13 of 18 checks, question by question ([Agent results](#agent-results)). For the MCP server, with Gemma's translations standing in for a host's English queries, hit@5 rises from 0.880 to 0.960.
+- **It needs memory.** With Gemma, bge-m3 and the reranker loaded, 6.7 of the GPU's 8 GiB are in use. Ollama also kept a copy of every prompt in RAM, up to 8 GiB per model, and the reranker's 20 new prompts per question filled it within one eval; [Running it on WSL](#running-it-on-wsl) shows the setting that turns it off ([D-038](docs/DECISIONS.md#d-038-the-ram-prompt-cache-of-ollamas-llama-server-is-turned-off-llama_arg_cache_ram0)).
+
+The default and the variants are in [D-039](docs/DECISIONS.md#d-039-the-reranker-is-the-default-with-an-instruction-for-the-domain-and-the-original-question).
 
 ## Agent: documentation and scene search
 
@@ -262,11 +299,12 @@ A model with about 4.5B effective parameters followed the prompt's rules only so
 | **Final** | **13** | 8 | **5** | 5.9 s |
 | Final, with thinking (`--think`) | 13 | 8 | 5 | 15.1 s |
 | v0.2, with the check for empty answers | 13 | 8 | 5 | 5.2 s |
+| With the reranker | 13 | 8 | 5 | 5.9 s |
 
 From [eval/results/2026-10-11T152216-agent-final.json](eval/results/2026-10-11T152216-agent-final.json); the details, including each tuning iteration, are in [D-029](docs/DECISIONS.md#d-029-the-agent-eval-checks-tool-calls-with-tuning-and-held-out-questions).
 
 - **The fixes traded failures before they reduced them.** The stricter prompt stopped the answers from memory and the wrong dates, but made the model cite "[1]" after scene facts. That only showed up when reading the answers, so the eval gained a check for it, and the tool's result a line against it.
-- **What still fails:** one answer about scenes that still cites "[1]", two mixed questions with an ambiguous place ("Doñana", "delta del Ebro"), where the model reports the geocoder's error instead of searching again, and two retrieval misses inherited from `make ask` (thermal noise, and GRD versus SLC). The first design had reported the scenes of the wrong Doñana as if they were right; now the answer says the place was not found.
+- **What still fails:** one answer about scenes that still cites "[1]", two mixed questions with an ambiguous place ("Doñana", "delta del Ebro"), where the model reports the geocoder's error instead of searching again, and two retrieval misses (thermal noise, and GRD versus SLC). The reranker does not fix them: they come from the model's own queries, and with it the same checks pass and fail for every question ([eval/results/2026-10-14T235006-agent-rerank.json](eval/results/2026-10-14T235006-agent-rerank.json)). The first design had reported the scenes of the wrong Doñana as if they were right; now the answer says the place was not found.
 - **Thinking** passes the same questions in about 2.6 times the time, so it stays off. It needed no forced search: thinking first, the model searched the documentation by itself for the two questions it cannot answer.
 - **18 questions are few,** all drafted by the same author as the fixes, and one held-out question moves that score by 0.167. Runs are not exactly repeatable: a second run gave the same checks but differently worded answers.
 - **v0.2 found an empty answer.** The first run on v0.2 counted 14, but one of them was an empty answer: for "¿Hay imágenes Sentinel-1 GRD de Madrid de la última semana?" Gemma now ends its turn without writing anything, with the code of v0.1 too, and an empty answer passed the citation check because it cites nothing. The eval now also checks that there is an answer, which gives 13 again ([eval/results/2026-10-12T143532-agent-v0.2-answered.json](eval/results/2026-10-12T143532-agent-v0.2-answered.json)), and `make agent` says when the answer is empty. Asking the model again after an empty answer is left for later ([D-033](docs/DECISIONS.md#d-033-the-agent-eval-fails-empty-answers-and-make-agent-says-when-the-answer-is-empty)).
@@ -278,7 +316,7 @@ From [eval/results/2026-10-11T152216-agent-final.json](eval/results/2026-10-11T1
 ```mermaid
 flowchart LR
     H["MCP host<br/>(Claude Code, ...)<br/>and its model"] -- "tools/list, tools/call<br/>JSON-RPC on stdin" --> S["mcp_server.py"]
-    S --> D["search_docs<br/>hybrid search, top 5<br/>bge-m3 + Postgres"]
+    S --> D["search_docs<br/>hybrid search, reranked top 5<br/>bge-m3, reranker + Postgres"]
     S --> C["search_scenes<br/>Nominatim + STAC"]
     S -- "text for the model<br/>+ structured data, on stdout" --> H
 ```
@@ -300,14 +338,14 @@ Claude Code finds the server in `.mcp.json`, in the repository root, and asks be
 }
 ```
 
-Another host needs the same command with the repository's path: `uv run --directory /path/to/sentinel1-rag python -m sentinel1_rag.mcp_server`. Postgres (`make up`) and Ollama with bge-m3 must be running; the server does not use Gemma.
+Another host needs the same command with the repository's path: `uv run --directory /path/to/sentinel1-rag python -m sentinel1_rag.mcp_server`. Postgres (`make up`) and Ollama with bge-m3 and the reranker must be running; the server does not use Gemma.
 
 ### What changes from the agent's tools
 
 The arguments are the agent's, built from the same JSON Schemas, and so are the checks and the error messages. What changes comes from talking to hosts and models that this project does not control ([D-032](docs/DECISIONS.md#d-032-the-servers-tools-stand-alone-on-every-call-and-the-hosts-model-writes-the-query-in-english)):
 
 - **Every call stands alone.** Protocol revision 2026-07-28 has no sessions, so the server keeps nothing from one call to the next. Passages are numbered within each result and carry their section and URL, for the host's model to cite. A place under 1 km across is sent back with an error unless the call says `confirm_place: true`, where the agent accepted the same place asked for twice.
-- **The host's model writes the query in English,** the language of the documents, and the server runs the default retrieval with it, without translating. Measured on the 25 eval questions, with Gemma's translations standing in for the host's, it finds the same 22 in the top 5, through the protocol too. A query in another language weakens the full-text half of the search.
+- **The host's model writes the query in English,** the language of the documents, and the server runs the default retrieval with it, without translating. Measured on the 25 eval questions, with Gemma's translations standing in for the host's, it found the same 22 in the top 5 as `make ask` before the reranker, through the protocol too, and finds 24 with it. A query in another language weakens the full-text half of the search.
 - **Each result has text for the model and structured data** (`structuredContent`) that matches the tool's declared `outputSchema`: the passages with section and URL, or the place found and the scenes with their product names. The scene names are in the text as well: they were hidden from Gemma only because it copied them slowly.
 - **Errors the model can fix are results** marked `isError` (a wrong argument, a bad date, a place not found); an unknown tool is a protocol error.
 - **The host decides.** The agent's forced documentation search and its system prompt do not exist here; the server sends a few lines of `instructions`, which the host may pass to its model or not.
@@ -318,7 +356,7 @@ The arguments are the agent's, built from the same JSON Schemas, and so are the 
 
 ```
 Per-request metadata: protocol 2026-07-28
-  ok   server: sentinel1-rag 0.3.0
+  ok   server: sentinel1-rag 0.4.0
   ok   instructions sent
   ok   tools: search_docs, search_scenes
   ok   search_docs: the agent's arguments: query
@@ -343,10 +381,10 @@ The same searches can run on OpenSearch 3.9 with its k-NN plugin instead of Post
 | Vector | 0.800 / 0.673 | 0.800 / 0.673 | 25 of 25 |
 | Full-text, question translated | 0.800 / 0.663 | **0.840 / 0.687** | 13 of 25 |
 | Full-text, with OpenSearch's built-in `english` analyser | | 0.760 / 0.605 | 2 of 25 |
-| **Hybrid (the default)** | **0.880 / 0.810** | **0.880 / 0.810** | 18 of 25 |
+| **Hybrid (the default before the reranker)** | **0.880 / 0.810** | **0.880 / 0.810** | 18 of 25 |
 | OpenSearch's own hybrid query (`--method hybrid-native`) | | 0.880 / 0.810 | 18 of 25 |
 
-"Same top 5": questions whose first five sections are the same, in the same order, as on Postgres. The runs are in [eval/results/](eval/results/) (`2026-10-14T2145…-os-*`).
+"Same top 5": questions whose first five sections are the same, in the same order, as on Postgres. The runs are in [eval/results/](eval/results/) (`2026-10-14T2145…-os-*`). They were made before the [reranker](#reranker), which reorders either backend's top 20; `--no-rerank` gives the searches compared here.
 
 - **Vector search is identical.** With the same graph parameters as pgvector (HNSW, m 16, ef_construction 64, ef_search 40, on OpenSearch's default Faiss engine), OpenSearch returns the same 20 sections in the same order for every question, with the same scores to 4 decimals. Its graph found exactly what an exact search finds, even 40 deep ([D-035](docs/DECISIONS.md#d-035-k-nn-with-faisss-hnsw-and-pgvectors-parameters-the-vector-results-are-identical)).
 - **Full-text search differs, mostly through stop words.** OpenSearch's built-in `english` analyser drops only 33 stop words, so "what", "how", "does" or "which" became search terms, and BM25 found 19 answers in its top 5 instead of Postgres's 20. With Postgres's 127 stop words it finds 21, and the introduction of the TOPS deramping note rises from 10th to 2nd. The rest differs because the two analysers split words like "Sentinel-1" differently and Lucene stores each chunk's length approximately ([D-036](docs/DECISIONS.md#d-036-opensearchs-bm25-uses-postgress-stop-words-its-own-hybrid-query-is-measured-too)).
@@ -371,16 +409,22 @@ It was built and tested on Windows 10 with WSL2 (Ubuntu 24.04), an NVIDIA GTX 10
 
 - **Docker Engine** with the Compose plugin, running inside WSL (tested with Engine 29.8 and Compose 5.5).
 - **[uv](https://docs.astral.sh/uv/)**, GNU Make and git. uv installs Python 3.12 and the dependencies on the first run.
-- **[Ollama](https://ollama.com) 0.30.5 or newer**, installed inside WSL (tested with 0.40.1). On WSL2 it reaches the GPU through the Windows NVIDIA driver, which is the only thing needed on the Windows side. Ollama supports Pascal cards such as the GTX 1070 from driver 570 on.
-- **GPU memory and disk:** with both models loaded, the test machine used 5.4 of its 8 GiB of VRAM, desktop included. The models take 7.3 GB of disk, and the downloaded pages and PDFs 18 MB.
+- **[Ollama](https://ollama.com) 0.30.5 or newer**, installed inside WSL (tested with 0.40.1). The reranker needs `/api/generate` to return log-probabilities, which 0.40.1 does; older versions were not tried. On WSL2 Ollama reaches the GPU through the Windows NVIDIA driver, which is the only thing needed on the Windows side. Ollama supports Pascal cards such as the GTX 1070 from driver 570 on.
+- **GPU memory and disk:** with the three models loaded, the test machine used 6.7 of its 8 GiB of VRAM, desktop included. The models take 7.9 GB of disk, and the downloaded pages and PDFs 18 MB.
 
 ### Setup
 
 ```bash
-# Ollama and the two models (7.3 GB in total)
+# Ollama and the three models (7.9 GB in total)
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull gemma4:e4b-it-qat
 ollama pull bge-m3
+ollama pull hf.co/mradermacher/Qwen3-Reranker-0.6B-GGUF:Q8_0
+
+# Turn off the RAM copy of every prompt that Ollama's runner keeps, up to 8 GiB per model
+sudo mkdir -p /etc/systemd/system/ollama.service.d
+printf '[Service]\nEnvironment="LLAMA_ARG_CACHE_RAM=0"\n' | sudo tee /etc/systemd/system/ollama.service.d/cache-ram.conf
+sudo systemctl daemon-reload && sudo systemctl restart ollama
 
 # The project
 git clone https://github.com/mmartinsie/sentinel1-rag.git
@@ -401,9 +445,11 @@ make eval ARGS="--backend opensearch"
 
 Measured on a clean clone before the PDFs were added: `make up` 13 s and the first `make ask` about 70 s, almost all of it loading Gemma from a hard disk. With the PDFs, `make ingest` takes about 80 s, most of it reading the PDFs, and `make index` about a minute for the 568 chunks into an empty database. With the models loaded, an answer takes about 4–7 s, and up to about 16 s when it is long. Ollama unloads a model after 5 idle minutes, so the next question pays the load time again.
 
-To check that the models run on the GPU, run `ollama ps` while asking a question: both models should show `100% GPU`. After a WSL restart, Ollama sometimes falls back to the CPU because its GPU discovery times out while the disk is cold. If `journalctl -u ollama -b | grep "inference compute"` shows `library=cpu`, read its CUDA libraries into the disk cache with `cat /usr/local/lib/ollama/cuda_v12/* > /dev/null` and run `sudo systemctl restart ollama`.
+To check that the models run on the GPU, run `ollama ps` while asking a question: all three models should show `100% GPU`. After a WSL restart, Ollama sometimes falls back to the CPU because its GPU discovery times out while the disk is cold. If `journalctl -u ollama -b | grep "inference compute"` shows `library=cpu`, read its CUDA libraries into the disk cache with `cat /usr/local/lib/ollama/cuda_v12/* > /dev/null` and run `sudo systemctl restart ollama`.
 
 Every request asks Ollama to map the model files (`use_mmap`) instead of copying them into RAM. Ollama turns mapping off on its own when it sees little free memory, which made Gemma's process grow from about 3 to 6 GB and froze WSL once ([D-030](docs/DECISIONS.md#d-030-every-ollama-request-asks-for-mmap)).
+
+Ollama 0.40 runs each model in llama.cpp's `llama-server`, which by default keeps a copy of every prompt it has processed in RAM, up to 8 GiB per model, to reuse it if a later prompt starts the same way. The reranker sends 20 new prompts per question, and during one eval its process grew to 8.8 GB, leaving WSL with 1.6 GiB. The setup above sets `LLAMA_ARG_CACHE_RAM=0` for the Ollama service, which turns that copy off; this project's prompts gain nothing from it ([D-038](docs/DECISIONS.md#d-038-the-ram-prompt-cache-of-ollamas-llama-server-is-turned-off-llama_arg_cache_ram0)). After `sudo systemctl restart ollama`, check that it found the GPU, as above.
 
 ### Commands
 
@@ -413,7 +459,7 @@ Every request asks Ollama to map the model files (`use_mmap`) instead of copying
 | `make down` | Stops the database, and OpenSearch if it runs. The data is kept. |
 | `make ingest` | Downloads the pages and PDFs in `sources.yaml` (once; cached in `data/raw/`) and writes the chunks to `data/chunks/`. |
 | `make index` | Embeds the chunks and stores them. Pages that have not changed are skipped. |
-| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores. `--method vector`, `lexical` or `hybrid`, `--no-translate`, `--top-k N` and `--lexical-ranking ts_rank` change the retrieval; the default is hybrid, translated, BM25, top 5. `--backend opensearch` searches OpenSearch, which also offers `--method hybrid-native`. |
+| `make ask Q="..."` | Answers a question with cited sources. `ARGS=--show-context` also prints the retrieved chunks and their scores. `--method vector`, `lexical` or `hybrid`, `--no-translate`, `--top-k N`, `--lexical-ranking ts_rank` and `--no-rerank` change the retrieval; the default is hybrid, translated, BM25, the top 20 reranked, top 5. `--backend opensearch` searches OpenSearch, which also offers `--method hybrid-native`. |
 | `make eval` | Measures retrieval, with the same defaults and options as `make ask`. `ARGS="--label name"` names the run. |
 | `make opensearch-up` | Starts OpenSearch (not started by `make up`) and waits until it answers. |
 | `make opensearch-index` | Copies the chunks and their vectors from Postgres into a new OpenSearch index. Run it again after `make index` changes anything. |
@@ -437,10 +483,11 @@ src/sentinel1_rag/
   extract_pdf.py          PDF to sections with heading paths and page anchors
   chunking.py             sections to chunks
   ingest.py               make ingest
-  ollama.py               minimal REST client for /api/embed and /api/chat
+  ollama.py               minimal REST client for /api/embed, /api/chat and /api/generate
   db.py                   database connection
   index.py                make index
   retrieval.py            vector, lexical and hybrid top-k search, shared by ask and eval
+  rerank.py               reorders the top 20 with the reranker
   opensearch.py           make opensearch-index, and the same searches on OpenSearch
   translate.py            translates a question into English for the lexical search
   ask.py                  make ask: prompt, answer and citations
@@ -464,7 +511,7 @@ docs/PROGRESS.md          build log and notes for resuming work
 ## Limitations
 
 - **Small eval set.** 25 questions, only 5 of them written without reading the documents (none about the PDFs), and no held-out set (see [Retrieval results](#retrieval-results)).
-- **The example question misses its best sections.** For "¿Qué diferencia hay entre un producto GRD y uno SLC?", chunks that list the product types and their resolutions outrank the sections that explain the difference, in the SentiWiki and in the product definition alike: the first of those ranks 13th. The answer covers slant versus ground range and the resolution classes, but not the phase information that SLC products keep. Vector search with 10 passages reaches one of them, 10th: `make ask Q="..." ARGS="--method vector --top-k 10"`.
+- **The original example question still misses the SLC sections.** For "¿Qué diferencia hay entre un producto GRD y uno SLC?", the reranker brings the product definition's section on GRD products to 1st (it was 13th), but the sections that explain SLC products are not among the 20 chunks it reads. The answer covers slant versus ground range and the resolution classes, but not the phase information that SLC products keep. Vector search with 10 passages and no reranker reaches one of them, 10th: `make ask Q="..." ARGS="--method vector --top-k 10 --no-rerank"`.
 - **Questions about three or more things.** One search cannot get every part into the passages the model sees. For "the differences between Level-0, Level-1 and Level-2", vector search ranked the three sections 2nd, 3rd and 14th.
 - **No threshold for "not found".** The distances of unanswerable questions overlap with those of answerable ones, so the model always receives 5 passages and has to decide on its own that the answer is not there. It did so every time for the question about the mission's cost.
 - **Retrieval depends on the language model.** Gemma translates every question before the full-text search: one more call, and a wrong translation would quietly weaken that half of the search. English questions are usually recognised and left alone; one of the seven in the eval came back with "Which" changed to "What".
@@ -475,8 +522,9 @@ docs/PROGRESS.md          build log and notes for resuming work
 - **The PDF extractor is tuned on six documents.** It finds sections by their numbering and a larger font; a PDF with unnumbered headings, headings in the body font or two columns would need new rules, and it stops with "no numbered sections found" rather than guess.
 - **Citations to a PDF point to a page, not a heading.** Sections that start on the same page share the same link; the section path printed next to it tells them apart.
 - **Words matter.** A question has to use roughly the documentation's terms: "sigma zero" finds the noise-equivalent sigma zero sections instead of the calibration note, which says σ0, DN and calibration LUT.
-- **Long sections crowd out short ones.** A section cut into several chunks can fill most of the 5 places: for why TOPS bursts are deramped, the definition's four chunks come first and the introduction that answers the question ranks 10th.
+- **Long sections can crowd out short ones.** A section cut into several chunks can fill most of the 5 places. For why TOPS bursts are deramped, the definition's four chunks came first and the introduction that answers the question ranked 10th; the reranker brings it to 1st, but nothing limits the chunks per section.
 - **Documents of different dates can disagree,** as the geocoding guide (2022) and the wiki do on orbit file latency, and the model may mix them in one answer.
+- **The reranker can demote the best chunk.** In the eval it moved the first correct chunk of two questions down, though not out of the top 5, and for the thermal noise example at the top of this page it pushed the section that explains why out of the 5 passages. It was chosen on the same 25 questions, with one of two instructions tried, and it adds a third model and about 1.7 s to every search.
 - **HNSW is not needed at this size.** With 568 chunks the Postgres planner prefers an exact scan (about 4 ms). The index is there to learn how it works.
 - **BM25 is computed the slow way.** Postgres has no BM25, so the SQL works out the corpus statistics (how many chunks contain each word, the average chunk length) on every query, reading every chunk. It took about 16 ms with the 195 SentiWiki chunks and takes about 41 ms with 568, so it would not scale to a large corpus, which would need those statistics kept in a table or an index built for BM25.
 - **The agent's guards come from 18 questions.** A small model followed its prompt only some of the time, so the code enforces grounding, dates and filters (see [Agent](#agent-documentation-and-scene-search)). Small prompt changes moved single questions both ways, and only 6 questions were held out.
@@ -491,7 +539,7 @@ docs/PROGRESS.md          build log and notes for resuming work
 
 All five planned extensions are done: a lexical baseline and hybrid search, which with a translated question is now the default (see [Lexical and hybrid search](#lexical-and-hybrid-search)), technical PDFs from the Sentinel-1 document library (see [Technical PDFs](#technical-pdfs)), an agent with a `search_scenes` tool over the Copernicus STAC API (see [Agent](#agent-documentation-and-scene-search)), an MCP server that offers its tools to other applications (see [MCP server](#mcp-server)), and OpenSearch k-NN compared with pgvector (see [OpenSearch versus pgvector](#opensearch-versus-pgvector)).
 
-Smaller experiments that `make eval` can measure in minutes, not run yet: merging the chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, at most two chunks per section in the top 5, adding the SentiWiki's POD or Glossary pages, more PDFs from the library, and a reranker over the top 20.
+After them came a reranker over the top 20, now the default (see [Reranker](#reranker)); capping the chunks per section in the top 5, measured next to it, changed nothing. Smaller experiments that `make eval` can measure in minutes, not run yet: merging the chunks under 100 tokens with their neighbours, another chunk size, embedding chunks without the heading-path prefix, adding the SentiWiki's POD or Glossary pages, and more PDFs from the library.
 
 ## Versions
 
@@ -500,6 +548,7 @@ Smaller experiments that `make eval` can measure in minutes, not run yet: mergin
 | [v0.1](https://github.com/mmartinsie/sentinel1-rag/tree/v0.1) | The RAG over the SentiWiki and six technical PDFs: hybrid search with the question translated for BM25, top 5, page-cited answers, and the retrieval eval. |
 | [v0.2](https://github.com/mmartinsie/sentinel1-rag/tree/v0.2) | Adds the agent with scene search (`make agent`, `make eval-agent`) and the MCP server (`make mcp`, `make mcp-check`). The retrieval is unchanged: `make eval` gives the same results as in v0.1 (see [Retrieval results](#retrieval-results)). |
 | [v0.3](https://github.com/mmartinsie/sentinel1-rag/tree/v0.3) | Adds OpenSearch as an optional second search engine (`make opensearch-up`, `make opensearch-index`, `--backend opensearch`), compared with pgvector on the same chunks and vectors (see [OpenSearch versus pgvector](#opensearch-versus-pgvector)). pgvector stays the default, and `make eval` still gives the same results as in v0.1. |
+| [v0.4](https://github.com/mmartinsie/sentinel1-rag/tree/v0.4) | Adds a reranker that reorders the search's top 20 (Qwen3-Reranker-0.6B through Ollama), now the default for `make ask`, the agent and the MCP server: hit@5 0.880 → 0.960 and MRR@5 0.810 → 0.890 (see [Reranker](#reranker)). `--no-rerank` gives the retrieval of v0.1 to v0.3. |
 
 ## License
 

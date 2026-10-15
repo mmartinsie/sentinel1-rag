@@ -1,12 +1,12 @@
 # Progress
 
-_Last updated: 2026-10-14_
+_Last updated: 2026-10-15_
 
 ## Current step
 
-**None: step 15 is done (approved by the user on 2026-10-14) and committed; its push and the `v0.3` tag wait for the user's "súbelo".** All steps of the brief (0–7) are done, and so are the extension steps 8 to 15, which cover all five planned extensions. What comes next is open (see "Next").
+**None: step 16 is done (approved by the user on 2026-10-15) and committed; its push and the `v0.4` tag wait for the user's "súbelo".** All steps of the brief (0–7) are done, and so are the extension steps 8 to 16; steps 8 to 15 cover all five planned extensions. What comes next is open (see "Next").
 
-**Versions:** the annotated tag `v0.1` marks the end of step 12 (commit `2c8d919`, README with hit@5 0.880 from `…113743-pdfs.json`); it was created and pushed on 2026-10-11 with the user's OK, because a public post links to it. Never move or delete it. **v0.2** = the agent (step 13) + the MCP server (step 14): annotated tag on commit `4247db7`, created and pushed on 2026-10-14 with the user's OK. The reranker is not in v0.2. **v0.3** = OpenSearch compared with pgvector (step 15): approved by the user on 2026-10-14, as an annotated tag on the step-15 commit, created and pushed together with that commit. Any later tag is created and pushed only on the user's OK.
+**Versions:** the annotated tag `v0.1` marks the end of step 12 (commit `2c8d919`, README with hit@5 0.880 from `…113743-pdfs.json`); it was created and pushed on 2026-10-11 with the user's OK, because a public post links to it. Never move or delete it. **v0.2** = the agent (step 13) + the MCP server (step 14): annotated tag on commit `4247db7`, created and pushed on 2026-10-14 with the user's OK. The reranker is not in v0.2. **v0.3** = OpenSearch compared with pgvector (step 15): annotated tag on commit `3c1f359`, created and pushed on 2026-10-14 with the user's OK. **v0.4** = the reranker (step 16): approved by the user on 2026-10-15, as an annotated tag on the step-16 commit, created and pushed together with that commit. Any later tag is created and pushed only on the user's OK.
 
 | Step | Scope | Status |
 |---|---|---|
@@ -26,6 +26,7 @@ _Last updated: 2026-10-14_
 | 13 | Extension: agent with a STAC `search_scenes` tool | Done |
 | 14 | Extension: MCP server exposing `search_docs` and `search_scenes` | Done (v0.2) |
 | 15 | Extension: OpenSearch k-NN compared with pgvector | Done (v0.3) |
+| 16 | Reranker over the top 20 (Qwen3-Reranker-0.6B through Ollama) | Done (v0.4) |
 
 ## Done
 
@@ -226,6 +227,18 @@ _Last updated: 2026-10-14_
 - **Results** (D-035, D-036): vector search identical (the same 20 sections for all 25 questions, recall 1.000 against exact search); BM25 hit@5 0.840 / MRR@5 0.687 against 0.800 / 0.663 in SQL (0.760 / 0.605 with the built-in `english` analyser, whose short stop list keeps question words); the default hybrid search 0.880 / 0.810 on both, and the native hybrid query the same; the 4 questions whose top 5 changes get answers just as correct. OpenSearch's BM25 is 9 times faster (4.9 against 44.9 ms), pgvector's vector search 2 times faster (3.6 against 6.5 ms); OpenSearch uses 1.4–1.6 GiB of RAM and 36–64 s to start. pgvector stays the default.
 - **Runs:** `eval/results/2026-10-14T214507-os-vector.json`, `…214621-os-lexical-en`, `…214725-os-hybrid`, `…214741-os-hybrid-native`. The analyser variants, recall, latency and answer comparisons ran as throwaway scripts.
 - **Approved by the user** on 2026-10-14, every item as recommended: D-034 to D-036 accepted, Postgres's stop words in the OpenSearch analyser, pgvector stays the default, `--method hybrid-native` kept, the 4 runs committed, and the tag `v0.3`. The package version is now 0.3.0, which the MCP server reports.
+- **Pushed and tagged** on 2026-10-14: commit `3c1f359` on `main`, annotated tag `v0.3`.
+
+### Step 16
+
+- **Plan approved by the user** on 2026-10-14, every item as recommended, with a criterion for making it the default set before measuring: hit@5 or MRR@5 higher, no question leaving the top 5, under 3 s more per question.
+- **Verified first** (D-037): Ollama 0.40.1 has no reranking endpoint but returns up to 20 log-probabilities per token; PyTorch's current CUDA builds no longer support the GTX 1070 (Pascal); the `ggml-org` GGUF of Qwen3-Reranker loads only as an embedding model, the `mradermacher` Q8_0 as a language model.
+- **Found: the RAM prompt cache** (D-038). Ollama's `llama-server` keeps every prompt in RAM, up to 8 GiB per model; the reranker's runner reached 8.8 GB and WSL had 1.6 GiB left. The user set `LLAMA_ARG_CACHE_RAM=0` in a systemd drop-in for Ollama; after it, the runner stays around 1 GiB and a question takes 1.2–2.0 s instead of 2–79 s.
+- **Code:** `rerank.py` (prompt, score as log P(yes) − log P(no), `reorder`, `check_reranker`); `Ollama.next_token_logprobs`; `retrieve(..., rerank=)` and `DEFAULT_RERANK`; `--rerank` / `--no-rerank` in `make ask` and `make eval` (the results record the model, its digest, the candidates and the instruction); the agent and the MCP server pass the default; `make agent` and `make eval-agent` check that the reranker is pulled.
+- **Results** (D-039): with an instruction for the domain, hit@1 0.840, hit@5 0.960 (24 of 25, the most reachable: `sigma0-calibration` has no correct chunk in the top 40), MRR@5 0.890, against 0.760 / 0.880 / 0.810; the card's instruction gave 0.600 / 0.920 / 0.708; the English translation as query 0.800 / 0.960 / 0.880; the top 40 0.840 / 0.920 / 0.880 in 3.3 s; a cap of 1 or 2 chunks per section changed nothing. Answers for the 23 questions whose top 5 changed: 43 of 46 cite a correct section against 40. Search time 1.7 s median (0.09 without). The agent: the same 13 of 18 checks, question by question. Against the reference Transformers code (60 pairs): rank correlation 0.989–1.000, same top 5. The README's thermal noise example lost its "why" section (5th → 8th); the README shows the new answer and says so.
+- **Criterion met,** so the reranker is the default (`DEFAULT_RERANK = True`), for the agent and the MCP server too.
+- **Runs:** `eval/results/2026-10-14T233134-rerank.json`, `…235006-agent-rerank.json`. The variants, the reference scores, the latency and the answer comparisons ran as throwaway scripts.
+- **Approved by the user** on 2026-10-15, every item as recommended: D-037 to D-039 accepted, the reranker as the default for `make ask`, the agent and the MCP server, the README's example replaced by the reranked answer with a note on what it lost, the 2 runs committed, and the tag `v0.4`. The package version is now 0.4.0.
 
 ## Environment baseline (2026-10-08)
 
@@ -255,23 +268,24 @@ _Last updated: 2026-10-14_
 - **stdout in an MCP server:** the SDK moves fd 1 to stderr while it serves, but text that a `print()` leaves in Python's buffer is written when the process exits, after fd 1 points at the protocol again. `mcp_server.py` points `sys.stdout` at stderr once the transport is open (D-031).
 - **Empty agent answers:** Gemma can end a turn after a tool result without writing anything (`eval_count` 1). It happened for the Madrid scenes question on 2026-10-11, every time, and in none of the 72 earlier agent answers. The agent eval now fails empty answers (D-033).
 - **OpenSearch:** the container takes 1.4–1.6 GiB of RAM with a 1 GB heap, and 36–64 s to become healthy from the hard disk. With Gemma, bge-m3, Postgres and OpenSearch all loaded, available RAM stayed at 7 GiB or more of 11.7 (step 15).
-- **Memory budget:** with both models loaded, the GPU uses 5.4 of 8 GiB and WSL uses 5.5 of 9.7 GiB of RAM. Postgres fits, but running other heavy workloads at the same time (such as a local Kubernetes cluster) could make RAM tight.
+- **Ollama's RAM prompt cache:** since Ollama runs models in llama.cpp's `llama-server`, each runner may keep up to 8 GiB of prompt copies in RAM. `LLAMA_ARG_CACHE_RAM=0` in `/etc/systemd/system/ollama.service.d/cache-ram.conf` turns it off (step 16, D-038). After an Ollama upgrade, check that the server's log has no "cache state" lines.
+- **Memory budget:** with Gemma, bge-m3 and the reranker loaded, the GPU uses 6.7 of 8 GiB (step 16). Earlier, with two models, WSL used 5.5 of 9.7 GiB of RAM. Postgres fits, but running other heavy workloads at the same time (such as a local Kubernetes cluster) could make RAM tight.
 
 ## Next
 
-**Push step 15 and the `v0.3` tag** when the user says "súbelo". All five planned extensions are done; what to do next is open, and the user chooses. Candidates: the reranker and the other smaller experiments listed in the README, asking the model again after an empty agent answer (D-033), retrying a rejected place in mixed agent questions, and new held-out agent questions.
+**Push step 16 and the `v0.4` tag** when the user says "súbelo". Then what to do next is open, and the user chooses. Candidates: new questions written without reading the documents (the 25 have chosen every retrieval change, the reranker's instruction included), the "sigma zero" miss, the smaller experiments listed in the README, asking the model again after an empty agent answer (D-033), retrying a rejected place in mixed agent questions, and new held-out agent questions.
 
-The current `make ask` pipeline, for reference: translate the question (Gemma, temperature 0), vector search (bge-m3, original question) and BM25 full-text search (English question), reciprocal rank fusion, top 5 passages to Gemma. Corpus: 5 SentiWiki pages and 6 PDFs, 568 chunks. Eval: hit@5 0.880, MRR@5 0.810 over 25 questions (`eval/results/2026-10-11T113743-pdfs.json`).
+The current `make ask` pipeline, for reference: translate the question (Gemma, temperature 0), vector search (bge-m3, original question) and BM25 full-text search (English question), reciprocal rank fusion, the top 20 reranked by Qwen3-Reranker-0.6B with the original question, top 5 passages to Gemma. Corpus: 5 SentiWiki pages and 6 PDFs, 568 chunks. Eval: hit@5 0.960, MRR@5 0.890 over 25 questions (`eval/results/2026-10-14T233134-rerank.json`); without the reranker 0.880 and 0.810 (`…113743-pdfs`).
 
 ## How to resume
 
 1. `cd ~/sentinel1-rag && uv sync`
-2. Check that Ollama is running and has both models: `systemctl is-active ollama && ollama list`.
+2. Check that Ollama is running and has the three models (Gemma, bge-m3 and `hf.co/mradermacher/Qwen3-Reranker-0.6B-GGUF:Q8_0`): `systemctl is-active ollama && ollama list`. `systemctl show ollama -p Environment` should list `LLAMA_ARG_CACHE_RAM=0`.
 3. After a WSL restart, check that Ollama found the GPU: `journalctl -u ollama -b | grep "inference compute"` must show `library=CUDA`. If it shows `library=cpu`, read the CUDA libraries into the disk cache first (`cat /usr/local/lib/ollama/cuda_v12/* > /dev/null`, about 10 s cold), then run `sudo systemctl restart ollama` and check again. Without that read, three restarts in a row fell back to the CPU in step 13.
 4. Start the database with `make up` (it does not start by itself after a restart). If `data/` is missing, rebuild everything with `make ingest && make index` (about 80 s and a minute); otherwise `make index` alone confirms there is nothing to do.
-5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in about 15 s once Gemma is loaded (it translates the questions); `ARGS="--method vector"` skips Gemma.
+5. Try it: `make ask Q="¿Qué diferencia hay entre un producto GRD y uno SLC?"`. The first question after a while takes about a minute and a half while Gemma loads. `make eval` re-measures retrieval in about 55 s once the models are loaded (it translates the questions and reranks); `ARGS="--no-rerank"` takes about 15 s, and `ARGS="--method vector --no-rerank"` skips Gemma and the reranker.
 6. Read this file and [DECISIONS.md](DECISIONS.md). The write-ups in [steps/](steps/) tell the story of each finished step in plain English.
-7. The comparisons of generated answers (steps 10 to 12), the BM25 cross-check and the PDF checks (page anchors, token counts, heading fonts) ran as throwaway scripts in a session scratchpad, so they are not in the repo. So did the probes of step 14 (the MCP wire tests, the English-query measure and the comparison of the agent's tool outputs) and the measurements of step 15 (analyser variants, HNSW recall, latency, answers). What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 to D-026, D-031, D-032 and D-034 to D-036.
+7. The comparisons of generated answers (steps 10 to 12), the BM25 cross-check and the PDF checks (page anchors, token counts, heading fonts) ran as throwaway scripts in a session scratchpad, so they are not in the repo. So did the probes of step 14 (the MCP wire tests, the English-query measure and the comparison of the agent's tool outputs) the measurements of step 15 (analyser variants, HNSW recall, latency, answers) and those of step 16 (reranker variants from stored log-probabilities, the reference scores in a throwaway PyTorch environment, latency, answers). What they measured and their numbers are in DECISIONS.md, under "Verified" in D-022 to D-026, D-031, D-032 and D-034 to D-039.
 8. `make agent`, `make eval-agent` and `make mcp-check` need the network (the Copernicus STAC API and Nominatim). Geocoded places are cached in `data/geocode.json`. `make mcp-check` takes about 10 s and does not load Gemma.
 9. **OpenSearch (optional):** `make opensearch-up` (about a minute), then `make opensearch-index` (seconds) whenever `make index` has changed anything; `ARGS="--backend opensearch"` in `make ask` or `make eval`. `make down` stops it too.
 10. **MCP with Claude Code:** `.mcp.json` registers the server; a new Claude Code session in this folder asks to approve it (`/mcp` shows its state). Postgres and Ollama must be running. The first start after a reboot is slow (about 5 s) and Claude Code's first probe may time out; it reconnects by itself.

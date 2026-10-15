@@ -26,6 +26,8 @@ from sentinel1_rag.config import CHAT_MODEL, CHAT_NUM_CTX, USER_AGENT
 from sentinel1_rag.db import connect
 from sentinel1_rag.geocode import ATTRIBUTION, Geocoder
 from sentinel1_rag.ollama import Ollama
+from sentinel1_rag.rerank import check_reranker
+from sentinel1_rag.retrieval import DEFAULT_RERANK
 from sentinel1_rag.scenes import item_url
 from sentinel1_rag.tools import SCHEMAS, Toolbox, scene_line
 
@@ -174,6 +176,8 @@ def main() -> None:
         raise SystemExit('Usage: make agent Q="your question" [ARGS=--show-results]')
 
     ollama = Ollama()
+    if DEFAULT_RERANK:
+        check_reranker(ollama)
     with connect() as conn, httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=60) as http:
         toolbox = Toolbox(conn, ollama, http, Geocoder(http), args.today)
         print(f"Asking {CHAT_MODEL}, with tools...", flush=True)

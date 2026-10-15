@@ -21,7 +21,7 @@ import psycopg
 
 from sentinel1_rag.geocode import Geocoder, Place
 from sentinel1_rag.ollama import Ollama
-from sentinel1_rag.retrieval import DEFAULT_METHOD, DEFAULT_RANKING, TOP_K, Hit, retrieve
+from sentinel1_rag.retrieval import DEFAULT_METHOD, DEFAULT_RANKING, DEFAULT_RERANK, TOP_K, Hit, retrieve
 from sentinel1_rag.scenes import COLLECTIONS, MODES, ORBITS, SCENE_LIMIT, Scene, search
 from sentinel1_rag.translate import to_english, use_translation
 
@@ -251,10 +251,13 @@ class Toolbox:
             return f"Error: {exc}"
 
     def search_docs(self, query: str) -> str:
-        """The default retrieval of `make ask` (hybrid, the full-text half in English, top 5), run
-        on the model's query. A chunk found again keeps its number."""
+        """The default retrieval of `make ask` (hybrid, the full-text half in English, the top 20
+        reranked, top 5), run on the model's query. A chunk found again keeps its number."""
         english = to_english(self._ollama, query) if use_translation(DEFAULT_METHOD, None) else None
-        hits = retrieve(self._conn, self._ollama, query, k=TOP_K, method=DEFAULT_METHOD, english=english, ranking=DEFAULT_RANKING)
+        hits = retrieve(
+            self._conn, self._ollama, query, k=TOP_K, method=DEFAULT_METHOD, english=english,
+            ranking=DEFAULT_RANKING, rerank=DEFAULT_RERANK,
+        )
         if not hits:
             raise ToolError("the documentation index is empty.")
         known = {hit.chunk_id: n for n, hit in enumerate(self.passages, start=1)}

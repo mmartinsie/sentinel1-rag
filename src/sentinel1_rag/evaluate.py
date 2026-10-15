@@ -12,7 +12,8 @@ records the rank of the first chunk that comes from one of those sections:
 
 Only retrieval is measured, so Gemma is used only to translate the questions for the lexical
 search (on by default; --method vector or --no-translate skip it). --backend opensearch runs
-the same searches in OpenSearch (D-034). Each run is saved in eval/results/.
+the same searches in OpenSearch (D-034), and --rerank reorders the top 20 with the reranker
+(D-037). Each run is saved in eval/results/.
 """
 
 import argparse
@@ -22,7 +23,7 @@ from datetime import datetime
 
 import yaml
 
-from sentinel1_rag.config import EMBED_MODEL, QUESTIONS_FILE, RESULTS_DIR, ROOT
+from sentinel1_rag.config import EMBED_MODEL, QUESTIONS_FILE, RERANK_MODEL, RESULTS_DIR, ROOT
 from sentinel1_rag.db import connect
 from sentinel1_rag.fetch import is_pdf
 from sentinel1_rag.ollama import Ollama
@@ -31,6 +32,7 @@ from sentinel1_rag.retrieval import (
     DEFAULT_BACKEND,
     DEFAULT_METHOD,
     DEFAULT_RANKING,
+    DEFAULT_RERANK,
     METHODS,
     RANKINGS,
     TOP_K,
@@ -39,6 +41,7 @@ from sentinel1_rag.retrieval import (
     retrieve,
     score_label,
 )
+from sentinel1_rag.rerank import INSTRUCTION, RERANK_CANDIDATES, check_reranker
 from sentinel1_rag.translate import to_english, use_translation
 
 # Retrieve deeper than the top k so that a miss still shows how far down the answer was.
@@ -106,10 +109,12 @@ def print_report(
     translate: bool,
     ranking: str,
     backend: str,
+    rerank: bool,
 ) -> None:
     model = f" | {EMBED_MODEL}" if method != "lexical" else ""
     lexical = "" if method == "vector" else f" ({ranking}{', question in English' if translate else ''})"
-    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {backend} | {method}{lexical}{model} | top {top_k}")
+    reranked = f" | reranked by {RERANK_MODEL}" if rerank else ""
+    print(f"Retrieval eval: {len(results)} questions | {chunks} chunks | {backend} | {method}{lexical}{model}{reranked} | top {top_k}")
     for name, group in scores.items():
         values = " | ".join(f"{metric} {value:.3f}" for metric, value in group.items() if metric != "questions")
         print(f"  {name + ' (' + str(group['questions']) + ')':<17} {values}")
@@ -121,7 +126,7 @@ def print_report(
     print(f"  (rank of the first chunk from an expected section; '-' means not in the top {DEPTH})")
 
     misses = [r for r in results if r["rank"] is None or r["rank"] > top_k]
-    print(f"\nNot in the top {top_k}: {len(misses)} (scores are {score_label(method, ranking)})")
+    print(f"\nNot in the top {top_k}: {len(misses)} (scores are {score_label(method, ranking, rerank)})")
     for r in misses:
         where = f"rank {r['rank']}" if r["rank"] else f"not in the top {DEPTH}"
         print(f"\n{r['id']} ({where}): {r['question']}")
@@ -149,6 +154,10 @@ def main() -> None:
         help=f"how the full-text search ranks chunks (default {DEFAULT_RANKING})",
     )
     parser.add_argument("--backend", choices=BACKENDS, default=DEFAULT_BACKEND, help=f"where to search (default {DEFAULT_BACKEND})")
+    parser.add_argument(
+        "--rerank", action=argparse.BooleanOptionalAction, default=DEFAULT_RERANK,
+        help=f"reorder the top 20 with the reranker (default {'on' if DEFAULT_RERANK else 'off'})",
+    )
     args = parser.parse_args()
     if not 1 <= args.top_k <= DEPTH:
         raise SystemExit(f"--top-k must be between 1 and {DEPTH}")
@@ -171,13 +180,15 @@ def main() -> None:
         configs = [json.loads(c) for (c,) in conn.execute("SELECT DISTINCT index_config FROM documents")]
         chunks = conn.execute("SELECT count(*) FROM chunks").fetchone()[0]
         opensearch = open_backend(args.backend, conn, args.method, args.lexical_ranking)
+        if args.rerank:
+            check_reranker(ollama)
 
         results = []
         for q in questions:
             english = to_english(ollama, q["question"]) if args.translate else None
             hits = retrieve(
                 conn, ollama, q["question"], k=DEPTH, method=args.method, english=english,
-                ranking=args.lexical_ranking, opensearch=opensearch,
+                ranking=args.lexical_ranking, opensearch=opensearch, rerank=args.rerank,
             )
             relevant = {(r["url"], r["section"]) for r in q["relevant"]}
             results.append(
@@ -197,7 +208,7 @@ def main() -> None:
             )
 
     scores = scores_by_group(results, args.top_k)
-    print_report(results, scores, chunks, args.top_k, args.method, args.translate, args.lexical_ranking, args.backend)
+    print_report(results, scores, chunks, args.top_k, args.method, args.translate, args.lexical_ranking, args.backend, args.rerank)
 
     now = datetime.now().astimezone()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -209,6 +220,10 @@ def main() -> None:
         "method": args.method,
         "translate": args.translate,
         "lexical_ranking": None if args.method == "vector" else args.lexical_ranking,
+        "rerank": {
+            "model": RERANK_MODEL, "digest": ollama.digest(RERANK_MODEL), "candidates": RERANK_CANDIDATES,
+            "instruction": INSTRUCTION,
+        } if args.rerank else None,
         "top_k": args.top_k,
         "depth": DEPTH,
         "chunks": chunks,

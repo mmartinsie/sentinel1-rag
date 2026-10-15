@@ -1057,7 +1057,7 @@ wheels = [
 
 [[package]]
 name = "sentinel1-rag"
-version = "0.3.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },

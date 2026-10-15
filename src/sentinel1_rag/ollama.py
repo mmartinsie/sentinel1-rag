@@ -13,6 +13,8 @@ from sentinel1_rag.config import OLLAMA_URL
 # that run on the CPU stay in RAM. Every request must send it: a request whose load options differ
 # from the loaded model's makes Ollama load the model again.
 LOAD_OPTIONS = {"use_mmap": True}
+# Ollama refuses more ("top_logprobs must be between 0 and 20").
+TOP_LOGPROBS = 20
 
 
 class OllamaError(RuntimeError):
@@ -57,6 +59,24 @@ class Ollama:
         if tools:
             payload["tools"] = tools
         return self._call("POST", "/api/chat", payload)
+
+    def next_token_logprobs(self, model: str, prompt: str, options: dict[str, Any]) -> dict[str, float]:
+        """Log-probabilities of the likeliest tokens to follow a prompt, as {token: logprob}.
+
+        The prompt is sent raw, without the model's chat template, so it must already contain
+        any special tokens. Ollama returns at most 20 tokens (TOP_LOGPROBS).
+        """
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "raw": True,
+            "stream": False,
+            "logprobs": True,
+            "top_logprobs": TOP_LOGPROBS,
+            "options": LOAD_OPTIONS | options | {"num_predict": 1},
+        }
+        data = self._call("POST", "/api/generate", payload)
+        return {entry["token"]: entry["logprob"] for entry in data["logprobs"][0]["top_logprobs"]}
 
     def digest(self, model: str) -> str:
         """Digest of a pulled model; it changes if the model is pulled again with new weights."""

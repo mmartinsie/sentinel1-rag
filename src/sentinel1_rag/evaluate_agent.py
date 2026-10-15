@@ -25,11 +25,13 @@ import yaml
 
 from sentinel1_rag.agent import Run, result_summary, run_agent
 from sentinel1_rag.ask import cited_numbers
-from sentinel1_rag.config import AGENT_QUESTIONS_FILE, CHAT_MODEL, RESULTS_DIR, ROOT, USER_AGENT
+from sentinel1_rag.config import AGENT_QUESTIONS_FILE, CHAT_MODEL, RERANK_MODEL, RESULTS_DIR, ROOT, USER_AGENT
 from sentinel1_rag.db import connect
 from sentinel1_rag.evaluate import load_questions
 from sentinel1_rag.geocode import Geocoder
 from sentinel1_rag.ollama import Ollama
+from sentinel1_rag.rerank import check_reranker
+from sentinel1_rag.retrieval import DEFAULT_RERANK
 from sentinel1_rag.tools import SceneSearch, Toolbox
 
 CHECKS = ("tools", "arguments", "place", "passages", "citations", "answered")
@@ -147,6 +149,8 @@ def main() -> None:
         raise SystemExit(f"labels_from names ids that are not in questions.yaml: {', '.join(sorted(missing))}")
 
     ollama = Ollama()
+    if DEFAULT_RERANK:
+        check_reranker(ollama)
     started = time.perf_counter()
     results = []
     with connect() as conn, httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=60) as http:
@@ -188,6 +192,7 @@ def main() -> None:
         "label": args.label,
         "kind": "agent",
         "model": CHAT_MODEL,
+        "rerank": RERANK_MODEL if DEFAULT_RERANK else None,
         "think": args.think,
         "today": today.isoformat(),
         "metrics": scores,

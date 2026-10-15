@@ -18,6 +18,7 @@ from sentinel1_rag.retrieval import (
     DEFAULT_BACKEND,
     DEFAULT_METHOD,
     DEFAULT_RANKING,
+    DEFAULT_RERANK,
     METHODS,
     RANKINGS,
     TOP_K,
@@ -26,6 +27,7 @@ from sentinel1_rag.retrieval import (
     retrieve,
     score_label,
 )
+from sentinel1_rag.rerank import check_reranker
 from sentinel1_rag.translate import to_english, use_translation
 
 # Sent with every request (D-002). num_predict stops an answer that never ends.
@@ -62,8 +64,8 @@ def cited_numbers(answer: str) -> list[int]:
     return sorted({int(n) for group in CITATION.findall(answer) for n in group.split(",")})
 
 
-def print_context(hits: list[Hit], method: str, ranking: str) -> None:
-    print(f"Retrieved chunks ({method} retrieval; {score_label(method, ranking)})\n")
+def print_context(hits: list[Hit], method: str, ranking: str, rerank: bool) -> None:
+    print(f"Retrieved chunks ({method} retrieval{', reranked' if rerank else ''}; {score_label(method, ranking, rerank)})\n")
     for n, hit in enumerate(hits, start=1):
         print(f"[{n}] {hit.score:.3f}  {hit.section}\n    {hit.url}\n")
         print(textwrap.indent(hit.content, "    ") + "\n")
@@ -112,6 +114,10 @@ def main() -> None:
         help=f"how the full-text search ranks chunks (default {DEFAULT_RANKING})",
     )
     parser.add_argument("--backend", choices=BACKENDS, default=DEFAULT_BACKEND, help=f"where to search (default {DEFAULT_BACKEND})")
+    parser.add_argument(
+        "--rerank", action=argparse.BooleanOptionalAction, default=DEFAULT_RERANK,
+        help=f"reorder the top 20 with the reranker (default {'on' if DEFAULT_RERANK else 'off'})",
+    )
     args = parser.parse_args()
     question = args.question.strip()
     if not question:
@@ -124,17 +130,19 @@ def main() -> None:
     with connect() as conn:
         # Checked before translating, so that an impossible combination costs no Gemma call.
         opensearch = open_backend(args.backend, conn, args.method, args.lexical_ranking)
+        if args.rerank:
+            check_reranker(ollama)
         english = to_english(ollama, question) if translate else None
         if english is not None and english != question:
             print(f"Lexical search in English: {english}\n")
         hits = retrieve(
             conn, ollama, question, k=args.top_k, method=args.method, english=english,
-            ranking=args.lexical_ranking, opensearch=opensearch,
+            ranking=args.lexical_ranking, opensearch=opensearch, rerank=args.rerank,
         )
     if not hits:
         raise SystemExit("The index is empty. Run `make ingest` and `make index` first.")
     if args.show_context:
-        print_context(hits, args.method, args.lexical_ranking)
+        print_context(hits, args.method, args.lexical_ranking, args.rerank)
 
     # Flushed so the line shows up while waiting, even when the output goes to a pipe.
     print(f"Asking {CHAT_MODEL}...", flush=True)

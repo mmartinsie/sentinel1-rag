@@ -1,6 +1,6 @@
 [project]
 name = "sentinel1-rag"
-version = "0.3.0"
+version = "0.4.0"
 description = "Local RAG over the Sentinel-1 SentiWiki documentation (Ollama + Postgres/pgvector)"
 readme = "README.md"
 requires-python = ">=3.12"

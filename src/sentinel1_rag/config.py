@@ -32,6 +32,8 @@ OPENSEARCH_INDEX = "sentinel1-chunks"
 
 EMBED_MODEL = "bge-m3"
 CHAT_MODEL = "gemma4:e4b-it-qat"
+# Reorders the top 20 of the search (D-037). A GGUF from Hugging Face, pulled by Ollama itself.
+RERANK_MODEL = "hf.co/mradermacher/Qwen3-Reranker-0.6B-GGUF:Q8_0"
 # Context size sent with every request to the chat model (D-002). Ollama's default on this GPU is
 # 4096, and a request with a different size than the loaded model makes Ollama load it again
 # (about 60 s here), so answering and translating must use the same value.
